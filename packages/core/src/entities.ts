@@ -112,6 +112,137 @@ export const AssuranceCredit = z.object({
 });
 export type AssuranceCredit = z.infer<typeof AssuranceCredit>;
 
+// ── Funding layer — public-mechanism vocabulary only ────────────────────
+// Every mechanism below is published public prior art, cited at its use
+// site: quadratic funding (Weyl, Buterin & Hitzig, "Liberal Radicalism",
+// 2018 — Gitcoin/Allo Protocol implementation), dominant assurance
+// (Tabarrok, J. Public Economics 1998), retroactive allocation (Optimism
+// RetroPGF), impact claims (hypercerts ATProto lexicon), attestations
+// (EAS). Nothing custodies funds — donations and pledges are ledger
+// records of intent; settlement rides public rails.
+
+export const FundingRoundState = z.enum(['open', 'closed', 'allocated']);
+
+// A bounded allocation event: sponsors add a matching fund; donors give
+// small amounts to eligible financial need nodes; the fund distributes by
+// quadratic allocation (breadth of support, not depth of pocket).
+export const FundingRound = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().default(''),
+  sponsorIds: z.array(z.string()).default([]),
+  matchingFund: z.object({ amount: z.number().min(0), currency: z.string().min(1) }),
+  // eligible targets are financial need nodes in the plan graph.
+  eligibleNeedIds: z.array(z.string()).default([]),
+  opensAt: z.string().datetime(),
+  closesAt: z.string().datetime(),
+  state: FundingRoundState.default('open'),
+  // on-chain mirror — Allo round id once created (phase 3).
+  chainRef: z.string().optional(),
+});
+export type FundingRound = z.infer<typeof FundingRound>;
+
+// A donation toward one need node inside a round. `pledged` = intent
+// recorded; `settled` = moved on an external rail (Allo round, Open
+// Collective, CAV transfer — recorded by reference, never custodied).
+export const Donation = z.object({
+  id: z.string().min(1),
+  roundId: z.string().min(1),
+  needNodeId: z.string().min(1),
+  donor: z.string().min(1),
+  amount: z.number().positive(),
+  currency: z.string().min(1),
+  settlement: z.enum(['pledged', 'settled']).default('pledged'),
+  settlementRef: z.string().optional(),   // tx hash / OC expense id / CAV receipt
+  at: z.string().datetime(),
+});
+export type Donation = z.infer<typeof Donation>;
+
+export const PledgeState = z.enum(['pending', 'bound', 'released', 'refunded']);
+
+// Dominant-assurance pledge (Tabarrok 1998): a commitment against one
+// possibility (optionally one of its needs) that binds only if the card
+// reaches quorum. Pending pledges on expired cards resolve `refunded`
+// (they never moved) and earn AssuranceCredit — willingness was real.
+export const Pledge = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  needNodeId: z.string().optional(),
+  pledger: z.string().min(1),
+  amount: z.number().positive(),
+  currency: z.string().min(1),
+  state: PledgeState.default('pending'),
+  stateAt: z.string().datetime(),
+});
+export type Pledge = z.infer<typeof Pledge>;
+
+// An impact claim — hypercerts ATProto lexicon shape (org.hypercerts
+// vocabulary, MIT spec): a *claim about work done* over a scope and
+// timeframe by named contributors, backed by oracle checks and
+// appreciations. A claim is not an instrument: no price, no ownership
+// split, no secondary market. Evaluation happens via attestations.
+export const ImpactClaim = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().optional(),      // the card it attests, if any
+  nodeIds: z.array(z.string()).default([]),  // coordinated action nodes
+  workScope: z.string().min(1),              // free-form scope (lexicon workScope)
+  timeframe: z.object({
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+  }).default({}),
+  contributors: z.array(z.string()).default([]),
+  oracleCheckIds: z.array(z.string()).default([]),
+  appreciationIds: z.array(z.string()).default([]),
+  state: z.enum(['draft', 'attested']).default('draft'),
+  createdAt: z.string().datetime(),
+});
+export type ImpactClaim = z.infer<typeof ImpactClaim>;
+
+// An attestation — EAS-shaped (Ethereum Attestation Service, open
+// schema registry): a named attester signs a payload under a schema ref.
+// `uid` fills once anchored on-chain (Alfajores/Celo); until then the
+// ledger row + payload hash is the record.
+export const Attestation = z.object({
+  id: z.string().min(1),
+  claimId: z.string().optional(),            // evaluating a claim
+  nodeId: z.string().optional(),             // or attesting a node's outcome
+  attester: z.string().min(1),
+  schemaRef: z.string().min(1),              // e.g. 'springforth.outcome.v1'
+  payload: z.string(),                       // schema-encoded JSON payload
+  uid: z.string().optional(),                // EAS uid when on-chain
+  at: z.string().datetime(),
+});
+export type Attestation = z.infer<typeof Attestation>;
+
+export const RetroRoundState = z.enum(['open', 'tallied', 'distributed']);
+
+// A retroactive allocation round (Optimism RetroPGF model): a sponsor
+// fund distributes across *attested claims* by quadratic ballot of
+// badgeholders — the reviewer cohort selected by EigenTrust standing on
+// the appreciation graph. Ex-post reward for demonstrated outcomes,
+// not ex-ante funding of proposals.
+export const RetroRound = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  fund: z.object({ amount: z.number().min(0), currency: z.string().min(1) }),
+  claimIds: z.array(z.string()).default([]),
+  badgeholderCount: z.number().int().min(1).default(8),
+  pointsPerBallot: z.number().int().min(1).default(100),
+  ballotClose: z.string().datetime(),
+  state: RetroRoundState.default('open'),
+});
+export type RetroRound = z.infer<typeof RetroRound>;
+
+export const RetroBallot = z.object({
+  id: z.string().min(1),
+  roundId: z.string().min(1),
+  badgeholder: z.string().min(1),
+  // claimId → points allocated (sum <= pointsPerBallot)
+  weights: z.record(z.string(), z.number().min(0)),
+  at: z.string().datetime(),
+});
+export type RetroBallot = z.infer<typeof RetroBallot>;
+
 // Open-evidence check on a coordination node — a single source reading
 // (remote-sensing, IoT, field evidence, public dataset connector) scored
 // independently. Confidence is reported, never auto-truth: human

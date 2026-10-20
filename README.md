@@ -28,6 +28,11 @@ happened.
   stays authoritative.
 - **Audit ledger** — every state change is a hash-chained event; heads are
   anchored to Bitcoin via OpenTimestamps public calendars.
+- **Funding layer** — quadratic rounds (Liberal Radicalism) over the needs
+  coordination surfaces, dominant-assurance pledges that bind only at
+  quorum, retro rounds reviewed by EigenTrust-derived badgeholders, and
+  hypercert-shaped impact claims evaluated by EAS attestations. Nothing
+  custodies funds — see `docs/funding-layer.md` + `docs/PROVENANCE.md`.
 - **Telegram bot** — declare, join, flag needs and appreciate from group chat;
   quorum announcements post back to the declaring group.
 
@@ -46,6 +51,10 @@ Domain logic lives in `packages/`; the worker is a thin HTTP shell.
 | `agent` | deterministic NL query over the coordination graph — cited, read-only |
 | `*-adapter` | OnePlanet (incl. MCP), Sarafu/CLC, Holons, Artizen, Open Collective, ValueFlows, Treegens |
 | `evidence-anchor` | sha256 manifests → ledger; OpenTimestamps anchoring |
+| `funding` | quadratic matching, assurance pledges, retro tally, claim builder |
+| `attest` | EAS schema payloads (off-chain builder) |
+| `export-*` | public-spec emitters: hypercerts lexicon, 360Giving, IATI |
+| `chain-celo` | viem clients: EAS attest, Allo rounds, hypercert mint — Alfajores-gated |
 
 ## Develop
 

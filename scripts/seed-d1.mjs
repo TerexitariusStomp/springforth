@@ -373,6 +373,34 @@ const extraEntities = [
       ['wanjiku', undefined], ['otieno', undefined]]
     .map(([actor, bringingNodeId]) => ['participation', `part-${midaId}-${actor}`,
       { id: `part-${midaId}-${actor}`, possibilityId: midaId, actor, bringingNodeId, at: NOW }]),
+  // ── Funding layer — quadratic round over Mida Creek's unmet needs ────
+  // Breadth demo: the boats need draws nine small donors; lunch draws
+  // one sponsor-size gift — the match column rewards the crowd.
+  ['round', 'round-mida-creek', { id: 'round-mida-creek',
+    title: 'Mida Creek planting round',
+    description: 'Matching fund over the unmet financial needs the card surfaced — propagules, boat transport, crew lunch',
+    sponsorIds: ['kilifi-regen-network'],
+    matchingFund: { amount: 500, currency: 'USD' },
+    eligibleNeedIds: [`${midaId}-need-0`, `${midaId}-need-1`, `${midaId}-need-2`],
+    opensAt: '2026-10-15T00:00:00Z', closesAt: '2026-11-15T00:00:00Z',
+    state: 'open' }],
+  ...[
+    [`${midaId}-need-1`, 'wanjiku', 5], [`${midaId}-need-1`, 'otieno', 5],
+    [`${midaId}-need-1`, 'kamau', 10], [`${midaId}-need-1`, 'nyambura', 5],
+    [`${midaId}-need-1`, 'juma', 10], [`${midaId}-need-1`, 'auma', 5],
+    [`${midaId}-need-1`, 'kilonzo', 15], [`${midaId}-need-1`, 'mwende', 10],
+    [`${midaId}-need-1`, 'baraka', 10],
+    [`${midaId}-need-2`, 'coast-supporter', 75],
+    [`${midaId}-need-0`, 'kalimbo', 20], [`${midaId}-need-0`, 'mike', 10],
+  ].map(([needNodeId, donor, amount], i) => ['donation',
+    `don-round-mida-creek-${i}`,
+    { id: `don-round-mida-creek-${i}`, roundId: 'round-mida-creek',
+      needNodeId, donor, amount, currency: 'USD',
+      settlement: 'pledged', at: NOW }]),
+  ['pledge', `pl-${midaId}-wanjiku`, { id: `pl-${midaId}-wanjiku`,
+    possibilityId: midaId, needNodeId: `${midaId}-need-0`,
+    pledger: 'wanjiku', amount: 40, currency: 'USD',
+    state: 'pending', stateAt: NOW }],
 ];
 append('seed', 'signal.declared', { id: `sig-aurelia-${needId}`, targetId: needId, intent: 'support' });
 append('coast-collective', 'possibility.declared', { id: possId, needs: 2, bringing: 1 });
@@ -394,6 +422,8 @@ append('seed', 'vf.imported', { id: vfSource, nodes: vfPlan.nodes.length });
 append('mida-creek-conservation', 'possibility.declared', { id: midaId, needs: 3, bringing: 1 });
 for (const a of ['dabaso-fishers', 'mida-creek-conservation', 'wanjiku', 'otieno'])
   append(a, 'possibility.joined', { id: midaId });
+append('seed', 'round.opened', { id: 'round-mida-creek' });
+append('wanjiku', 'pledge.pending', { id: `pl-${midaId}-wanjiku`, possibilityId: midaId, amount: 40, currency: 'USD' });
 
 const esc = (s) => s.replace(/'/g, "''");
 const sql = [

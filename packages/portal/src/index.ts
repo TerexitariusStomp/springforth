@@ -3,3 +3,5 @@ export { renderPossibilitiesPage, type PossibilityCard } from './possibilities.t
 export { renderLandingPage, type LandingInput, type LandingCard } from './landing.ts';
 export { renderPortfolioPage } from './portfolio.ts';
 export { renderOutcomesPage } from './outcomes.ts';
+export { renderRoundsPage, renderRoundPage } from './rounds.ts';
+export { renderReportPage } from './report.ts';

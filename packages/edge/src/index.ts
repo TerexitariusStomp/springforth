@@ -1,10 +1,20 @@
 import {
   Possibility, Participation, Appreciation, Pass, AssuranceCredit,
   OracleCheck, Signal,
+  FundingRound, Donation, Pledge, ImpactClaim, Attestation,
+  RetroRound, RetroBallot,
 } from '@springforth/core';
 import {
+  allocateMatching, refreshPledge, badgeholders, tallyRound,
+  buildClaim, toHypercertLexicon,
+} from '@springforth/funding';
+import { to360Giving } from '@springforth/export-360giving';
+import { toIati } from '@springforth/export-iati';
+import { outcomePayload, evaluationPayload } from '@springforth/attest';
+import {
   renderCoordinationPage, renderPossibilitiesPage, renderLandingPage,
-  renderPortfolioPage, renderOutcomesPage,
+  renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
+  renderReportPage,
 } from '@springforth/portal';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
@@ -26,7 +36,7 @@ import { buildManifest } from '@springforth/evidence-anchor';
 import {
   checkFromReading, EXPECTED_DIRECTION, SOURCES,
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
-  treegensPlantings, atlasHazard,
+  treegensPlantings, atlasHazard, trajectory,
   type SourceReading, type GeoLoc,
 } from '@springforth/oracle';
 import { liveAtlas } from '@springforth/atlas-adapter';
@@ -1005,6 +1015,28 @@ export default {
             { id: p.id, nextNeeds: created });
           return json({ ...p, status: 'completed', report, nextNeeds: created }, 201);
         }
+        // Composed field report — report + participants + evidence +
+        // appreciations + linked claim, assembled from structured records.
+        if (req.method === 'GET' && seg[2] === 'report') {
+          const [parts, nodes, checks, apps, claims] = await Promise.all([
+            list<Participation>(env.DB, 'participation'),
+            list<PlanNode>(env.DB, 'plannode'),
+            list<OracleCheck & { nodeId?: string }>(env.DB, 'oracle-check'),
+            list<Appreciation>(env.DB, 'appreciation'),
+            list<ImpactClaim>(env.DB, 'claim'),
+          ]);
+          const myNodes = nodes.filter((n) => n.possibilityId === p.id);
+          const claim = claims.find((c) => c.possibilityId === p.id);
+          return new Response(renderReportPage({
+            possibility: p,
+            participants: parts.filter((x) => x.possibilityId === p.id),
+            nodes: myNodes,
+            checks: checks.filter((c) => c.nodeId && myNodes.some((n) => n.id === c.nodeId)),
+            appreciations: apps.filter((a) => a.possibilityId === p.id),
+            claim,
+            trajectories: myNodes.map((n) => trajectory(n.id, checks)),
+          }), { headers: { 'content-type': 'text/html' } });
+        }
         // ICS export — the Mobilizon interop lane: possibility → calendar
         // event so cards travel into any calendar client.
         if (req.method === 'GET' && seg[2] === 'ics') {
@@ -1130,6 +1162,242 @@ export default {
           expiringSoon, passesLogged: passes.length,
           complementsConfirmed: recs.filter((r) => r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated')).length,
         });
+      }
+      // ── Funding layer — public mechanisms only ──────────────────────
+      // Quadratic rounds (LR/Gitcoin), assurance pledges (Tabarrok),
+      // retro ballots (RetroPGF), impact claims (hypercerts lexicon),
+      // attestations (EAS). Ledger records of intent — nothing custodies.
+      if (seg[0] === 'rounds') {
+        if (req.method === 'POST' && seg.length === 1) {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const b = await req.json() as Record<string, unknown>;
+          const round = FundingRound.parse({
+            id: String(b.id ?? `round-${Date.now().toString(36)}`),
+            title: String(b.title ?? ''), description: String(b.description ?? ''),
+            sponsorIds: b.sponsorIds ?? [], matchingFund: b.matchingFund,
+            eligibleNeedIds: b.eligibleNeedIds ?? [],
+            opensAt: String(b.opensAt ?? new Date().toISOString()),
+            closesAt: String(b.closesAt), state: 'open',
+          });
+          await put(env.DB, 'round', round.id, round);
+          await ledgerAppend(env.DB, 'api', 'round.opened', { id: round.id });
+          return json(round, 201);
+        }
+        if (req.method === 'GET' && seg.length === 1) {
+          const rounds = await list<FundingRound>(env.DB, 'round');
+          if (url.searchParams.get('format') === 'json') return json({ rounds });
+          return new Response(renderRoundsPage(rounds), { headers: { 'content-type': 'text/html' } });
+        }
+        const round = await get<FundingRound>(env.DB, 'round', seg[1] ?? '');
+        if (!round) return err('round not found', 404);
+        const donations = (await list<Donation>(env.DB, 'donation'))
+          .filter((d) => d.roundId === round.id);
+        // Public-spec exports — 360Giving grants JSON / IATI 2.03 XML.
+        // Emitted against the live allocation; downstream CoVE-validatable.
+        if (req.method === 'GET' && seg[2] === 'export' && seg[3]) {
+          const allocation = allocateMatching(round, donations);
+          const nodes = await list<PlanNode>(env.DB, 'plannode');
+          const labels = new Map(nodes.map((n) => [n.id, n.label]));
+          const owners = new Map(nodes.map((n) => [n.id, n.orgIds[0] ?? n.id]));
+          const places = new Map(nodes.map((n) => [n.id, n.placeId ?? '']));
+          if (seg[3] === '360giving')
+            return json(to360Giving({
+              round, allocation, needLabels: labels, needOwners: owners,
+              needPlaces: places,
+              publisher: { name: 'Springforth', orgId: 'springforth' },
+            }));
+          if (seg[3] === 'iati')
+            return new Response(toIati({
+              round, allocation, needLabels: labels, needOwners: owners,
+              publisherRef: 'XI-SPRING',
+            }), { headers: { 'content-type': 'application/xml' } });
+          return err('unknown export format', 404);
+        }
+        if (req.method === 'GET' && seg.length === 2) {
+          const allocation = allocateMatching(round, donations);
+          const nodes = await list<PlanNode>(env.DB, 'plannode');
+          if (url.searchParams.get('format') === 'json')
+            return json({ ...round, donations, allocation });
+          return new Response(renderRoundPage(round, donations, allocation, nodes),
+            { headers: { 'content-type': 'text/html' } });
+        }
+        if (req.method === 'POST' && seg[2] === 'donate') {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          if (round.state !== 'open') return err(`round is ${round.state}`, 409);
+          if (Date.parse(round.closesAt) < Date.now()) return err('round closed', 409);
+          const needNodeId = String(b.needNodeId ?? '');
+          if (!round.eligibleNeedIds.includes(needNodeId)) return err('need not eligible', 422);
+          const donor = String(b.donor ?? b.actor ?? '');
+          const amount = Number(b.amount ?? 0);
+          if (!donor || !(amount > 0)) return err('donor and positive amount required');
+          const donation = Donation.parse({
+            id: `don-${round.id}-${donor.toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+            roundId: round.id, needNodeId, donor, amount,
+            currency: String(b.currency ?? round.matchingFund.currency),
+            at: new Date().toISOString(),
+          });
+          await put(env.DB, 'donation', donation.id, donation);
+          await ledgerAppend(env.DB, donor, 'donation.recorded',
+            { roundId: round.id, needNodeId, amount, currency: donation.currency });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/rounds/${round.id}` } })
+            : json(donation, 201);
+        }
+        if (req.method === 'POST' && seg[2] === 'close') {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const allocation = allocateMatching(round, donations);
+          const closed = { ...round, state: 'allocated' as const };
+          await put(env.DB, 'round', round.id, closed);
+          await ledgerAppend(env.DB, 'api', 'round.allocated',
+            { id: round.id, allocation });
+          return json({ ...closed, allocation });
+        }
+      }
+      // ── Impact claims + attestations ────────────────────────────────
+      if (seg[0] === 'claims') {
+        if (req.method === 'POST' && seg.length === 1) {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const b = await req.json() as Record<string, unknown>;
+          const p = await get<Possibility>(env.DB, 'possibility', String(b.possibilityId ?? ''));
+          if (!p) return err('possibility not found', 404);
+          const [nodes, checks, apps] = await Promise.all([
+            list<PlanNode>(env.DB, 'plannode'),
+            list<OracleCheck>(env.DB, 'oracle-check'),
+            list<Appreciation>(env.DB, 'appreciation'),
+          ]);
+          const claim = buildClaim({
+            possibility: p,
+            nodes: nodes.filter((n) => n.possibilityId === p.id),
+            checks: checks.filter((c) => c.nodeId && nodes.find((n) => n.id === c.nodeId)),
+            appreciations: apps.filter((a) => a.possibilityId === p.id),
+            id: b.id ? String(b.id) : undefined,
+          });
+          await put(env.DB, 'claim', claim.id, claim);
+          await ledgerAppend(env.DB, 'api', 'claim.built', { id: claim.id, possibilityId: p.id });
+          return json({ ...claim, lexicon: toHypercertLexicon(claim) }, 201);
+        }
+        if (req.method === 'GET' && seg.length === 1) {
+          const claims = await list<ImpactClaim>(env.DB, 'claim');
+          if (url.searchParams.get('format') === 'lexicon')
+            return json({ claims: claims.map(toHypercertLexicon) });
+          return json({ claims });
+        }
+        const claim = await get<ImpactClaim>(env.DB, 'claim', seg[1] ?? '');
+        if (!claim) return err('claim not found', 404);
+        if (req.method === 'GET' && seg.length === 2) {
+          const atts = (await list<Attestation>(env.DB, 'attestation'))
+            .filter((a) => a.claimId === claim.id);
+          return url.searchParams.get('format') === 'lexicon'
+            ? json(toHypercertLexicon(claim))
+            : json({ ...claim, attestations: atts });
+        }
+        if (req.method === 'POST' && seg[2] === 'attest') {
+          const b = await req.json() as Record<string, unknown>;
+          const attester = String(b.attester ?? '');
+          if (!attester) return err('attester required');
+          const verdict = String(b.evaluation ?? 'positive');
+          const att = Attestation.parse({
+            id: `att-${claim.id}-${attester.toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+            claimId: claim.id, attester,
+            schemaRef: String(b.schemaRef ?? 'springforth.evaluation.v1'),
+            payload: JSON.stringify(evaluationPayload({
+              claim,
+              verdict: verdict === 'negative' ? 'negative' : verdict === 'neutral' ? 'neutral' : 'positive',
+              note: String(b.note ?? '').slice(0, 280),
+            })),
+            at: new Date().toISOString(),
+          });
+          await put(env.DB, 'attestation', att.id, att);
+          await put(env.DB, 'claim', claim.id, { ...claim, state: 'attested' as const });
+          await ledgerAppend(env.DB, attester, 'claim.attested', { id: claim.id, attestationId: att.id });
+          return json(att, 201);
+        }
+      }
+      // ── Retro rounds — badgeholders from EigenTrust ─────────────────
+      if (seg[0] === 'retro') {
+        if (req.method === 'POST' && seg.length === 1) {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const b = await req.json() as Record<string, unknown>;
+          const rr = RetroRound.parse({
+            id: String(b.id ?? `retro-${Date.now().toString(36)}`),
+            title: String(b.title ?? ''), fund: b.fund,
+            claimIds: b.claimIds ?? [], badgeholderCount: b.badgeholderCount,
+            pointsPerBallot: b.pointsPerBallot,
+            ballotClose: String(b.ballotClose), state: 'open',
+          });
+          await put(env.DB, 'retroround', rr.id, rr);
+          await ledgerAppend(env.DB, 'api', 'retro.opened', { id: rr.id });
+          return json(rr, 201);
+        }
+        if (req.method === 'GET' && seg.length === 1) {
+          const rounds = await list<RetroRound>(env.DB, 'retroround');
+          const apps = await list<Appreciation>(env.DB, 'appreciation');
+          return json({
+            rounds,
+            badgeholders: badgeholders(apps, 8),
+            rule: 'badgeholders = top EigenTrust on the appreciation graph; quadratic ballot on attested claims',
+          });
+        }
+        const rr = await get<RetroRound>(env.DB, 'retroround', seg[1] ?? '');
+        if (!rr) return err('retro round not found', 404);
+        const ballots = (await list<RetroBallot>(env.DB, 'retroballot'))
+          .filter((x) => x.roundId === rr.id);
+        if (req.method === 'GET' && seg.length === 2) {
+          return json({ ...rr, ballots, tally: tallyRound(rr, ballots) });
+        }
+        if (req.method === 'POST' && seg[2] === 'vote') {
+          if (rr.state !== 'open') return err(`round is ${rr.state}`, 409);
+          const b = await req.json() as Record<string, unknown>;
+          const holder = String(b.badgeholder ?? '');
+          const apps = await list<Appreciation>(env.DB, 'appreciation');
+          if (!badgeholders(apps, rr.badgeholderCount).includes(holder))
+            return err('not a badgeholder for this round', 403);
+          const ballot = RetroBallot.parse({
+            id: `ballot-${rr.id}-${holder.toLowerCase().replace(/\W+/g, '-')}`,
+            roundId: rr.id, badgeholder: holder,
+            weights: b.weights ?? {}, at: new Date().toISOString(),
+          });
+          await put(env.DB, 'retroballot', ballot.id, ballot);
+          await ledgerAppend(env.DB, holder, 'retro.ballot', { roundId: rr.id });
+          return json(ballot, 201);
+        }
+        if (req.method === 'POST' && seg[2] === 'tally') {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const tally = tallyRound(rr, ballots);
+          const tallied = { ...rr, state: 'tallied' as const };
+          await put(env.DB, 'retroround', rr.id, tallied);
+          await ledgerAppend(env.DB, 'api', 'retro.tallied', { id: rr.id, tally });
+          return json({ ...tallied, tally });
+        }
+      }
+      // ── Assurance pledges on possibility cards ──────────────────────
+      if (req.method === 'POST' && seg[0] === 'possibilities' && seg[2] === 'pledge') {
+        const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');
+        if (!p) return err('possibility not found', 404);
+        const b = await req.json() as Record<string, unknown>;
+        const pledger = String(b.pledger ?? b.actor ?? '');
+        const amount = Number(b.amount ?? 0);
+        if (!pledger || !(amount > 0)) return err('pledger and positive amount required');
+        const eff = effectiveStatus(p);
+        if (eff === 'expired' || eff === 'completed')
+          return err(`possibility is ${eff}`, 409);
+        const pledge = Pledge.parse({
+          id: `pl-${p.id}-${pledger.toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+          possibilityId: p.id, needNodeId: b.needNodeId ? String(b.needNodeId) : undefined,
+          pledger, amount, currency: String(b.currency ?? 'USD'),
+          state: 'pending', stateAt: new Date().toISOString(),
+        });
+        await put(env.DB, 'pledge', pledge.id, pledge);
+        await ledgerAppend(env.DB, pledger, 'pledge.pending',
+          { id: pledge.id, possibilityId: p.id, amount, currency: pledge.currency });
+        return json(pledge, 201);
+      }
+      if (req.method === 'GET' && seg[0] === 'pledges') {
+        return json({ pledges: await list<Pledge>(env.DB, 'pledge') });
       }
       // OpenTimestamps anchoring — stamps the ledger head hash into the
       // public Bitcoin calendars. Free and keyless: POST the 32-byte digest

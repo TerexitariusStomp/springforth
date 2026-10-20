@@ -13,6 +13,8 @@
   "dependencies": {
     "@springforth/coordination": "workspace:*",
     "@springforth/core": "workspace:*",
+    "@springforth/funding": "workspace:*",
+    "@springforth/oracle": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {

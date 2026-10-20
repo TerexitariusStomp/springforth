@@ -1,5 +1,6 @@
 import { OracleCheck } from '@springforth/core';
 export * from './sources.ts';
+export * from './trajectory.ts';
 
 // Open-evidence oracle — fuses independent source classes into ONE shown
 // confidence score. Confidence is reported, never auto-truth: human

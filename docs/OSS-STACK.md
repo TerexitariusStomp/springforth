@@ -31,6 +31,28 @@ and where the seams are.
 | postcodes.io / ONS | OGL | geography + deprivation context |
 | OpenTimestamps calendars | public | Bitcoin ledger anchoring |
 
+## Funding-layer protocols (public prior art — see `docs/PROVENANCE.md`)
+
+| Component | License | Used for |
+|---|---|---|
+| allo-v2 contracts (Gitcoin) | AGPL-3.0 | on-chain quadratic rounds on Celo — custody + merkle distribution live in the deployed strategy |
+| @ethereum-attestation-service/eas-sdk + EAS contracts (Celo) | MIT | outcome/evaluation attestations |
+| @hypercerts-org/lexicon + sdk-core | MIT | impact claim records (ATProto) |
+| viem | MIT | chain client + calldata building |
+| gitcoinco/quadratic-funding | MIT | QF reference implementation / test vectors |
+| gitcoinco/easy-retro-pgf (+ allo2 strategy) | MIT | retro-round ballot model reference |
+| 360Giving / IATI | open standards | grant + activity exports |
+| cUSD / Celo | — | donation + matching currency |
+
+## Custom-code accounting (`node scripts/oss-audit.mjs`)
+
+| Custom src | Custom tests | Vendored npm | Cited contract repos | Custom share |
+|---|---|---|---|---|
+| 6,355 | 1,713 | 413,787 | 125,000 | **1.25%** |
+
+Custom code is the coordination semantics, funding-mechanism glue, edge
+routes and renderers — every mechanism itself is cited public prior art.
+
 ## Interop formats
 
 | System | License | Lane |

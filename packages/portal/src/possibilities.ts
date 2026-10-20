@@ -1,5 +1,6 @@
 import type { PlanNode, TrustEdge } from '@springforth/coordination';
 import type { PossibilityStatus } from '@springforth/core';
+import { footer } from './nav.ts';
 
 // /possibilities — the card deck. Each card is a declared possibility
 // ("I want to…") with its needs progress, participant count, deadline
@@ -131,6 +132,6 @@ and how much of the required need-set is already met.</blockquote>
 ${body || '<p><em>No possibilities declared yet — POST /possibilities with a title, declarer, needs and deadline.</em></p>'}
 ${mutual ? `<h2>Mutual recognition</h2><p>Pairwise appreciation made visible —
 mutual recognition steers which cards surface to whom.</p><ul>${mutual}</ul>` : ''}
-<footer><small>Springforth — generated ${new Date().toISOString()}</small></footer>
+${footer()}
 </body></html>`;
 }

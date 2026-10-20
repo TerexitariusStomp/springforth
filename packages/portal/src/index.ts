@@ -3,5 +3,11 @@ export { renderPossibilitiesPage, type PossibilityCard } from './possibilities.t
 export { renderLandingPage, type LandingInput, type LandingCard } from './landing.ts';
 export { renderPortfolioPage } from './portfolio.ts';
 export { renderOutcomesPage } from './outcomes.ts';
-export { renderRoundsPage, renderRoundPage } from './rounds.ts';
+export { renderRoundsPage, renderRoundPage, renderRoundAdmin } from './rounds.ts';
 export { renderReportPage } from './report.ts';
+export { renderActorProfile, renderDonorPage } from './actor.ts';
+export { walletScript } from './wallet.ts';
+export { renderClaimPage } from './claim.ts';
+export { renderGovernancePage } from './governance.ts';
+export { t, langFrom, LANGS, type Lang } from './i18n.ts';
+export { navLinks, footer } from './nav.ts';

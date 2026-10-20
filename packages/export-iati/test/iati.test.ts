@@ -7,6 +7,7 @@ const round: FundingRound = {
   matchingFund: { amount: 500, currency: 'USD' },
   eligibleNeedIds: ['n1'],
   opensAt: '2026-10-15T00:00:00Z', closesAt: '2026-11-15T00:00:00Z', state: 'allocated',
+  matchingMode: 'lr', conviction: false, acceptedTokens: {},
 };
 
 describe('IATI export', () => {

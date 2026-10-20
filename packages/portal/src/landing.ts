@@ -1,5 +1,6 @@
 import type { Possibility } from '@springforth/core';
 import { effectiveStatus, type PlanNode } from '@springforth/coordination';
+import { t, type Lang } from './i18n.ts';
 
 // Landing — first-time-user home: how the platform works up front, then
 // "what needs attention" — the triage a newcomer needs to know where to
@@ -16,9 +17,12 @@ export interface LandingInput {
   unmetNeeds: number;               // no community offer matched yet
   actionNodes: PlanNode[];          // kind='action' nodes across imported plans
   planCount: number;
+  lang?: Lang;                      // 'en' default; 'sw' localizes chrome copy
 }
 
 export function renderLandingPage(i: LandingInput): string {
+  const lang = i.lang ?? 'en';
+  const tt = (k: string) => t(lang, k);
   const live = i.cards.filter((c) => ['active', 'draft'].includes(effectiveStatus(c.possibility)));
   const atQuorum = i.cards.filter((c) => effectiveStatus(c.possibility) === 'quorum');
   // Near-quorum: participants over the bar fraction, highest first.
@@ -52,8 +56,8 @@ Real work from imported plans and field records.
       + `<td>${c.participants}${c.possibility.minParticipants ? ` / ${c.possibility.minParticipants}` : ''} committed</td></tr>`)
     .join('\n');
 
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Springforth — coordinate first</title>
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
+<title>Springforth — ${tt('tagline')}</title>
 <style>body{font-family:system-ui,sans-serif;margin:0;color:#1a1a1a}
 .wrap{max-width:62rem;margin:0 auto;padding:0 1.25rem}
 .hero{background:#16331f;color:#eaf5ea;padding:3.5rem 0 2.5rem}
@@ -70,33 +74,31 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.5
 .muted{color:#555}h2{margin-top:2rem}</style></head><body>
 <div class="hero"><div class="wrap">
 <h1>Springforth</h1>
-<p>Coordinate first. People declare what they want to make happen; the
-commons offers what it already has — tools, hours, skills, space. When
-enough commit, coordination activates. And before anyone duplicates work,
-the overlap layer shows who is already pursuing the same outcome — every
-decision public on the <a href="/ledger">audit ledger</a>.</p>
+<p>${tt('tagline')} ${tt('hero')} — every
+decision public on the <a href="/ledger">${tt('nav.ledger')}</a>.</p>
 <div class="steps">
-<div class="step"><b>1 · Declare</b>“I want to…” with what you bring, what you need, a quorum and a deadline — in the <a href="/possibilities">deck</a> or Telegram.</div>
-<div class="step"><b>2 · Commit</b>Others opt in and pledge resources. The <a href="/coordination">coordination layer</a> matches needs to existing offers first.</div>
-<div class="step"><b>3 · Activate</b>At quorum the commitment binds — while <a href="/outcomes">outcomes</a> reveal who else is already working on the same thing.</div>
-<div class="step"><b>4 · Verify</b>Open-evidence readings and post-event appreciation close the loop — trust compounds into the next declaration.</div>
+<div class="step"><b>1 · ${tt('step.declare')}</b>${tt('step.declare.body')} <a href="/possibilities">${tt('nav.possibilities')}</a></div>
+<div class="step"><b>2 · ${tt('step.commit')}</b>${tt('step.commit.body')}</div>
+<div class="step"><b>3 · ${tt('step.activate')}</b>${tt('step.activate.body')}</div>
+<div class="step"><b>4 · ${tt('step.verify')}</b>${tt('step.verify.body')}</div>
 </div></div></div>
 <div class="wrap">
-<h2>What needs attention</h2>
+<h2>${tt('attention.title')}</h2>
 ${attn.length ? `<div class="grid">${attn.join('')}</div>`
-  : '<p class="muted">Nothing waiting — declare a possibility to start the loop.</p>'}
+  : `<p class="muted">${tt('attention.none')}</p>`}
 ${atQuorum.length ? `<p>${atQuorum.length} card${atQuorum.length === 1 ? '' : 's'} at quorum — commitments binding now.</p>` : ''}
-<h2>Possibility cards</h2>
+<h2>${tt('cards.title')}</h2>
 <p class="muted">${i.cards.length} cards · ${live.length} open · ${atQuorum.length} at quorum · ${i.planCount} plans in the graph · ${i.actionNodes.length} real actions</p>
 <table><tr><th>Card</th><th>Status</th><th>Committed</th></tr>
 ${cardRows || '<tr><td colspan="3"><em>No cards yet — declare one in the deck or Telegram.</em></td></tr>'}</table>
-<h2>Explore the graph</h2>
-<p><a href="/portfolio">Portfolio</a> — plans, themes, gaps, overlap clusters ·
-<a href="/outcomes">Outcomes</a> — who else is pursuing the same thing ·
-<a href="/coordination">Coordination</a> — evidence, validation, corrections ·
-<a href="/commitments">Commitments</a> — offers &amp; needs ·
-<a href="/verify">Verify</a> — open-evidence readings</p>
+<h2>${tt('explore.title')}</h2>
+<p><a href="/portfolio">${tt('nav.portfolio')}</a> ·
+<a href="/outcomes">${tt('nav.outcomes')}</a> ·
+<a href="/coordination">${tt('nav.coordination')}</a> ·
+<a href="/commitments">${tt('nav.commitments')}</a> ·
+<a href="/verify">${tt('nav.verify')}</a></p>
+<p class="muted"><a href="?lang=en">English</a> · <a href="?lang=sw">Kiswahili</a></p>
 <footer><small>Springforth — generated ${new Date().toISOString()} ·
-<a href="/ledger">audit ledger</a></small></footer>
+<a href="/ledger">${tt('nav.ledger')}</a></small></footer>
 </div></body></html>`;
 }

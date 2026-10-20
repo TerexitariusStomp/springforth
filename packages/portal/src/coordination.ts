@@ -1,5 +1,6 @@
 import { isNeed, triScore, type OverlapRecord, type PlanNode } from '@springforth/coordination';
 import type { Signal } from '@springforth/core';
+import { footer } from './nav.ts';
 
 // /coordination — public overlap report page. Same constraints as the rest
 // of the portal: one self-contained HTML file, no JS framework, no tracker.
@@ -195,6 +196,6 @@ ${unmetRows ? `<table><tr><th>Need</th><th>Owner</th><th>Deadline</th><th>Source
   : '<p><em>Every declared need has a confirmed offer.</em></p>'}
 ${unmet.some((n) => n.capital === 'living')
   ? `<p class="dir">External lane: verified plantings can be sponsored directly on <a href="https://world.treegens.app">Treegens Earth</a> — filmed, AI-counted records.</p>` : ''}
-<footer><small>Springforth — generated ${new Date().toISOString()}</small></footer>
+${footer()}
 </body></html>`;
 }

@@ -5,3 +5,4 @@ export * from './hypercerts.ts';
 export * from './client.ts';
 export * from './aave.ts';
 export * from './silvi.ts';
+export * from './superfluid.ts';

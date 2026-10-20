@@ -3,10 +3,14 @@ import {
   OracleCheck, Signal,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
   RetroRound, RetroBallot, ChainTx, YieldStream,
+  ActorWallet, RoundApplication, RecurringSupport,
+  GovernanceProposal, GovernanceBallot, GovernanceParam,
+  DatasetRelease, DataAccessGrant, Subscription,
 } from '@springforth/core';
 import {
-  allocateMatching, refreshPledge, badgeholders, tallyRound,
+  allocateMatching, pairwiseAllocate, refreshPledge, badgeholders, tallyRound,
   buildClaim, toHypercertLexicon,
+  eligibleVoters, tallyProposal, paramValue, GOVERNABLE,
 } from '@springforth/funding';
 import { to360Giving } from '@springforth/export-360giving';
 import { toIati } from '@springforth/export-iati';
@@ -15,13 +19,15 @@ import {
   chainFor, buildCreateProfileTx, buildCreateRoundTx,
   buildAttestTx, buildMintClaimTx, publicClientFor,
   parseAttestedUid, parsePoolId, readTokenBalance,
-  yieldDeltaUnits, unitsToStable,
-  type ChainConfig,
+  yieldDeltaUnits, unitsToStable, verifyWalletBinding,
+  buildCreateFlowTx, buildDeleteFlowTx, parseFlowRate, streamAccrual,
+  CFA_FORWARDER, type ChainConfig,
 } from '@springforth/chain-celo';
 import {
   renderCoordinationPage, renderPossibilitiesPage, renderLandingPage,
   renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
-  renderReportPage,
+  renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
+  renderClaimPage, renderGovernancePage, langFrom,
 } from '@springforth/portal';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
@@ -43,11 +49,12 @@ import {
 } from '@springforth/silvi-adapter';
 import { answer as agentAnswer } from '@springforth/agent';
 import { buildManifest } from '@springforth/evidence-anchor';
+import { OPENAPI } from './openapi.ts';
 import {
   checkFromReading, EXPECTED_DIRECTION, SOURCES,
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
   treegensPlantings, atlasHazard, trajectory,
-  silviVerifiedTrees, silviLeafAptness,
+  silviVerifiedTrees, silviLeafAptness, evidenceBoost,
   type SourceReading, type GeoLoc,
 } from '@springforth/oracle';
 import { liveAtlas } from '@springforth/atlas-adapter';
@@ -91,6 +98,91 @@ function locFor(node: PlanNode): GeoLoc | null {
     return { lat, lon, h3: node.h3 };
   }
   return null;
+}
+
+
+// Round allocation dispatcher — 'lr' is classic quadratic; 'pairwise'
+// discounts coordinated donor pairs via the appreciation trust graph +
+// bound-wallet clusters (Phase A moat). Conviction adds time-weight.
+async function allocFor(env: Env, round: FundingRound, donations: Donation[]) {
+  // Evidence→allocation coupling: oracle trajectory per need becomes a
+  // 0.8–1.2 weight multiplier (Phase E). Governance can disable it.
+  const checks = await list<OracleCheck>(env.DB, 'oracle-check');
+  const govParams = await list<GovernanceParam>(env.DB, 'gov-param');
+  const evidenceOn = paramValue(govParams, 'evidence.boost') !== '0';
+  const boost = (needNodeId: string) =>
+    evidenceOn ? evidenceBoost(needNodeId, checks) : 1;
+  if (round.matchingMode !== 'pairwise' && !round.conviction)
+    return allocateMatching(round, donations, { weightMultiplier: boost });
+  const [apps, wallets] = await Promise.all([
+    list<Appreciation>(env.DB, 'appreciation'),
+    list<ActorWallet>(env.DB, 'actor-wallet'),
+  ]);
+  const walletToActor = new Map(wallets.map((w) => [w.address.toLowerCase(), w.actor]));
+  return pairwiseAllocate(round, donations, trustEdges(apps), {
+    alpha: Number(paramValue(govParams, 'pairwise.alpha')) || 4,
+    beta: Number(paramValue(govParams, 'pairwise.beta')) || 2,
+    gamma: round.conviction ? Number(paramValue(govParams, 'conviction.gamma')) || 0.5 : 0,
+    weightMultiplier: boost,
+    walletFor: (donor) => {
+      const lower = donor.toLowerCase();
+      return walletToActor.get(lower) ?? donor;
+    },
+  });
+}
+
+
+// Measure-to-earn (GainForest-style, non-token): field-report signals
+// on a node that an oracle check later corroborates earn the reporter
+// an AssuranceCredit — verified evidence has value. Idempotent via the
+// credit id (one credit per report × node, not per corroboration).
+async function creditFieldReporters(env: Env, nodeId: string, now: string) {
+  const reports = (await list<Signal>(env.DB, 'signal'))
+    .filter((s) => s.targetId === nodeId && s.intent === 'field-report');
+  for (const r of reports) {
+    const id = `ac-fr-${r.id}`;
+    if (await get<AssuranceCredit>(env.DB, 'assurance-credit', id)) continue;
+    await put(env.DB, 'assurance-credit', id, AssuranceCredit.parse({
+      id, actor: r.actor, nodeId, source: 'field-evidence', at: now,
+    }));
+    await ledgerAppend(env.DB, r.actor, 'assurance.credited',
+      { id, via: 'field-report', nodeId });
+  }
+}
+
+
+// ── Datasets — signed releases + premium access grants ─────────────
+// A release freezes a graph slice to JSONL, builds the evidence-anchor
+// manifest, OTS-anchors the digest, and optionally pins to IPFS.
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const d = await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+const enc = (s: string) => new TextEncoder().encode(s);
+
+// Which store slices are exportable as datasets.
+const DATASET_SOURCES: Record<string, { kind: string; describe: string }> = {
+  plannodes:    { kind: 'plannode',    describe: 'plan graph nodes — actions, needs, offers, outcomes' },
+  signals:      { kind: 'signal',      describe: 'support/interest/field-report signals' },
+  donations:    { kind: 'donation',    describe: 'donation records incl. settlement refs' },
+  'oracle-checks': { kind: 'oracle-check', describe: 'evidence scores per node per source' },
+  overlaps:     { kind: 'overlap',     describe: 'detected overlap/complement records' },
+  appreciations:{ kind: 'appreciation',describe: 'pairwise appreciation edges' },
+};
+
+// Pin to IPFS if an endpoint is configured (IPFS_API env — a Kubo RPC
+// URL like http://localhost:5001 or a pinning service). Best-effort.
+async function pinToIpfs(env: Env, name: string, bytes: Uint8Array): Promise<string | undefined> {
+  const api = (env as Env & { IPFS_API?: string }).IPFS_API;
+  if (!api) return undefined;
+  try {
+    const form = new FormData();
+    form.append('file', new Blob([bytes as unknown as BlobPart]), `${name}.jsonl`);
+    const r = await fetch(`${api.replace(/\/$/, '')}/api/v0/add`, { method: 'POST', body: form });
+    if (!r.ok) return undefined;
+    const j = await r.json() as { Hash?: string };
+    return j.Hash;
+  } catch { return undefined; }
 }
 
 interface Snapshot { nodeId: string; key?: string; source: string; value: number; unit: string; at: string }
@@ -142,6 +234,7 @@ async function runOracleSources(env: Env, node: PlanNode) {
       expectedDirection: direction, at: now, nodeId: node.id,
     });
     await applyOracleCheck(env, node.id, check, 'cron');
+    if (check.result === 'match') await creditFieldReporters(env, node.id, now);
     await put(env.DB, 'oracle-snapshot', key, {
       nodeId: node.id, key: reading.key, source: reading.source,
       value: baseline?.value ?? reading.value,   // first reading becomes the baseline
@@ -162,6 +255,37 @@ const authed = (req: Request, env: Env) =>
 // Possibility sweep — advances time-driven statuses once and fires quorum
 // effects exactly once per possibility: status flip, `possibility.quorum`
 // ledger event, and a notify stub (POSTs to NOTIFY_WEBHOOK when configured).
+// Fan-out to subscriptions matching (target, event-kind). The system
+// webhook + possibility home chat still fire; subscribers get the same
+// text on their chosen channel.
+async function notifySubscribers(env: Env, target: string, kind: string,
+  text: string, link?: string): Promise<void> {
+  const subs = (await list<Subscription & { deletedAt?: string }>(env.DB, 'subscription')).filter((s) => !s.deletedAt);
+  const hits = subs.filter((s) =>
+    (s.target === target || s.target === '*') &&
+    s.events.some((e) => kind.startsWith(e.split('.')[0]!) || kind.includes(e)));
+  for (const s of hits) {
+    const msg = link ? `${text} — ${link}` : text;
+    if (s.channel === 'telegram' && env.TELEGRAM_BOT_TOKEN && s.address)
+      await sendTelegram(env, s.address, msg).catch(() => {});
+    else if (s.channel === 'webhook' && s.address)
+      await fetch(s.address, { method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ event: kind, target, text: msg }) }).catch(() => {});
+    // 'email' is recorded only — delivery lands when a relay is configured.
+  }
+  // System-level fallback: the possibility's home chat / NOTIFY_WEBHOOK.
+  if (env.NOTIFY_WEBHOOK)
+    await fetch(env.NOTIFY_WEBHOOK, { method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }) }).catch(() => {});
+  if (kind === 'quorum' && env.TELEGRAM_BOT_TOKEN) {
+    const home = await get<{ chatId: number | string }>(env.DB, 'poss-chat', target);
+    const tg = home?.chatId ?? env.TELEGRAM_CHAT_ID;
+    if (tg) await sendTelegram(env, tg, link ? `${text} — ${link}` : text).catch(() => {});
+  }
+}
+
 async function sweepPossibilities(env: Env, actor = 'system'): Promise<void> {
   const [poss, nodes, recs, parts] = await Promise.all([
     list<Possibility>(env.DB, 'possibility'), list<PlanNode>(env.DB, 'plannode'),
@@ -197,18 +321,9 @@ async function sweepPossibilities(env: Env, actor = 'system'): Promise<void> {
       if (!quorumMet(p, nodes, recs, count).met) continue;
       await put(env.DB, 'possibility', p.id, { ...p, status: 'quorum', quorumAt: iso });
       await ledgerAppend(env.DB, actor, 'possibility.quorum', { id: p.id });
-      if (env.NOTIFY_WEBHOOK)
-        await fetch(env.NOTIFY_WEBHOOK, { method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ text: `Quorum reached: ${p.title} — commitment bound` }),
-        }).catch(() => {});
-      if (env.TELEGRAM_BOT_TOKEN) {
-        const home = await get<{ chatId: number | string }>(env.DB, 'poss-chat', p.id);
-        const target = home?.chatId ?? env.TELEGRAM_CHAT_ID;
-        if (target) await sendTelegram(env, target,
-          `Quorum reached: ${p.title} — commitment bound. https://springforth.widespread.workers.dev/possibilities#${p.id}`)
-          .catch(() => {});
-      }
+      await notifySubscribers(env, p.id, 'quorum',
+        `Quorum reached: ${p.title} — commitment bound`,
+        `https://springforth.widespread.workers.dev/possibilities#${p.id}`);
     }
   }
   // Assurance pledges ride the same lifecycle: pending → bound at quorum,
@@ -238,6 +353,47 @@ const chainCfg = (env: Env): ChainConfig | null =>
     ? chainFor(env.CHAIN_MODE as 'celo-sepolia' | 'sepolia' | 'celo') : null;
 
 // Hourly cron: confirm submitted txs, apply side effects. Reads only.
+
+// Recurring-support accrual — elapsed time × flowRate becomes periodic
+// Donation records (settled via the stream, ref = stream id).
+async function accrueStreams(env: Env): Promise<number> {
+  const streams = (await list<RecurringSupport>(env.DB, 'recurring-support'))
+    .filter((s) => s.state === 'active');
+  const now = Date.now();
+  let credited = 0;
+  for (const s of streams) {
+    const from = s.lastAccrualAt ? Date.parse(s.lastAccrualAt) : Date.parse(s.createdAt);
+    const units = streamAccrual(BigInt(s.flowRate), from, now);
+    if (units <= 0n) continue;
+    const amount = Number(units) / 1e18;
+    if (s.needNodeId) {
+      // need-targeted stream → periodic Donation records (they join QF).
+      const don = Donation.parse({
+        id: `don-stream-${s.id}-${now.toString(36)}`,
+        roundId: s.roundId, needNodeId: s.needNodeId,
+        donor: s.supporter, amount, currency: 'USD',
+        settlement: 'settled', settlementRef: `superfluid:${s.id}`,
+        at: new Date(now).toISOString(),
+      });
+      await put(env.DB, 'donation', don.id, don);
+    } else {
+      // untargeted stream → matching-fund sponsor (like yield lanes).
+      const round = await get<FundingRound>(env.DB, 'round', s.roundId);
+      if (round) await put(env.DB, 'round', round.id, {
+        ...round,
+        matchingFund: { ...round.matchingFund,
+          amount: round.matchingFund.amount + amount },
+      });
+    }
+    await put(env.DB, 'recurring-support', s.id, {
+      ...s, accruedUnits: (BigInt(s.accruedUnits) + units).toString(),
+      lastAccrualAt: new Date(now).toISOString(),
+    });
+    credited++;
+  }
+  return credited;
+}
+
 async function syncChain(env: Env): Promise<number> {
   const cfg = chainCfg(env);
   if (!cfg) return 0;
@@ -276,10 +432,38 @@ async function syncChain(env: Env): Promise<number> {
       const claim = await get<ImpactClaim>(env.DB, 'claim', t.entityId);
       if (claim) await put(env.DB, 'claim', claim.id,
         { ...claim, chainRef: `${cfg.chainId}:${t.txHash}` });
+    } else if (t.kind === 'stream.create' || t.kind === 'stream.delete') {
+      const s = await get<RecurringSupport>(env.DB, 'recurring-support', t.entityId);
+      if (s) {
+        const parsed = parseFlowRate(receipt);
+        await put(env.DB, 'recurring-support', s.id, {
+          ...s,
+          state: t.kind === 'stream.create' ? 'active' : 'closed',
+          txHash: t.txHash,
+          flowRate: parsed ? parsed.flowRate.toString() : s.flowRate,
+          lastAccrualAt: now,
+        });
+        result = parsed?.flowRate.toString();
+      }
     } else if (t.kind === 'donation.settle') {
       const don = await get<Donation>(env.DB, 'donation', t.entityId);
-      if (don) await put(env.DB, 'donation', don.id,
-        { ...don, settlement: 'settled', settlementRef: `${cfg.chainId}:${t.txHash}` });
+      if (don) {
+        await put(env.DB, 'donation', don.id,
+          { ...don, settlement: 'settled', settlementRef: `${cfg.chainId}:${t.txHash}` });
+        // Donor-recognition attestation — settled support becomes
+        // exportable reputation for the donor (GIVbacks-analog lane,
+        // non-token: the receipt IS the reward).
+        const att = Attestation.parse({
+          id: `att-donor-${don.id}`,
+          attester: 'springforth',
+          schemaRef: 'springforth.donation.v1',
+          payload: JSON.stringify({ donationId: don.id, roundId: don.roundId,
+            needNodeId: don.needNodeId, donor: don.donor, amount: don.amount,
+            currency: don.currency, settlementRef: don.settlementRef }),
+          at: now,
+        });
+        await put(env.DB, 'attestation', att.id, att);
+      }
     }
     await put(env.DB, 'chaintx', t.id,
       { ...t, status: 'confirmed', result, confirmedAt: now });
@@ -365,10 +549,71 @@ ${rows || '<tr><td colspan="5"><em>No readings yet — POST /oracle/run after se
 </body></html>`;
 }
 
+// ── Phase H: CORS allowlist + sliding-window rate limit ────────────
+// CORS: browsers get cross-origin reads only from allowlisted origins
+// (CORS_ORIGINS env, comma-separated; '*' default since the API is
+// read-mostly public data). Preflight short-circuits before routing.
+const corsHeaders = (env: Env, origin: string | null) => {
+  const allowed = ((env as Env & { CORS_ORIGINS?: string }).CORS_ORIGINS ?? '*')
+    .split(',').map((s) => s.trim());
+  const h: Record<string, string> = {
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'access-control-allow-headers': 'authorization, content-type',
+    'access-control-max-age': '86400',
+  };
+  if (origin && (allowed.includes('*') || allowed.includes(origin)))
+    h['access-control-allow-origin'] = allowed.includes('*') ? '*' : origin;
+  return h;
+};
+const withCors = (res: Response, env: Env, req: Request) => {
+  const h = corsHeaders(env, req.headers.get('origin'));
+  const out = new Response(res.body, res);
+  for (const [k, v] of Object.entries(h)) out.headers.set(k, v);
+  return out;
+};
+
+// Rate limit: sliding window per actor|route, D1-backed. Telegram (/tg)
+// is exempt — bot throughput isn't user spam. Writes count against a
+// tighter budget than reads. Returns remaining budget or null if over.
+async function rateLimitOk(env: Env, key: string, limit: number): Promise<boolean> {
+  const now = Date.now();
+  const windowMs = 60_000;
+  const id = `rl-${key}`;
+  const rec = await get<{ windowStart: number; count: number }>(env.DB, 'ratelimit', id);
+  if (!rec || now - rec.windowStart > windowMs) {
+    await put(env.DB, 'ratelimit', id, { windowStart: now, count: 1 });
+    return true;
+  }
+  if (rec.count >= limit) return false;
+  await put(env.DB, 'ratelimit', id, { ...rec, count: rec.count + 1 });
+  return true;
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
+    // CORS preflight short-circuit.
+    if (req.method === 'OPTIONS')
+      return new Response(null, { status: 204, headers: corsHeaders(env, req.headers.get('origin')) });
+    const res = await this.handle(req, env).catch((e) =>
+      json({ error: 'internal', detail: String(e) }, 500));
+    return withCors(res, env, req);
+  },
+  async handle(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     const seg = url.pathname.split('/').filter(Boolean);
+    // Rate limit: 120 reads/min or 30 writes/min per (actor-ish key, route
+    // family). Key = auth token tail, wallet header, or cf-connecting-ip.
+    // /tg is exempt — bot webhook traffic isn't user spam.
+    if (seg[0] !== 'tg' && seg[0] !== 'docs' && !authed(req, env)) {
+      const actorKey = (
+        req.headers.get('authorization')?.slice(-12)
+        ?? req.headers.get('x-actor') ?? req.headers.get('cf-connecting-ip') ?? 'anon'
+      ).toLowerCase().replace(/[^a-z0-9.:-]/g, '');
+      const write = req.method !== 'GET';
+      const ok = await rateLimitOk(env, `${actorKey}|${seg[0] ?? 'root'}|${write ? 'w' : 'r'}`,
+        write ? 30 : 120);
+      if (!ok) return err('rate limit exceeded — retry shortly', 429);
+    }
     try {
       // GET / → the triage landing: how it works + what needs attention
       if (req.method === 'GET' && seg.length === 0) {
@@ -636,6 +881,175 @@ export default {
           project: project.id, nodes: plan.nodes.length, overlaps: detected.length,
         });
         return json({ project: project.name, nodes: plan.nodes.length, overlaps: detected.length }, 201);
+      }
+      // Governance — trust-gated parameter ballots. EigenTrust-standing
+      // actors vote quadratically on mechanism parameters.
+      if (seg[0] === 'governance') {
+        const proposals = await list<GovernanceProposal>(env.DB, 'gov-proposal');
+        const ballots = await list<GovernanceBallot>(env.DB, 'gov-ballot');
+        const params = await list<GovernanceParam>(env.DB, 'gov-param');
+        const govApps = await list<Appreciation>(env.DB, 'appreciation');
+        const voters = eligibleVoters(govApps);
+        if (req.method === 'GET' && seg.length === 1) {
+          if ((req.headers.get('accept') ?? '').includes('text/html'))
+            return new Response(renderGovernancePage({
+              proposals, ballots, params, governable: GOVERNABLE,
+              voterCount: voters.length,
+            }), { headers: { 'content-type': 'text/html' } });
+          return json({ proposals, ballots, params,
+            governable: GOVERNABLE, eligibleVoters: voters });
+        }
+        if (req.method === 'POST' && seg[1] === 'proposals') {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const param = String(b.param ?? '');
+          if (!GOVERNABLE[param]) return err(`param must be one of ${Object.keys(GOVERNABLE).join(', ')}`, 422);
+          const proposer = String(b.proposer ?? '');
+          if (!voters.includes(proposer)) return err('proposer needs EigenTrust standing', 403);
+          const now = new Date().toISOString();
+          const prop = GovernanceProposal.parse({
+            id: `gov-${Date.now().toString(36)}`, param,
+            title: String(b.title ?? `${param} → ${b.proposedValue}`),
+            description: String(b.description ?? ''),
+            proposedValue: String(b.proposedValue ?? ''),
+            proposer,
+            closesAt: String(b.closesAt ?? new Date(Date.now() + 7 * 86_400_000).toISOString()),
+            state: 'open', createdAt: now,
+          });
+          await put(env.DB, 'gov-proposal', prop.id, prop);
+          await ledgerAppend(env.DB, proposer, 'governance.proposed', { id: prop.id, param });
+          return ct.includes('form')
+            ? new Response(null, { status: 303, headers: { location: '/governance' } })
+            : json(prop, 201);
+        }
+        const prop = await get<GovernanceProposal>(env.DB, 'gov-proposal', seg[1] ?? '');
+        if (!prop) return err('proposal not found', 404);
+        if (req.method === 'POST' && seg[2] === 'vote') {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const voter = String(b.voter ?? '');
+          if (!voters.includes(voter)) return err('voter needs EigenTrust standing', 403);
+          if (prop.state !== 'open' || Date.parse(prop.closesAt) < Date.now())
+            return err('proposal closed', 409);
+          const points = Number(b.points ?? 0);
+          if (!(points > 0)) return err('positive points required', 422);
+          const bal = GovernanceBallot.parse({
+            id: `gb-${prop.id}-${voter.toLowerCase().replace(/\W+/g, '-')}`,
+            proposalId: prop.id, voter, points,
+            support: b.support === true || b.support === 'true',
+            at: new Date().toISOString(),
+          });
+          await put(env.DB, 'gov-ballot', bal.id, bal);
+          await ledgerAppend(env.DB, voter, 'governance.voted',
+            { proposalId: prop.id, points, support: bal.support });
+          return ct.includes('form')
+            ? new Response(null, { status: 303, headers: { location: '/governance' } })
+            : json(bal, 201);
+        }
+        if (req.method === 'POST' && seg[2] === 'tally') {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const tally = tallyProposal(prop, ballots, voters);
+          const state = tally.passed ? 'passed' : 'rejected';
+          await put(env.DB, 'gov-proposal', prop.id, { ...prop, state });
+          if (tally.passed) {
+            await put(env.DB, 'gov-param', prop.param, GovernanceParam.parse({
+              id: prop.param, value: prop.proposedValue,
+              setBy: prop.id, updatedAt: new Date().toISOString(),
+            }));
+          }
+          await ledgerAppend(env.DB, 'api', 'governance.tallied', tally);
+          return json({ ...tally, state });
+        }
+      }
+      // Dataset releases — admin freezes a store slice into a signed,
+      // anchored, optionally-pinned bundle. Public registry at GET.
+      if (seg[0] === 'docs' && req.method === 'GET')
+        return json(OPENAPI);
+      if (seg[0] === 'datasets') {
+        if (req.method === 'GET' && seg.length === 1) {
+          const releases = await list<DatasetRelease>(env.DB, 'dataset-release');
+          return json({ releases,
+            available: Object.fromEntries(
+              Object.entries(DATASET_SOURCES).map(([k, v]) => [k, v.describe])) });
+        }
+        if (req.method === 'POST' && seg[2] === 'release') {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const name = seg[1] ?? '';
+          const spec = DATASET_SOURCES[name];
+          if (!spec) return err(`dataset must be one of ${Object.keys(DATASET_SOURCES).join(', ')}`, 404);
+          const rows = await list<Record<string, unknown>>(env.DB, spec.kind);
+          const bundle = rows.map((r) => JSON.stringify(r)).join('\n') + '\n';
+          const bytes = enc(bundle);
+          const m = buildManifest([{ name: `${name}.jsonl`, bytes }]);
+          const sha = await sha256Hex(bytes);
+          const cid = await pinToIpfs(env, name, bytes);
+          // keep the bundle itself so the release is servable later
+          await put(env.DB, 'dataset-bundle', `${name}-${Date.now().toString(36)}`,
+            { name, createdAt: new Date().toISOString(), bundle });
+          const rel = DatasetRelease.parse({
+            id: `rel-${name}-${Date.now().toString(36)}`,
+            name, records: rows.length,
+            manifest: m as unknown as Record<string, unknown>, sha256: sha,
+            cid, createdAt: new Date().toISOString(),
+          });
+          await put(env.DB, 'dataset-release', rel.id, rel);
+          await ledgerAppend(env.DB, 'api', 'dataset.released',
+            { id: rel.id, name, records: rows.length, cid });
+          return json(rel, 201);
+        }
+        // Access grants — verified payment reference → time-boxed grant.
+        // Aggregates stay public; this gates only raw/premium feeds.
+        if (req.method === 'POST' && seg[2] === 'grants') {
+          const b = await req.json() as Record<string, unknown>;
+          const grantee = String(b.grantee ?? '');
+          const paymentRef = String(b.paymentRef ?? '');
+          if (!grantee || !paymentRef) return err('grantee + paymentRef required', 422);
+          const days = Math.min(90, Math.max(1, Number(b.days ?? 30)));
+          const g = DataAccessGrant.parse({
+            id: `dag-${seg[1]}-${grantee.toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+            dataset: seg[1]!, grantee, paymentRef,
+            verified: true,   // chain-verified when a tx-hash lane lands; reference-trusted for now
+            expiresAt: new Date(Date.now() + days * 86_400_000).toISOString(),
+            createdAt: new Date().toISOString(),
+          });
+          await put(env.DB, 'data-grant', g.id, g);
+          await ledgerAppend(env.DB, grantee, 'dataset.granted', { id: g.id, dataset: g.dataset });
+          return json(g, 201);
+        }
+        if (req.method === 'GET' && seg[2] === 'grants') {
+          const grants = (await list<DataAccessGrant>(env.DB, 'data-grant'))
+            .filter((g) => g.dataset === seg[1]);
+          return json({ grants });
+        }
+      }
+      // Subscriptions — opt in to lifecycle notifications on a target.
+      if (seg[0] === 'subscriptions') {
+        if (req.method === 'GET')
+          return json({ subscriptions: (await list<Subscription & { deletedAt?: string }>
+            (env.DB, 'subscription')).filter((s) => !s.deletedAt) });
+        if (req.method === 'POST') {
+          const b = await req.json() as Record<string, unknown>;
+          const sub = Subscription.parse({
+            id: `sub-${String(b.actor ?? 'anon').toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+            actor: b.actor, target: b.target ?? '*',
+            events: b.events, channel: b.channel, address: b.address,
+            createdAt: new Date().toISOString(),
+          });
+          await put(env.DB, 'subscription', sub.id, sub);
+          await ledgerAppend(env.DB, sub.actor, 'subscription.added', { id: sub.id, target: sub.target });
+          return json(sub, 201);
+        }
+        if (req.method === 'DELETE' && seg[1]) {
+          const sub = await get<Subscription>(env.DB, 'subscription', seg[1]);
+          if (!sub) return err('subscription not found', 404);
+          await put(env.DB, 'subscription', seg[1],
+            { ...sub, deletedAt: new Date().toISOString() });
+          return json({ ok: true });
+        }
       }
       if (seg[0] === 'overlaps') {
         if (req.method === 'GET' && seg.length === 1) {
@@ -1270,6 +1684,24 @@ export default {
       }
       // Actor standing — the "Community Standing" profile: created/joined
       // counts, earned recognition, transitive trust score.
+      // Wallet↔actor binding — EIP-191 personal_sign over the canonical
+      // bind message. One wallet = one actor for pairwise matching.
+      if (req.method === 'POST' && seg[0] === 'actors' && seg[2] === 'bind-wallet') {
+        const b = await req.json() as { actor?: string; address?: string; signature?: string };
+        const actor = seg[1] ?? b.actor ?? '';
+        if (!actor || !b.address || !b.signature) return err('actor, address, signature required');
+        if (actor !== (b.actor ?? actor)) return err('actor mismatch', 422);
+        const ok = await verifyWalletBinding(actor, b.address, b.signature);
+        if (!ok) return err('signature does not verify for this address', 422);
+        const w = ActorWallet.parse({
+          id: `aw-${b.address.toLowerCase()}`, actor,
+          address: b.address as `0x${string}`, signature: b.signature as `0x${string}`,
+          at: new Date().toISOString(),
+        });
+        await put(env.DB, 'actor-wallet', w.id, w);
+        await ledgerAppend(env.DB, actor, 'actor.wallet-bound', { address: w.address });
+        return json(w, 201);
+      }
       if (req.method === 'GET' && seg[0] === 'actors') {
         const id = seg[1] ?? '';
         const [poss, parts, apps, credits] = await Promise.all([
@@ -1351,6 +1783,9 @@ export default {
             eligibleNeedIds: b.eligibleNeedIds ?? [],
             opensAt: String(b.opensAt ?? new Date().toISOString()),
             closesAt: String(b.closesAt), state: 'open',
+            matchingMode: b.matchingMode === 'pairwise' ? 'pairwise' : 'lr',
+            conviction: b.conviction === true,
+            acceptedTokens: (b.acceptedTokens ?? {}) as Record<string, string>,
           });
           await put(env.DB, 'round', round.id, round);
           await ledgerAppend(env.DB, 'api', 'round.opened', { id: round.id });
@@ -1368,7 +1803,7 @@ export default {
         // Public-spec exports — 360Giving grants JSON / IATI 2.03 XML.
         // Emitted against the live allocation; downstream CoVE-validatable.
         if (req.method === 'GET' && seg[2] === 'export' && seg[3]) {
-          const allocation = allocateMatching(round, donations);
+          const allocation = await allocFor(env, round, donations);
           const nodes = await list<PlanNode>(env.DB, 'plannode');
           const labels = new Map(nodes.map((n) => [n.id, n.label]));
           const owners = new Map(nodes.map((n) => [n.id, n.orgIds[0] ?? n.id]));
@@ -1387,11 +1822,22 @@ export default {
           return err('unknown export format', 404);
         }
         if (req.method === 'GET' && seg.length === 2) {
-          const allocation = allocateMatching(round, donations);
+          const allocation = await allocFor(env, round, donations);
           const nodes = await list<PlanNode>(env.DB, 'plannode');
           if (url.searchParams.get('format') === 'json')
             return json({ ...round, donations, allocation });
           return new Response(renderRoundPage(round, donations, allocation, nodes),
+            { headers: { 'content-type': 'text/html' } });
+        }
+        if (req.method === 'GET' && seg[2] === 'donors' && seg[3]) {
+          const donor = decodeURIComponent(seg[3]);
+          const ds = (await list<Donation>(env.DB, 'donation'))
+            .filter((d) => d.roundId === round.id && d.donor === donor);
+          const receipts = (await list<Attestation>(env.DB, 'attestation'))
+            .filter((a) => a.schemaRef === 'springforth.donation.v1'
+              && a.payload.includes(`"donor":"${donor}"`));
+          return new Response(renderDonorPage({
+            roundId: round.id, donor, donations: ds, receipts }),
             { headers: { 'content-type': 'text/html' } });
         }
         if (req.method === 'POST' && seg[2] === 'donate') {
@@ -1422,7 +1868,7 @@ export default {
         }
         if (req.method === 'POST' && seg[2] === 'close') {
           if (!authed(req, env)) return err('unauthorized', 401);
-          const allocation = allocateMatching(round, donations);
+          const allocation = await allocFor(env, round, donations);
           const closed = { ...round, state: 'allocated' as const };
           await put(env.DB, 'round', round.id, closed);
           await ledgerAppend(env.DB, 'api', 'round.allocated',
@@ -1462,6 +1908,130 @@ export default {
         // Yield-backed matching — register a sponsor's yield-bearing
         // position; the cron reads its aToken balance and credits the
         // delta to matchingFund. Read-only, non-custodial.
+        // Round applications — public intake lane. A need node applies;
+        // operator review appends to eligibleNeedIds on approval.
+        if (req.method === 'POST' && seg[2] === 'apply') {
+          const b = await req.json() as Record<string, unknown>;
+          const needNodeId = String(b.needNodeId ?? '');
+          const applicant = String(b.applicant ?? '');
+          if (!needNodeId || !applicant) return err('needNodeId + applicant required', 422);
+          if (round.state !== 'open') return err(`round is ${round.state}`, 409);
+          if (round.eligibleNeedIds.includes(needNodeId)) return err('need already eligible', 409);
+          const dup = (await list<RoundApplication>(env.DB, 'round-application'))
+            .find((a) => a.roundId === round.id && a.needNodeId === needNodeId && a.state === 'pending');
+          if (dup) return json(dup);
+          const app = RoundApplication.parse({
+            id: `app-${round.id}-${Date.now().toString(36)}`,
+            roundId: round.id, needNodeId, applicant,
+            statement: String(b.statement ?? ''), state: 'pending',
+            at: new Date().toISOString(),
+          });
+          await put(env.DB, 'round-application', app.id, app);
+          await ledgerAppend(env.DB, applicant, 'round.applied',
+            { roundId: round.id, needNodeId });
+          return json(app, 201);
+        }
+        if (req.method === 'GET' && seg[2] === 'admin') {
+          const applications = (await list<RoundApplication>(env.DB, 'round-application'))
+            .filter((a) => a.roundId === round.id);
+          const nodes = await list<PlanNode>(env.DB, 'plannode');
+          return new Response(renderRoundAdmin(round, applications, nodes),
+            { headers: { 'content-type': 'text/html' } });
+        }
+        if (req.method === 'GET' && seg[2] === 'applications') {
+          const apps = (await list<RoundApplication>(env.DB, 'round-application'))
+            .filter((a) => a.roundId === round.id);
+          return json({ applications: apps });
+        }
+        if (req.method === 'POST' && seg[2] === 'applications' && seg[4] === 'review') {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          const app = await get<RoundApplication>(env.DB, 'round-application', seg[3] ?? '');
+          if (!app || app.roundId !== round.id) return err('application not found', 404);
+          if (app.state !== 'pending') return err(`application is ${app.state}`, 409);
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const approved = b.approve === true || b.approve === 'true';
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          const next = { ...app,
+            state: (approved ? 'approved' : 'rejected') as RoundApplication['state'],
+            reviewedAt: new Date().toISOString() };
+          await put(env.DB, 'round-application', app.id, next);
+          if (approved) {
+            await put(env.DB, 'round', round.id,
+              { ...round, eligibleNeedIds: [...round.eligibleNeedIds, app.needNodeId] });
+          }
+          await ledgerAppend(env.DB, 'api', 'round.reviewed',
+            { roundId: round.id, applicationId: app.id, approved });
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/rounds/${round.id}/admin` } })
+            : json(next);
+        }
+        // Close — freezes the allocation snapshot; settlements stay
+        // external (payout refs recorded, never custodied here).
+        if (req.method === 'POST' && seg[2] === 'close') {
+          if (!authed(req, env)) return err('unauthorized', 401);
+          if (round.state !== 'open') return err(`round is ${round.state}`, 409);
+          const donations = (await list<Donation>(env.DB, 'donation'))
+            .filter((d) => d.roundId === round.id);
+          const allocation = await allocFor(env, round, donations);
+          await put(env.DB, 'round', round.id, { ...round, state: 'closed' });
+          await ledgerAppend(env.DB, 'api', 'round.closed',
+            { roundId: round.id, donations: donations.length,
+              allocation: allocation.map((r) => ({ need: r.needNodeId, match: r.match })) });
+          return (req.headers.get('accept') ?? '').includes('text/html')
+            ? new Response(null, { status: 303, headers: { location: `/rounds/${round.id}/admin` } })
+            : json({ ...round, state: 'closed', allocation });
+        }
+        // Recurring support — Superfluid CFA streams on Celo. Intent is
+        // recorded ledger-side; createFlow calldata is signer-facing;
+        // the cron accrues elapsed·rate into periodic Donation records.
+        if (seg[2] === 'stream') {
+          if (req.method === 'GET' && seg.length === 3) {
+            const streams = (await list<RecurringSupport>(env.DB, 'recurring-support'))
+              .filter((s) => s.roundId === round.id);
+            return json({ roundId: round.id, streams });
+          }
+          if (req.method === 'GET' && seg[3] === 'tx') {
+            const cfg = chainCfg(env);
+            if (!cfg) return err('chain mode off — set CHAIN_MODE=celo', 503);
+            const sender = url.searchParams.get('sender');
+            const token = url.searchParams.get('token');
+            const receiver = url.searchParams.get('receiver');
+            const flowRate = url.searchParams.get('flowRate');
+            if (!sender || !token || !receiver || !flowRate)
+              return err('sender, token, receiver, flowRate (int96 units/sec) required', 400);
+            const op = url.searchParams.get('op') ?? 'create';
+            const tx = op === 'delete'
+              ? buildDeleteFlowTx({ token: token as `0x${string}`, sender: sender as `0x${string}`,
+                  receiver: receiver as `0x${string}` })
+              : buildCreateFlowTx({ token: token as `0x${string}`, sender: sender as `0x${string}`,
+                  receiver: receiver as `0x${string}`, flowRate: BigInt(flowRate) });
+            return json({ chain: cfg.name, forwarder: CFA_FORWARDER, tx,
+              then: `POST /chain/record { kind: 'stream.create', entityId: '<streamId>', txHash }` });
+          }
+          if (req.method === 'POST' && seg.length === 3) {
+            const b = await req.json() as Record<string, unknown>;
+            const supporter = String(b.supporter ?? '');
+            const token = String(b.token ?? '');
+            const receiver = String(b.receiver ?? '');
+            const flowRate = String(b.flowRate ?? '');
+            if (!supporter || !token || !/^0x[0-9a-fA-F]{40}$/.test(receiver) || !flowRate)
+              return err('supporter, token, receiver (0x…), flowRate required', 422);
+            const s = RecurringSupport.parse({
+              id: `rs-${round.id}-${supporter.toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+              roundId: round.id,
+              needNodeId: b.needNodeId ? String(b.needNodeId) : undefined,
+              supporter, token, receiver: receiver as `0x${string}`, flowRate,
+              createdAt: new Date().toISOString(),
+            });
+            await put(env.DB, 'recurring-support', s.id, s);
+            await ledgerAppend(env.DB, supporter, 'stream.intended',
+              { id: s.id, roundId: round.id, flowRate });
+            return json(s, 201);
+          }
+        }
         if (seg[2] === 'yield') {
           if (req.method === 'GET') {
             const streams = (await list<YieldStream>(env.DB, 'yieldstream'))
@@ -1527,9 +2097,13 @@ export default {
         if (req.method === 'GET' && seg.length === 2) {
           const atts = (await list<Attestation>(env.DB, 'attestation'))
             .filter((a) => a.claimId === claim.id);
-          return url.searchParams.get('format') === 'lexicon'
-            ? json(toHypercertLexicon(claim))
-            : json({ ...claim, attestations: atts });
+          if (url.searchParams.get('format') === 'lexicon')
+            return json(toHypercertLexicon(claim));
+          if ((req.headers.get('accept') ?? '').includes('text/html'))
+            return new Response(renderClaimPage(claim, atts,
+              { chainReady: !!chainCfg(env) }),
+              { headers: { 'content-type': 'text/html' } });
+          return json({ ...claim, attestations: atts });
         }
         if (req.method === 'POST' && seg[2] === 'attest') {
           const b = await req.json() as Record<string, unknown>;
@@ -1719,10 +2293,11 @@ export default {
           const kind = String(b.kind ?? '') as ChainTx['kind'];
           const entityId = String(b.entityId ?? '');
           if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) return err('txHash must be 0x + 64 hex', 422);
-          if (!['round.create', 'donation.settle', 'claim.mint', 'attestation.publish'].includes(kind))
-            return err('kind must be round.create|donation.settle|claim.mint|attestation.publish', 422);
+          if (!['round.create', 'donation.settle', 'claim.mint', 'attestation.publish', 'stream.create', 'stream.delete'].includes(kind))
+            return err('kind must be a supported chain-tx kind', 422);
           // entity must exist before we track its tx
           const kindStore = { 'round.create': 'round', 'donation.settle': 'donation',
+            'stream.create': 'recurring-support', 'stream.delete': 'recurring-support',
             'claim.mint': 'claim', 'attestation.publish': 'attestation' }[kind];
           const entity = await get<unknown>(env.DB, kindStore, entityId);
           if (!entity) return err(`${kindStore} not found`, 404);
@@ -1812,6 +2387,7 @@ export default {
     for (const n of nodes) await runOracleSources(env, n);
     await sweepPossibilities(env, 'cron');
     const chainConfirmed = await syncChain(env).catch(() => 0);
+    const streamsAccrued = await accrueStreams(env).catch(() => 0);
     const yieldCredited = await syncYield(env).catch(() => 0);
     await ledgerAppend(env.DB, 'cron', 'oracle.cycle',
       { nodes: nodes.length, chainConfirmed, yieldCredited, at: new Date().toISOString() });

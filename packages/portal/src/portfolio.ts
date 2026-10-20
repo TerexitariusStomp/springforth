@@ -1,4 +1,5 @@
 import { isNeed, triScore, type ExternalPlan, type OverlapRecord, type PlanNode } from '@springforth/coordination';
+import { footer } from './nav.ts';
 
 // /portfolio — the plan portfolio made navigable (overlap-report spec):
 // plans as comparable objects — themes, geographies, funding asks, data
@@ -98,6 +99,6 @@ ${planRows || '<tr><td colspan="5"><em>No plans imported yet.</em></td></tr>'}</
 <p>Groups of nodes the resolver flagged as related — each cluster is a
 coordination opportunity or a deduplication decision awaiting review.</p>
 ${clusterCards || '<p><em>No clusters yet — run <code>POST /overlaps/detect</code>.</em></p>'}
-<footer><small>Springforth — generated ${new Date().toISOString()}</small></footer>
+${footer()}
 </body></html>`;
 }

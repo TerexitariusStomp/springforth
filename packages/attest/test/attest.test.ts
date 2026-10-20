@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { outcomePayload, evaluationPayload, SCHEMAS } from '../src/index.ts';
+import { outcomePayload, evaluationPayload, gapUpdatePayload, SCHEMAS } from '../src/index.ts';
 import type { ImpactClaim, OracleCheck } from '@springforth/core';
 
 const chk = (id: string, result: 'match' | 'mismatch'): OracleCheck => ({
@@ -20,5 +20,17 @@ describe('EAS payloads', () => {
     const p = evaluationPayload({ claim, verdict: 'positive', note: 'x' });
     expect(p.values.verdict).toBe(1);
     expect(p.values.claimRef).toMatch(/^0x[0-9a-f]{64}$/);
+  });
+});
+
+describe('gapUpdatePayload (Karma GAP interop)', () => {
+  it('emits GAP-shaped project-update values', () => {
+    const p = gapUpdatePayload({ claim: {
+      id: 'claim-1', workScope: 'Mida Creek mangrove planting', timeframe: {},
+      nodeIds: [], contributors: ['a'], oracleCheckIds: [], appreciationIds: [],
+      artifactRefs: [], state: 'draft', createdAt: '2026-01-01T00:00:00Z',
+    } });
+    expect(p.schema).toContain('refUID');
+    expect(p.values.type).toBe('impact-claim');
   });
 });

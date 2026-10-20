@@ -53,3 +53,18 @@ export function trajectory(
     firstScore: ys[0]!, lastScore: last, daysToThreshold, readings: n,
   };
 }
+
+// Evidence-weighted allocation — the funding flywheel nobody else has:
+// a need whose trajectory is corroborated by open evidence earns a
+// modestly higher match weight; declining evidence modestly lowers it.
+// Deliberately narrow (0.8–1.2) — evidence nudges allocation, never
+// overrides donor breadth. No readings → neutral 1.0.
+export function evidenceBoost(
+  nodeId: string, checks: (OracleCheck & { nodeId?: string })[],
+): number {
+  const t = trajectory(nodeId, checks);
+  if (t.readings === 0) return 1;
+  const base = 0.8 + 0.4 * Math.min(1, Math.max(0, t.lastScore));
+  const trend = Math.max(-0.05, Math.min(0.05, t.slopePerDay * 30));
+  return Math.round(Math.min(1.2, Math.max(0.8, base + trend)) * 1000) / 1000;
+}

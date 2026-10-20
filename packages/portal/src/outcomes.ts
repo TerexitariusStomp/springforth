@@ -1,4 +1,5 @@
 import type { OverlapRecord, PlanNode } from '@springforth/coordination';
+import { footer } from './nav.ts';
 
 // /outcomes — the common outcome layer (overlap-report spec): "who else
 // is trying to achieve the same thing, and which existing actions could
@@ -84,6 +85,6 @@ small{color:#555}</style></head><body>
 strengthen it — every entry traces to its source plan.
 <a href="/">home</a> · <a href="/portfolio">portfolio</a> · <a href="/coordination">coordination</a></p>
 ${cards || '<p><em>No outcome nodes yet — import plans with outcomes (markdown, OnePlanet).</em></p>'}
-<footer><small>Springforth — generated ${new Date().toISOString()}</small></footer>
+${footer()}
 </body></html>`;
 }

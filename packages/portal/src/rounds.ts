@@ -1,6 +1,7 @@
-import type { Donation, FundingRound } from '@springforth/core';
+import type { Donation, FundingRound, RoundApplication } from '@springforth/core';
 import type { PlanNode } from '@springforth/coordination';
 import type { NodeMatch } from '@springforth/funding';
+import { footer } from './nav.ts';
 
 // /rounds — quadratic funding rounds (Liberal Radicalism; Gitcoin/Allo
 // public mechanism): donors give small amounts to financial needs the
@@ -20,7 +21,7 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.4
 .muted{color:#666}.bar{background:#e8f4e8;border-radius:.3rem;padding:.15rem .5rem;display:inline-block}
 input,button{font:inherit;padding:.4rem .6rem;margin:.2rem 0}</style></head><body>
 ${body}
-<footer><small>Springforth — <a href="/">home</a> · generated ${new Date().toISOString()}</small></footer>
+${footer()}
 </body></html>`;
 
 export function renderRoundsPage(rounds: FundingRound[]): string {
@@ -65,12 +66,44 @@ export function renderRoundPage(
 <h1>${esc(round.title)}</h1>
 <p class="muted">${esc(round.description)} Matching fund:
 <strong>${esc(round.matchingFund.currency)} ${MONEY.format(round.matchingFund.amount)}</strong> ·
-state <strong>${esc(round.state)}</strong> · closes ${esc(round.closesAt.slice(0, 10))} ·
+state <strong>${esc(round.state)}</strong> ·
+mechanism <strong>${round.matchingMode === 'pairwise' ? 'pairwise (collusion-discounted)' : 'quadratic'}${round.conviction ? ' + conviction' : ''}</strong> ·
+closes ${esc(round.closesAt.slice(0, 10))} ·
 ${donations.length} donation${donations.length === 1 ? '' : 's'} from ${donors} donor${donors === 1 ? '' : 's'}.</p>
 <p>Match column = the round's allocation preview: <em>(Σ√donations)²</em>
 per need, scaled to the fund. Ten small donors outweigh one large one —
 that is the point of the mechanism.</p>
 <table><tr><th>Need</th><th>Donors</th><th>Given</th><th>Match</th><th>Total</th><th>Donate</th></tr>
 ${rows || '<tr><td colspan="6"><em>No eligible needs.</em></td></tr>'}</table>
-<p class="muted"><a href="/rounds">all rounds</a> · JSON: <code>?format=json</code></p>`);
+<p class="muted"><a href="/rounds">all rounds</a> · JSON: <code>?format=json</code> ·
+<a href="/rounds/${esc(round.id)}/admin">operator</a></p>`);
+}
+
+// Operator console for a round — pending applications with approve/
+// reject actions, close control. Admin-gated at the route layer;
+// the page is just the form surface.
+export function renderRoundAdmin(
+  round: FundingRound, applications: RoundApplication[], nodes: PlanNode[],
+): string {
+  const label = new Map(nodes.map((n) => [n.id, n.label]));
+  const rows = applications.map((a) => `<tr>
+<td>${esc(label.get(a.needNodeId) ?? a.needNodeId)}</td>
+<td>${esc(a.applicant)}</td>
+<td class="muted">${esc(a.statement || '—')}</td>
+<td><span class="badge">${esc(a.state)}</span></td>
+<td>${a.state === 'pending' ? `
+<form method="post" action="/rounds/${esc(round.id)}/applications/${esc(a.id)}/review" style="display:inline">
+<input type="hidden" name="approve" value="true"><button>approve</button></form>
+<form method="post" action="/rounds/${esc(round.id)}/applications/${esc(a.id)}/review" style="display:inline">
+<input type="hidden" name="approve" value="false"><button>reject</button></form>` : ''}</td></tr>`).join('\n');
+  return shell(`${round.title} — operator`, `
+<h1>Operator — ${esc(round.title)}</h1>
+<p class="muted">${applications.filter((a) => a.state === 'pending').length} pending application(s) ·
+round is <strong>${esc(round.state)}</strong></p>
+<table><tr><th>Need</th><th>Applicant</th><th>Statement</th><th>State</th><th>Review</th></tr>
+${rows || '<tr><td colspan="5"><em>No applications yet.</em></td></tr>'}</table>
+${round.state === 'open' ? `
+<form method="post" action="/rounds/${esc(round.id)}/close" style="margin-top:1rem">
+<button>Close round (freeze allocation)</button></form>` : ''}
+<p class="muted"><a href="/rounds/${esc(round.id)}">back to round</a></p>`);
 }

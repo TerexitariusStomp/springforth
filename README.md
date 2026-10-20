@@ -54,7 +54,30 @@ Domain logic lives in `packages/`; the worker is a thin HTTP shell.
 | `funding` | quadratic matching, assurance pledges, retro tally, claim builder |
 | `attest` | EAS schema payloads (off-chain builder) |
 | `export-*` | public-spec emitters: hypercerts lexicon, 360Giving, IATI |
-| `chain-celo` | viem clients: EAS attest, Allo rounds, hypercert mint — celo-sepolia/celo |
+| `chain-celo` | viem clients: EAS attest, Allo rounds, hypercert mint, Superfluid streams, Aave yield — celo-sepolia/celo |
+| `client` | typed SDK — `new SpringforthClient({baseUrl}).rounds()` |
+
+## How it compares
+
+Springforth spans coordination → evidence → funding → governance. Most
+public-goods tools cover one camp; the differentiators are where they
+can't follow:
+
+| Capability | Springforth | Gitcoin/Allo | Giveth | Coordinape | Karma GAP | Octant |
+|---|---|---|---|---|---|---|
+| Pre-funding coordination (declare/commit/quorum) | ✅ core model | — | — | partial | — | — |
+| Overlap/complement detection across plans | ✅ | — | — | — | — | — |
+| Sybil resistance | **internal** EigenTrust graph + pairwise `k_ij` | external Passport | GIV staking | — | — | GLM lock |
+| Matching | standard + **trust-aware pairwise** + conviction | cluster-match (external signal) | QF | — | — | — |
+| Evidence → funding coupling | oracle trajectory boosts match weight | — | — | — | verify only | — |
+| Measure-to-earn (field evidence → credits) | ✅ | — | — | — | partial | — |
+| Recurring support | Superfluid streams | — | — | circles only | — | — |
+| Governance | EigenTrust-gated quadratic parameter ballots | token | token | — | — | token |
+| Data layer | signed/anchored dataset releases + IPFS + grants | — | — | — | — | — |
+| Custody | **none** — all tx unsigned calldata | — | — | — | — | staking |
+
+The moat: appreciation → pairwise trust → EigenTrust is a *live* social
+signal competitors would need our whole coordination layer to replicate.
 
 ## Develop
 

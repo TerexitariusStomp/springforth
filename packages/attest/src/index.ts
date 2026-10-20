@@ -14,6 +14,10 @@ export const SCHEMAS = {
   // reviewer evaluation of an impact claim
   'springforth.evaluation.v1':
     'bytes32 claimRef, uint8 verdict, string note',
+  // Karma GAP interop — their published ProjectUpdate-shaped schema so
+  // Springforth claims index in GAP-aware tooling (showkarma.xyz, MIT).
+  'springforth.gap-update.v1':
+    'string title, string text, string type, bytes32 refUID',
 } as const;
 export type SchemaRef = keyof typeof SCHEMAS;
 
@@ -50,6 +54,25 @@ export function evaluationPayload(opts: {
       claimRef: sha256(opts.claim.id),
       verdict: verdictCode,
       note: (opts.note ?? '').slice(0, 280),
+    },
+  };
+}
+
+// Karma GAP-compatible project-update payload — our claims become
+// readable by GAP-indexing explorers without platform lock-in.
+// Public schema shape per gap.karmahq.xyz docs; refUID chains the
+// update to the claim's own attestation when it exists.
+export function gapUpdatePayload(opts: {
+  claim: ImpactClaim; title?: string; text?: string;
+  refUID?: string;
+}) {
+  return {
+    schema: SCHEMAS['springforth.gap-update.v1'],
+    values: {
+      title: opts.title ?? `Impact claim ${opts.claim.id}`,
+      text: opts.text ?? opts.claim.workScope,
+      type: 'impact-claim',
+      refUID: opts.refUID ?? '0x' + '0'.repeat(64),
     },
   };
 }

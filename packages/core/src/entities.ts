@@ -12,7 +12,8 @@ export const Signal = z.object({
   actor: z.string().min(1),
   targetId: z.string().min(1),
   targetKind: z.enum(['node']).default('node'),
-  intent: z.enum(['support', 'interest', 'concern']).default('support'),
+  intent: z.enum(['support', 'interest', 'concern', 'field-report']).default('support'),
+  ref: z.string().optional(),   // evidence ref for field-report (photo/doc URI)
   note: z.string().default(''),
   at: z.string().datetime(),
 });
@@ -106,8 +107,10 @@ export type Pass = z.infer<typeof Pass>;
 // part of the earned ledger (append-only, never spendable).
 export const AssuranceCredit = z.object({
   id: z.string().min(1),
-  possibilityId: z.string().min(1),
+  possibilityId: z.string().optional(),       // pledge lane: the card pledged
+  nodeId: z.string().optional(),              // evidence lane: corroborated node
   actor: z.string().min(1),
+  source: z.string().optional(),              // 'pledge' | 'field-evidence'
   at: z.string().datetime(),
 });
 export type AssuranceCredit = z.infer<typeof AssuranceCredit>;
@@ -122,6 +125,7 @@ export type AssuranceCredit = z.infer<typeof AssuranceCredit>;
 // records of intent; settlement rides public rails.
 
 export const FundingRoundState = z.enum(['open', 'closed', 'allocated']);
+export const MatchingMode = z.enum(['lr', 'pairwise']);
 
 // A bounded allocation event: sponsors add a matching fund; donors give
 // small amounts to eligible financial need nodes; the fund distributes by
@@ -137,10 +141,46 @@ export const FundingRound = z.object({
   opensAt: z.string().datetime(),
   closesAt: z.string().datetime(),
   state: FundingRoundState.default('open'),
+  // matching mechanism: 'lr' = classic (Σ√c)²; 'pairwise' = coordination-
+  // subsidised QF (Buterin ethresear.ch/5553) with per-pair discount
+  // coefficients from the appreciation trust graph + wallet clusters.
+  matchingMode: MatchingMode.default('lr'),
+  // time-weighted support (Gardens conviction-voting): earlier backing
+  // counts more within the round window.
+  conviction: z.boolean().default(false),
+  // accepted donation tokens on the chain rail (symbol → address).
+  acceptedTokens: z.record(z.string(), z.string()).default({}),
   // on-chain mirror — Allo round id once created (phase 3).
   chainRef: z.string().optional(),
 });
 export type FundingRound = z.infer<typeof FundingRound>;
+
+// Actor ↔ wallet binding. A wallet proves control of an address by
+// EIP-191 personal_sign over a canonical message; actors may bind several
+// addresses. Pairwise matching merges donors sharing a bound wallet —
+// one wallet, one actor, k = 0 with itself.
+export const ActorWallet = z.object({
+  id: z.string().min(1),
+  actor: z.string().min(1),
+  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  signature: z.string().regex(/^0x[0-9a-fA-F]+$/),
+  at: z.string().datetime(),
+});
+export type ActorWallet = z.infer<typeof ActorWallet>;
+
+// A need node's application to join a round — the public intake lane.
+// Sponsors/operators review; approval appends to eligibleNeedIds.
+export const RoundApplication = z.object({
+  id: z.string().min(1),
+  roundId: z.string().min(1),
+  needNodeId: z.string().min(1),
+  applicant: z.string().min(1),               // actor id
+  statement: z.string().default(''),
+  state: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+  at: z.string().datetime(),
+  reviewedAt: z.string().datetime().optional(),
+});
+export type RoundApplication = z.infer<typeof RoundApplication>;
 
 // A donation toward one need node inside a round. `pledged` = intent
 // recorded; `settled` = moved on an external rail (Allo round, Open
@@ -175,6 +215,27 @@ export const Pledge = z.object({
   stateAt: z.string().datetime(),
 });
 export type Pledge = z.infer<typeof Pledge>;
+
+// Recurring support via a Superfluid constant-flow stream on Celo.
+// The supporter creates the flow in their own wallet (calldata built by
+// /rounds/:id/stream/tx); once the tx confirms the stream is `active`
+// and the cron accrues elapsed·flowRate into periodic Donation records.
+// Nothing custodies — the stream lives in the user's Superfluid account.
+export const RecurringSupport = z.object({
+  id: z.string().min(1),
+  roundId: z.string().min(1),
+  needNodeId: z.string().optional(),       // optional need targeting; else general
+  supporter: z.string().min(1),            // actor id / wallet
+  token: z.string().min(1),                // superToken address
+  receiver: z.string().regex(/^0x[0-9a-fA-F]{40}$/),  // round payout address
+  flowRate: z.string().min(1),             // int96 units/sec, stored as decimal string
+  txHash: z.string().optional(),           // createFlow hash once submitted
+  state: z.enum(['pending', 'active', 'closed']).default('pending'),
+  accruedUnits: z.string().default('0'),   // total units donated so far
+  lastAccrualAt: z.string().datetime().optional(),
+  createdAt: z.string().datetime(),
+});
+export type RecurringSupport = z.infer<typeof RecurringSupport>;
 
 // An impact claim — hypercerts ATProto lexicon shape (org.hypercerts
 // vocabulary, MIT spec): a *claim about work done* over a scope and
@@ -245,6 +306,90 @@ export const RetroBallot = z.object({
 });
 export type RetroBallot = z.infer<typeof RetroBallot>;
 
+// Governance — trust-gated parameter ballots, not token voting.
+// Proposals change protocol parameters; voters are the EigenTrust-
+// eligible cohort (same derivation as retro badgeholders); ballots are
+// quadratic (cost = points²) so breadth of conviction wins over depth.
+export const GovernanceProposal = z.object({
+  id: z.string().min(1),
+  param: z.string().min(1),                  // the parameter being changed
+  title: z.string().min(1),
+  description: z.string().default(''),
+  proposedValue: z.string().min(1),
+  proposer: z.string().min(1),
+  closesAt: z.string().datetime(),
+  state: z.enum(['open', 'passed', 'rejected']).default('open'),
+  createdAt: z.string().datetime(),
+});
+export type GovernanceProposal = z.infer<typeof GovernanceProposal>;
+
+export const GovernanceBallot = z.object({
+  id: z.string().min(1),
+  proposalId: z.string().min(1),
+  voter: z.string().min(1),
+  // quadratic cost: points spent, weight = √points
+  points: z.number().positive(),
+  support: z.boolean(),                      // for or against
+  at: z.string().datetime(),
+});
+export type GovernanceBallot = z.infer<typeof GovernanceBallot>;
+
+// A governable parameter — current value + who set it. Edge reads these
+// with defaults; a passed proposal writes the new value.
+export const GovernanceParam = z.object({
+  id: z.string().min(1),                     // param name
+  value: z.string().min(1),
+  setBy: z.string().min(1),                  // 'default' | proposal id
+  updatedAt: z.string().datetime(),
+});
+export type GovernanceParam = z.infer<typeof GovernanceParam>;
+
+// Signed dataset release — a frozen graph slice (JSONL) with a sha256
+// manifest, OTS-anchored, optionally pinned to IPFS. CC-BY-SA licensed;
+// the manifest is the provenance record.
+export const DatasetRelease = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),                   // dataset name, e.g. 'plannodes'
+  records: z.number().int().min(0),
+  manifest: z.record(z.string(), z.unknown()),  // sha256 manifest (evidence-anchor)
+  sha256: z.string().min(1),                 // hash of the bundle
+  cid: z.string().optional(),                // IPFS content id once pinned
+  otsStatus: z.string().optional(),          // anchor status ref
+  license: z.string().default('CC-BY-SA-4.0'),
+  createdAt: z.string().datetime(),
+});
+export type DatasetRelease = z.infer<typeof DatasetRelease>;
+
+// Premium data lane — verified payment reference → time-boxed access
+// grant for raw SourceReading payloads. Aggregates stay public; only
+// the raw/high-resolution feed is granted. No custody — the tx hash is
+// evidence of payment on an external rail, verified by the chain client.
+export const DataAccessGrant = z.object({
+  id: z.string().min(1),
+  dataset: z.string().min(1),
+  grantee: z.string().min(1),                // actor / wallet address
+  paymentRef: z.string().min(1),             // tx hash / receipt reference
+  verified: z.boolean().default(false),
+  expiresAt: z.string().datetime(),
+  createdAt: z.string().datetime(),
+});
+export type DataAccessGrant = z.infer<typeof DataAccessGrant>;
+
+// Notification subscription — actor opts in to lifecycle events on a
+// target (possibility quorum, round allocation, proposal close…).
+// Channel: 'telegram' (tg chat), 'webhook' (POST JSON), 'email' (stub —
+// recorded, delivered by an external relay once configured).
+export const Subscription = z.object({
+  id: z.string().min(1),
+  actor: z.string().min(1),
+  target: z.string().min(1),                 // possibilityId | roundId | '*' 
+  events: z.array(z.string().min(1)).default(['quorum', 'closed', 'tallied']),
+  channel: z.enum(['telegram', 'webhook', 'email']).default('telegram'),
+  address: z.string().optional(),            // chatId / webhook URL / email
+  createdAt: z.string().datetime(),
+});
+export type Subscription = z.infer<typeof Subscription>;
+
 // Open-evidence check on a coordination node — a single source reading
 // (remote-sensing, IoT, field evidence, public dataset connector) scored
 // independently. Confidence is reported, never auto-truth: human
@@ -280,6 +425,7 @@ export const ChainTx = z.object({
   chainId: z.number().int(),
   kind: z.enum([
     'round.create', 'donation.settle', 'claim.mint', 'attestation.publish',
+    'stream.create', 'stream.delete',
   ]),
   entityId: z.string().min(1),
   status: z.enum(['submitted', 'confirmed', 'failed']).default('submitted'),

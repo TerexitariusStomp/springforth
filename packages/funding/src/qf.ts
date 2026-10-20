@@ -24,7 +24,7 @@ export interface NodeMatch {
 export function allocateMatching(
   round: Pick<FundingRound, 'matchingFund' | 'eligibleNeedIds'>,
   donations: Donation[],
-  opts: { capPct?: number } = {},
+  opts: { capPct?: number; weightMultiplier?: (needNodeId: string) => number } = {},
 ): NodeMatch[] {
   const byNeed = new Map<string, Donation[]>();
   for (const id of round.eligibleNeedIds) byNeed.set(id, []);
@@ -39,7 +39,7 @@ export function allocateMatching(
       needNodeId,
       donations: ds.reduce((a, d) => a + d.amount, 0),
       donorCount: donors.size,
-      weight: sumSqrt * sumSqrt,
+      weight: sumSqrt * sumSqrt * (opts.weightMultiplier?.(needNodeId) ?? 1),
       match: 0,
       total: 0,
     };

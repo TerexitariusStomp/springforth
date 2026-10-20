@@ -1,5 +1,5 @@
 import {
-  createPublicClient, http, keccak256, toBytes,
+  createPublicClient, http, keccak256, toBytes, verifyMessage, isAddress,
   type Chain, type PublicClient, type TransactionReceipt,
 } from 'viem';
 import { celo, celoSepolia, sepolia } from 'viem/chains';
@@ -37,6 +37,26 @@ export function parseAttestedUid(
     l.address.toLowerCase() === easAddress.toLowerCase()
     && l.topics[0] === ATT_EAS);
   return log ? (log.data as `0x${string}`) : null;
+}
+
+// EIP-191 wallet↔actor binding: the address owner personal_signs a
+// canonical "springforth bind <actor>" message; verification is
+// signature recovery, no chain call needed. Works for any EOA wallet;
+// ERC-1271 contract wallets (Safes) are out of scope for v1.
+export function bindMessage(actor: string): string {
+  return `springforth bind actor:${actor}`;
+}
+export async function verifyWalletBinding(
+  actor: string, address: string, signature: string,
+): Promise<boolean> {
+  if (!isAddress(address)) return false;
+  try {
+    return await verifyMessage({
+      address: address as `0x${string}`,
+      message: bindMessage(actor),
+      signature: signature as `0x${string}`,
+    });
+  } catch { return false; }
 }
 
 // Allo PoolCreated — poolId is the first indexed arg → topics[1].

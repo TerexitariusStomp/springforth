@@ -1,0 +1,23 @@
+{
+  "name": "@springforth/client",
+  "version": "0.1.0",
+  "description": "Typed client SDK for the Springforth API \u2014 thin fetch wrapper with the entity types from @springforth/core.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@springforth/core": "workspace:*",
+    "@springforth/coordination": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "@types/node": "^22.10.0"
+  }
+}

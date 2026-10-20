@@ -635,6 +635,7 @@ export default {
           unmetNeeds: nodes.filter((n) => isNeed(n) && !rallied.has(n.id)).length,
           actionNodes: nodes.filter((n) => n.kind === 'action'),
           planCount: plans.length,
+          lang: langFrom(url, req.headers.get('cookie')),
         }), { headers: { 'content-type': 'text/html' } });
       }
       // Telegram bot webhook — secret-token verified, unauthenticated otherwise.

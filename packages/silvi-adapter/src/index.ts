@@ -158,6 +158,24 @@ export async function fetchSilviProjects(
     : (parsed.projects.length ? parsed.projects : parsed.data ?? []);
 }
 
+// Per-project fetch — Silvi API keys are issued per project (per the
+// founder), so the authenticated lane is /api/projects/:id?api_key=.
+export async function fetchSilviProject(
+  projectId: string | number, baseUrl = SILVI_APP_URL,
+  apiKey?: string, f: typeof fetch = fetch,
+): Promise<SilviProject | null> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/projects/${encodeURIComponent(projectId)}${apiKey ? `?api_key=${encodeURIComponent(apiKey)}` : ''}`;
+  const res = await f(url).catch(() => null);
+  if (!res || !res.ok) return null;
+  const body = await res.json().catch(() => null);
+  if (body == null) return null;
+  // Accept the bare project, {project: {...}}, or {data: {...}} envelopes.
+  const inner = (body as { project?: unknown; data?: unknown });
+  const cand = inner.project ?? (Array.isArray(inner.data) ? inner.data[0] : inner.data) ?? body;
+  const parsed = SilviProject.safeParse(cand);
+  return parsed.success ? parsed.data : null;
+}
+
 // Individual tree records for the oracle's verified-count reading.
 export async function fetchSilviTrees(
   baseUrl = SILVI_APP_URL, apiKey?: string, f: typeof fetch = fetch,
@@ -204,5 +222,5 @@ export async function fetchSpeciesResearch(
   const res = await f(`${apiBase}/research/research/${encodeURIComponent(taxonId)}`)
     .catch(() => null);
   if (!res || !res.ok) return null;
-  return res.json().catch(() => null);
+  return res.json().catch(() => null) as Promise<Record<string, unknown> | null>;
 }

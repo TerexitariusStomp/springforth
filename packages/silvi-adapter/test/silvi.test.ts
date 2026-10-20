@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  fromSilviProjects, fetchSilviProjects, fetchLeafScore,
+  fromSilviProjects, fetchSilviProjects, fetchSilviProject, fetchLeafScore,
   fetchSilviTrees, type SilviProject,
 } from '../src/index.ts';
 
@@ -64,6 +64,15 @@ describe('fetchSilviProjects / fetchSilviTrees', () => {
       .toBeNull();
     expect(await fetchSilviProjects('https://x', 'k',
       (() => Promise.reject(new Error('dns'))) as unknown as typeof fetch)).toBeNull();
+  });
+  it('fetchSilviProject hits /api/projects/:id and unwraps envelopes', async () => {
+    let url = '';
+    const spy = ((u: string) => { url = u; return Promise.resolve({ ok: true, json: () => Promise.resolve({ project: kakamega }) }); }) as unknown as typeof fetch;
+    const p = await fetchSilviProject(29, 'https://api.test', 'KEY', spy);
+    expect(url).toBe('https://api.test/api/projects/29?api_key=KEY');
+    expect(p?.name).toBe('Kakamega Forest Agroforestry');
+    expect(await fetchSilviProject(29, 'https://x', 'k', fetchJson({}, false))).toBeNull();
+    expect(await fetchSilviProject(29, 'https://x', 'k', fetchJson({ unrelated: 1 }))).toBeNull();
   });
 });
 

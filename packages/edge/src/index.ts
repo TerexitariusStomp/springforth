@@ -38,12 +38,16 @@ import { fromJson as fromArtizenJson } from '@springforth/artizen-adapter';
 import { fromJson as fromOcJson } from '@springforth/oc-adapter';
 import { fromJson as fromVfJson } from '@springforth/vf-adapter';
 import { fetchTreegens } from '@springforth/treegens-adapter';
+import {
+  fromSilviProjects, fetchSilviProject, fetchSilviTrees, fetchLeafScore,
+} from '@springforth/silvi-adapter';
 import { answer as agentAnswer } from '@springforth/agent';
 import { buildManifest } from '@springforth/evidence-anchor';
 import {
   checkFromReading, EXPECTED_DIRECTION, SOURCES,
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
   treegensPlantings, atlasHazard, trajectory,
+  silviVerifiedTrees, silviLeafAptness,
   type SourceReading, type GeoLoc,
 } from '@springforth/oracle';
 import { liveAtlas } from '@springforth/atlas-adapter';
@@ -68,6 +72,9 @@ interface Env {
   CHAIN_MODE?: string;            // 'off' (default) | 'celo-sepolia' | 'sepolia' | 'celo'
   CHAIN_RPC?: string;             // optional paid-RPC override
   TELEGRAM_CHAT_ID?: string;      // default group for quorum announcements
+  SILVI_API_KEY?: string;         // silvi.earth App API — issued PER PROJECT
+  SILVI_PROJECT_ID?: string;      // the project SILVI_API_KEY unlocks
+  SILVI_API_URL?: string;         // defaults to https://app.silvi.earth
 }
 
 // OpenTimestamps public calendars — free, keyless Bitcoin anchoring.
@@ -107,6 +114,13 @@ async function runOracleSources(env: Env, node: PlanNode) {
     gbifOccurrences(loc).catch(() => null),
     treegensPlantings(loc).catch(() => null),
     atlasHazard(node.h3!, liveAtlas()).catch(() => null),
+    silviVerifiedTrees(loc, {
+      trees: () => env.SILVI_PROJECT_ID
+        ? fetchSilviProject(env.SILVI_PROJECT_ID, env.SILVI_API_URL, env.SILVI_API_KEY)
+            .then((p) => p?.trees ?? null)
+        : fetchSilviTrees(env.SILVI_API_URL, env.SILVI_API_KEY),
+    }).catch(() => null),
+    silviLeafAptness(loc, { leaf: (l) => fetchLeafScore(l) }).catch(() => null),
   ]);
 
   const written: OracleCheck[] = [];
@@ -593,6 +607,35 @@ export default {
           live: plans.live.nodes.length, archive: plans.archive.nodes.length,
           overlaps: detected.length,
         }, 201);
+      }
+      // Silvi sync — pull a verified reforestation project into the plan
+      // graph. Silvi keys are issued per project: SILVI_API_KEY +
+      // SILVI_PROJECT_ID, or an ad-hoc {projectId, apiKey} in the body.
+      if (req.method === 'POST' && seg[0] === 'silvi' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const body = await req.json().catch(() => ({})) as { projectId?: string; apiKey?: string };
+        const projectId = body.projectId ?? env.SILVI_PROJECT_ID;
+        const apiKey = body.apiKey ?? env.SILVI_API_KEY;
+        if (!projectId)
+          return err('SILVI_PROJECT_ID unset — pass {projectId} (and apiKey if not in secrets)', 400);
+        const project = await fetchSilviProject(projectId, env.SILVI_API_URL, apiKey);
+        if (!project)
+          return err(`silvi api unreachable or key invalid for project ${projectId}`, 502);
+        const plan = fromSilviProjects([project], 'silvi:app');
+        await put(env.DB, 'plan', `${plan.id}-${project.id}`,
+          { ...plan, id: `${plan.id}-${project.id}`, title: `Silvi — ${project.name}`, nodes: undefined, nodeCount: plan.nodes.length });
+        for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
+        const nodes = await list<PlanNode>(env.DB, 'plannode');
+        const keep = new Map((await list<OverlapRecord>(env.DB, 'overlap')).map((o) => [o.id, o]));
+        const detected = [...detectOverlaps(nodes), ...detectComplements(nodes)];
+        for (const rec of detected) {
+          const prior = keep.get(rec.id);
+          await put(env.DB, 'overlap', rec.id, prior && prior.status !== 'proposed' ? prior : rec);
+        }
+        await ledgerAppend(env.DB, 'api', 'silvi.synced', {
+          project: project.id, nodes: plan.nodes.length, overlaps: detected.length,
+        });
+        return json({ project: project.name, nodes: plan.nodes.length, overlaps: detected.length }, 201);
       }
       if (seg[0] === 'overlaps') {
         if (req.method === 'GET' && seg.length === 1) {

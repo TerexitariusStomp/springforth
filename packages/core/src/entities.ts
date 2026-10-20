@@ -193,6 +193,8 @@ export const ImpactClaim = z.object({
   contributors: z.array(z.string()).default([]),
   oracleCheckIds: z.array(z.string()).default([]),
   appreciationIds: z.array(z.string()).default([]),
+  artifactRefs: z.array(z.string()).default([]),   // artizen artifact URIs — external work evidence
+  chainRef: z.string().optional(),                // mint tx / hypercert id once on-chain
   state: z.enum(['draft', 'attested']).default('draft'),
   createdAt: z.string().datetime(),
 });
@@ -200,7 +202,7 @@ export type ImpactClaim = z.infer<typeof ImpactClaim>;
 
 // An attestation — EAS-shaped (Ethereum Attestation Service, open
 // schema registry): a named attester signs a payload under a schema ref.
-// `uid` fills once anchored on-chain (Alfajores/Celo); until then the
+// `uid` fills once anchored on-chain (celo-sepolia/celo); until then the
 // ledger row + payload hash is the record.
 export const Attestation = z.object({
   id: z.string().min(1),
@@ -266,3 +268,46 @@ export const OracleCheck = z.object({
   at: z.string().datetime(),
 });
 export type OracleCheck = z.infer<typeof OracleCheck>;
+
+// A submitted chain transaction awaiting confirmation. The worker never
+// signs or holds keys — signers (wallets, Safes, portal connect) submit
+// txs built by the /chain endpoints and POST the hash here; the hourly
+// cron polls the public client until the receipt lands. `kind` says
+// which entity the confirm applies to.
+export const ChainTx = z.object({
+  id: z.string().min(1),
+  txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  chainId: z.number().int(),
+  kind: z.enum([
+    'round.create', 'donation.settle', 'claim.mint', 'attestation.publish',
+  ]),
+  entityId: z.string().min(1),
+  status: z.enum(['submitted', 'confirmed', 'failed']).default('submitted'),
+  result: z.string().optional(),   // poolId / attestation uid once decoded
+  submittedAt: z.string().datetime(),
+  confirmedAt: z.string().datetime().optional(),
+});
+export type ChainTx = z.infer<typeof ChainTx>;
+
+// Yield-backed matching (Phase 6): a sponsor holds a yield-bearing
+// position in their OWN wallet — nothing custodies — and pledges the
+// yield to a round's matching fund. `tokenAddress` is an Aave-v3-style
+// aToken (rebasing ERC20); the cron reads balanceOf(sponsor) and the
+// delta over the last reading credits round.matchingFund. Settlement
+// of the credited yield into the round rides the normal donation rail.
+export const YieldStream = z.object({
+  id: z.string().min(1),
+  roundId: z.string().min(1),
+  sponsor: z.string().min(1),                    // actor id
+  holderAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  tokenAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  label: z.string().default('aave aToken'),
+  decimals: z.number().int().min(0).max(36).default(18),
+  principalUnits: z.string().optional(),         // raw balance at first read
+  lastUnits: z.string().optional(),              // raw balance at last read
+  yieldAccrued: z.number().min(0).default(0),    // credited to the match, stable units
+  state: z.enum(['active', 'closed']).default('active'),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type YieldStream = z.infer<typeof YieldStream>;

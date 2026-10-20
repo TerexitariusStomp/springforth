@@ -2,7 +2,7 @@ import {
   Possibility, Participation, Appreciation, Pass, AssuranceCredit,
   OracleCheck, Signal,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
-  RetroRound, RetroBallot,
+  RetroRound, RetroBallot, ChainTx, YieldStream,
 } from '@springforth/core';
 import {
   allocateMatching, refreshPledge, badgeholders, tallyRound,
@@ -11,6 +11,13 @@ import {
 import { to360Giving } from '@springforth/export-360giving';
 import { toIati } from '@springforth/export-iati';
 import { outcomePayload, evaluationPayload } from '@springforth/attest';
+import {
+  chainFor, buildCreateProfileTx, buildCreateRoundTx,
+  buildAttestTx, buildMintClaimTx, publicClientFor,
+  parseAttestedUid, parsePoolId, readTokenBalance,
+  yieldDeltaUnits, unitsToStable,
+  type ChainConfig,
+} from '@springforth/chain-celo';
 import {
   renderCoordinationPage, renderPossibilitiesPage, renderLandingPage,
   renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
@@ -58,6 +65,8 @@ interface Env {
   ONEPLANET_URL?: string;    // defaults to https://mcp.oneplanet.com/mcp
   TELEGRAM_BOT_TOKEN?: string;    // @springforth_bot — /tg webhook + quorum notify
   TELEGRAM_WEBHOOK_SECRET?: string; // X-Telegram-Bot-Api-Secret-Token check
+  CHAIN_MODE?: string;            // 'off' (default) | 'celo-sepolia' | 'sepolia' | 'celo'
+  CHAIN_RPC?: string;             // optional paid-RPC override
   TELEGRAM_CHAT_ID?: string;      // default group for quorum announcements
 }
 
@@ -188,6 +197,127 @@ async function sweepPossibilities(env: Env, actor = 'system'): Promise<void> {
       }
     }
   }
+  // Assurance pledges ride the same lifecycle: pending → bound at quorum,
+  // → refunded on expiry, bound → released on completion.
+  const pledges = await list<Pledge>(env.DB, 'pledge');
+  for (const pl of pledges) {
+    const p = poss.find((x) => x.id === pl.possibilityId);
+    if (!p) continue;
+    const next = refreshPledge(pl, p,
+      { nodes, overlaps: recs, participations: parts }, now);
+    if (next.state !== pl.state) {
+      await put(env.DB, 'pledge', pl.id, next);
+      await ledgerAppend(env.DB, actor, `pledge.${next.state}`,
+        { id: pl.id, possibilityId: p.id });
+    }
+  }
+}
+
+// ── Chain lane ────────────────────────────────────────────────────────
+// The worker builds unsigned calldata and reads receipts — signers hold
+// the keys. CHAIN_MODE gates everything: 'off' (default) disables tx
+// building and the cron sync; 'celo-sepolia'/'sepolia' are the proving
+// grounds; alfajores is decommissioned post-L2.
+const chainCfg = (env: Env): ChainConfig | null =>
+  env.CHAIN_MODE === 'celo-sepolia' || env.CHAIN_MODE === 'sepolia'
+    || env.CHAIN_MODE === 'celo'
+    ? chainFor(env.CHAIN_MODE as 'celo-sepolia' | 'sepolia' | 'celo') : null;
+
+// Hourly cron: confirm submitted txs, apply side effects. Reads only.
+async function syncChain(env: Env): Promise<number> {
+  const cfg = chainCfg(env);
+  if (!cfg) return 0;
+  const client = publicClientFor(cfg, env.CHAIN_RPC);
+  const pending = (await list<ChainTx>(env.DB, 'chaintx'))
+    .filter((t) => t.status === 'submitted' && t.chainId === cfg.chainId);
+  let confirmed = 0;
+  for (const t of pending) {
+    const receipt = await client.getTransactionReceipt({ hash: t.txHash as `0x${string}` })
+      .catch(() => null);
+    if (!receipt) continue;
+    const now = new Date().toISOString();
+    if (receipt.status !== 'success') {
+      await put(env.DB, 'chaintx', t.id, { ...t, status: 'failed', confirmedAt: now });
+      await ledgerAppend(env.DB, 'cron', 'chaintx.failed', { id: t.id, txHash: t.txHash });
+      continue;
+    }
+    // Side effects per kind — decode the protocol's own event for the ref.
+    let result: string | undefined;
+    if (t.kind === 'round.create') {
+      const poolId = cfg.contracts.allo
+        ? parsePoolId(receipt, cfg.contracts.allo) : null;
+      result = poolId === null ? undefined : poolId.toString();
+      if (result) {
+        const round = await get<FundingRound>(env.DB, 'round', t.entityId);
+        if (round) await put(env.DB, 'round', round.id, { ...round, chainRef: `${cfg.chainId}:${result}` });
+      }
+    } else if (t.kind === 'attestation.publish') {
+      const uid = cfg.contracts.eas
+        ? parseAttestedUid(receipt, cfg.contracts.eas) : null;
+      result = uid ?? undefined;
+      const att = await get<Attestation>(env.DB, 'attestation', t.entityId);
+      if (att) await put(env.DB, 'attestation', att.id, { ...att, uid: uid ?? att.uid });
+    } else if (t.kind === 'claim.mint') {
+      result = t.txHash;
+      const claim = await get<ImpactClaim>(env.DB, 'claim', t.entityId);
+      if (claim) await put(env.DB, 'claim', claim.id,
+        { ...claim, chainRef: `${cfg.chainId}:${t.txHash}` });
+    } else if (t.kind === 'donation.settle') {
+      const don = await get<Donation>(env.DB, 'donation', t.entityId);
+      if (don) await put(env.DB, 'donation', don.id,
+        { ...don, settlement: 'settled', settlementRef: `${cfg.chainId}:${t.txHash}` });
+    }
+    await put(env.DB, 'chaintx', t.id,
+      { ...t, status: 'confirmed', result, confirmedAt: now });
+    await ledgerAppend(env.DB, 'cron', 'chaintx.confirmed',
+      { id: t.id, kind: t.kind, entityId: t.entityId, txHash: t.txHash, result });
+    confirmed++;
+  }
+  return confirmed;
+}
+
+// Yield-backed matching: read each active stream's aToken balance; the
+// delta since last read credits the round's matchingFund. Read-only —
+// the sponsor's wallet holds the position throughout.
+async function syncYield(env: Env): Promise<number> {
+  const cfg = chainCfg(env);
+  if (!cfg) return 0;
+  const client = publicClientFor(cfg, env.CHAIN_RPC);
+  const streams = (await list<YieldStream>(env.DB, 'yieldstream'))
+    .filter((s) => s.state === 'active');
+  let credited = 0;
+  for (const s of streams) {
+    const bal = await readTokenBalance(client,
+      s.tokenAddress as `0x${string}`, s.holderAddress as `0x${string}`)
+      .catch(() => null);
+    if (bal === null) continue;
+    const last = s.lastUnits === undefined ? undefined : BigInt(s.lastUnits);
+    const { delta, newPrincipal } = yieldDeltaUnits(last, bal);
+    const now = new Date().toISOString();
+    if (newPrincipal) {
+      await put(env.DB, 'yieldstream', s.id,
+        { ...s, principalUnits: bal.toString(), lastUnits: bal.toString(), updatedAt: now });
+      continue;
+    }
+    if (delta === 0n) {
+      await put(env.DB, 'yieldstream', s.id, { ...s, lastUnits: bal.toString(), updatedAt: now });
+      continue;
+    }
+    const stable = unitsToStable(delta, s.decimals);
+    const round = await get<FundingRound>(env.DB, 'round', s.roundId);
+    if (round && round.state === 'open') {
+      await put(env.DB, 'round', round.id, { ...round,
+        matchingFund: { ...round.matchingFund,
+          amount: round.matchingFund.amount + stable } });
+    }
+    await put(env.DB, 'yieldstream', s.id, { ...s,
+      lastUnits: bal.toString(),
+      yieldAccrued: s.yieldAccrued + stable, updatedAt: now });
+    await ledgerAppend(env.DB, 'cron', 'yield.accrued',
+      { id: s.id, roundId: s.roundId, delta: stable, sponsor: s.sponsor });
+    credited++;
+  }
+  return credited;
 }
 
 const esc = (s: string) =>
@@ -1256,6 +1386,69 @@ export default {
             { id: round.id, allocation });
           return json({ ...closed, allocation });
         }
+        // On-chain creation — unsigned calldata for the signer's wallet.
+        // Allo v2 requires a registry profile before pool creation.
+        if (req.method === 'GET' && seg[2] === 'tx') {
+          const cfg = chainCfg(env);
+          if (!cfg) return err('chain disabled — set CHAIN_MODE=celo-sepolia|sepolia|celo', 503);
+          const owner = url.searchParams.get('owner');
+          const profileId = url.searchParams.get('profileId') as `0x${string}` | null;
+          const initData = url.searchParams.get('initStrategyData') as `0x${string}` | null;
+          const meta = `https://springforth.widespread.workers.dev/rounds/${round.id}`;
+          if (!profileId) {
+            if (!owner) return err('owner=0x… required — the signer address that will own the Allo registry profile', 400);
+            return json({
+              chain: cfg.name, step: 'createProfile',
+              tx: buildCreateProfileTx({ cfg, nonce: BigInt(Date.now()),
+                name: `springforth:${round.id}`, owner: owner as `0x${string}`,
+                metadataPointer: meta }),
+              next: 'submit tx → profileId = keccak256(nonce,owner) → GET ?profileId=0x…&initStrategyData=0x…',
+              contracts: cfg.contracts,
+            });
+          }
+          if (!initData)
+            return err('initStrategyData=0x… required — strategy init encoding per DonationVotingMerkleDistribution (allo-v2)', 400);
+          return json({
+            chain: cfg.name, step: 'createPoolWithCustomStrategy',
+            tx: buildCreateRoundTx({ cfg, profileId, initStrategyData: initData,
+              matchingAmount: BigInt(Math.round(round.matchingFund.amount * 10 ** 18)),
+              metadataPointer: meta }),
+            then: `POST /chain/record { kind: 'round.create', entityId: '${round.id}', txHash }`,
+          });
+        }
+        // Yield-backed matching — register a sponsor's yield-bearing
+        // position; the cron reads its aToken balance and credits the
+        // delta to matchingFund. Read-only, non-custodial.
+        if (seg[2] === 'yield') {
+          if (req.method === 'GET') {
+            const streams = (await list<YieldStream>(env.DB, 'yieldstream'))
+              .filter((s) => s.roundId === round.id);
+            return json({ roundId: round.id, streams,
+              mechanism: 'sponsor holds the position; accrued yield credits the matching fund' });
+          }
+          if (req.method === 'POST') {
+            if (!authed(req, env)) return err('unauthorized', 401);
+            const b = await req.json() as Record<string, unknown>;
+            const sponsor = String(b.sponsor ?? '');
+            const holderAddress = String(b.holderAddress ?? '');
+            const tokenAddress = String(b.tokenAddress ?? '');
+            if (!sponsor || !/^0x[0-9a-fA-F]{40}$/.test(holderAddress)
+              || !/^0x[0-9a-fA-F]{40}$/.test(tokenAddress))
+              return err('sponsor + valid holderAddress/tokenAddress required', 422);
+            const now = new Date().toISOString();
+            const stream = YieldStream.parse({
+              id: `ys-${round.id}-${sponsor.toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+              roundId: round.id, sponsor, holderAddress, tokenAddress,
+              label: String(b.label ?? 'aave aToken'),
+              decimals: Number(b.decimals ?? 18),
+              createdAt: now, updatedAt: now,
+            });
+            await put(env.DB, 'yieldstream', stream.id, stream);
+            await ledgerAppend(env.DB, sponsor, 'yield.registered',
+              { id: stream.id, roundId: round.id, tokenAddress });
+            return json(stream, 201);
+          }
+        }
       }
       // ── Impact claims + attestations ────────────────────────────────
       if (seg[0] === 'claims') {
@@ -1316,6 +1509,68 @@ export default {
           await ledgerAppend(env.DB, attester, 'claim.attested', { id: claim.id, attestationId: att.id });
           return json(att, 201);
         }
+        // Hypercert metadata document — the URI mintClaim points at.
+        if (req.method === 'GET' && seg[2] === 'metadata') {
+          const nodes = await list<PlanNode>(env.DB, 'plannode');
+          const labels = claim.nodeIds
+            .map((id) => nodes.find((n) => n.id === id)?.label ?? id);
+          return json({
+            name: claim.workScope,
+            description: `Impact claim over ${labels.join(', ') || 'coordinated work'} — evaluated via attestations, never traded.`,
+            work_scope: labels,
+            work_timeframe: claim.timeframe,
+            contributors: claim.contributors,
+            evidence: claim.oracleCheckIds.map((id) => `springforth:check:${id}`),
+            artifacts: claim.artifactRefs,
+            external_url: `https://springforth.widespread.workers.dev/claims/${claim.id}`,
+          });
+        }
+        // Unsigned mintClaim calldata — account= receives the claim.
+        if (req.method === 'GET' && seg[2] === 'tx') {
+          const cfg = chainCfg(env);
+          if (!cfg) return err('chain disabled — set CHAIN_MODE=celo-sepolia|sepolia|celo', 503);
+          if (!cfg.contracts.hypercertMinter)
+            return err(`hypercert minter not deployed on ${cfg.name} — mint on celo`, 409);
+          const account = url.searchParams.get('account');
+          if (!account || !/^0x[0-9a-fA-F]{40}$/.test(account))
+            return err('account=0x… required — address receiving the claim', 400);
+          return json({
+            chain: cfg.name,
+            tx: buildMintClaimTx({ cfg, account: account as `0x${string}`,
+              metadataUri: `https://springforth.widespread.workers.dev/claims/${claim.id}/metadata` }),
+            then: `POST /chain/record { kind: 'claim.mint', entityId: '${claim.id}', txHash }`,
+          });
+        }
+        // Artizen artifact links — external work evidence on the claim.
+        if (req.method === 'POST' && seg[2] === 'artifacts') {
+          const b = await req.json() as Record<string, unknown>;
+          const ref = String(b.uri ?? b.ref ?? '');
+          if (!/^https?:\/\//.test(ref)) return err('uri=https://… required', 422);
+          const next = { ...claim, artifactRefs: [...claim.artifactRefs, ref] };
+          await put(env.DB, 'claim', claim.id, next);
+          await ledgerAppend(env.DB, String(b.actor ?? 'api'), 'claim.artifact',
+            { id: claim.id, uri: ref });
+          return json(next, 201);
+        }
+      }
+      // ── Attestation on-chain publish ────────────────────────────────
+      if (seg[0] === 'attestations' && req.method === 'GET' && seg[2] === 'tx') {
+        const att = await get<Attestation>(env.DB, 'attestation', seg[1] ?? '');
+        if (!att) return err('attestation not found', 404);
+        const cfg = chainCfg(env);
+        if (!cfg) return err('chain disabled — set CHAIN_MODE=celo-sepolia|sepolia|celo', 503);
+        const schemaUid = url.searchParams.get('schemaUid');
+        if (!schemaUid || !/^0x[0-9a-fA-F]{64}$/.test(schemaUid))
+          return err('schemaUid=0x… required — register the schema via EAS SchemaRegistry first', 400);
+        const payload = JSON.parse(att.payload) as { schema: string; values: Record<string, unknown> };
+        const recipient = url.searchParams.get('recipient') ?? undefined;
+        return json({
+          chain: cfg.name, schemaRef: att.schemaRef,
+          tx: buildAttestTx({ cfg, schemaUid: schemaUid as `0x${string}`,
+            schema: payload.schema, values: payload.values,
+            recipient: recipient as `0x${string}` | undefined }),
+          then: `POST /chain/record { kind: 'attestation.publish', entityId: '${att.id}', txHash }`,
+        });
       }
       // ── Retro rounds — badgeholders from EigenTrust ─────────────────
       if (seg[0] === 'retro') {
@@ -1399,6 +1654,47 @@ export default {
       if (req.method === 'GET' && seg[0] === 'pledges') {
         return json({ pledges: await list<Pledge>(env.DB, 'pledge') });
       }
+      // ── Chain lane — status + tx recording + confirmation mirror ────
+      if (seg[0] === 'chain') {
+        const cfg = chainCfg(env);
+        if (req.method === 'GET' && seg.length === 1) {
+          const pending = await list<ChainTx>(env.DB, 'chaintx');
+          return json({
+            mode: env.CHAIN_MODE ?? 'off',
+            ...(cfg ? { chain: cfg.name, chainId: cfg.chainId,
+              explorer: cfg.explorer, contracts: cfg.contracts } : {}),
+            pending: pending.filter((t) => t.status === 'submitted').length,
+            flow: 'GET tx endpoints build unsigned calldata → wallet signs+submits → POST /chain/record → hourly cron confirms receipts',
+          });
+        }
+        if (req.method === 'GET' && seg[1] === 'pending')
+          return json({ pending: await list<ChainTx>(env.DB, 'chaintx') });
+        if (req.method === 'POST' && seg[1] === 'record') {
+          const b = await req.json() as Record<string, unknown>;
+          if (!cfg) return err('chain disabled — set CHAIN_MODE=celo-sepolia|sepolia|celo', 503);
+          const txHash = String(b.txHash ?? '');
+          const kind = String(b.kind ?? '') as ChainTx['kind'];
+          const entityId = String(b.entityId ?? '');
+          if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) return err('txHash must be 0x + 64 hex', 422);
+          if (!['round.create', 'donation.settle', 'claim.mint', 'attestation.publish'].includes(kind))
+            return err('kind must be round.create|donation.settle|claim.mint|attestation.publish', 422);
+          // entity must exist before we track its tx
+          const kindStore = { 'round.create': 'round', 'donation.settle': 'donation',
+            'claim.mint': 'claim', 'attestation.publish': 'attestation' }[kind];
+          const entity = await get<unknown>(env.DB, kindStore, entityId);
+          if (!entity) return err(`${kindStore} not found`, 404);
+          const tx = ChainTx.parse({
+            id: `ct-${txHash.slice(2, 10)}-${entityId.slice(0, 24)}`,
+            txHash, chainId: cfg.chainId, kind, entityId,
+            submittedAt: new Date().toISOString(),
+          });
+          await put(env.DB, 'chaintx', tx.id, tx);
+          await ledgerAppend(env.DB, String(b.actor ?? 'api'), 'chaintx.submitted',
+            { id: tx.id, kind, entityId, txHash });
+          return json({ ...tx,
+            confirm: 'hourly cron reads the receipt and marks confirmed + applies side effects' }, 201);
+        }
+      }
       // OpenTimestamps anchoring — stamps the ledger head hash into the
       // public Bitcoin calendars. Free and keyless: POST the 32-byte digest
       // to the calendar, it returns a pending .ots receipt; once aggregated
@@ -1472,6 +1768,9 @@ export default {
       .filter((n) => n.kind === 'action' && n.h3);
     for (const n of nodes) await runOracleSources(env, n);
     await sweepPossibilities(env, 'cron');
-    await ledgerAppend(env.DB, 'cron', 'oracle.cycle', { nodes: nodes.length, at: new Date().toISOString() });
+    const chainConfirmed = await syncChain(env).catch(() => 0);
+    const yieldCredited = await syncYield(env).catch(() => 0);
+    await ledgerAppend(env.DB, 'cron', 'oracle.cycle',
+      { nodes: nodes.length, chainConfirmed, yieldCredited, at: new Date().toISOString() });
   },
 };

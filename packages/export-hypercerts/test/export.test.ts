@@ -7,7 +7,8 @@ const claim: ImpactClaim = {
   workScope: 'Plant 1,200 mangrove propagules',
   timeframe: { from: '2027-01-15T08:00:00Z', to: '2027-01-16T14:00:00Z' },
   contributors: ['alice', 'bob'], oracleCheckIds: ['chk1'],
-  appreciationIds: [], state: 'attested', createdAt: '2026-10-20T00:00:00Z',
+  appreciationIds: [], artifactRefs: ['https://artizen.example/artifact/7'],
+  state: 'attested', createdAt: '2026-10-20T00:00:00Z',
 };
 
 describe('hypercerts lexicon export', () => {

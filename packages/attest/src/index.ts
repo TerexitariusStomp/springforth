@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 // registry; MIT eas-sdk). Schemas are ABI-typed strings registered
 // on-chain; the payload builder produces the encoded values + a
 // content hash. On-chain write happens in @springforth/chain-celo
-// (Alfajores first); this package is chain-free and worker-safe.
+// (celo-sepolia/celo); this package is chain-free and worker-safe.
 
 export const SCHEMAS = {
   // what was verified, by which evidence, at what confidence

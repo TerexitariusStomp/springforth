@@ -54,7 +54,7 @@ Domain logic lives in `packages/`; the worker is a thin HTTP shell.
 | `funding` | quadratic matching, assurance pledges, retro tally, claim builder |
 | `attest` | EAS schema payloads (off-chain builder) |
 | `export-*` | public-spec emitters: hypercerts lexicon, 360Giving, IATI |
-| `chain-celo` | viem clients: EAS attest, Allo rounds, hypercert mint — Alfajores-gated |
+| `chain-celo` | viem clients: EAS attest, Allo rounds, hypercert mint — celo-sepolia/celo |
 
 ## Develop
 

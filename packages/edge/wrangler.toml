@@ -12,6 +12,10 @@ migrations_dir = "migrations"
 
 [vars]
 ENVIRONMENT = "production"
+# Chain lane: read-side + unsigned-calldata only — the worker never signs.
+# All protocol contracts verified live on celo mainnet (2026-10-20).
+# celo-sepolia is the proving ground once contracts are deployed there.
+CHAIN_MODE = "celo"
 
 # Real-time MRV: hourly oracle cycle over live open-data sources.
 [triggers]

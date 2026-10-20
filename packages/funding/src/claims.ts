@@ -30,6 +30,7 @@ export function buildClaim(opts: {
     ],
     oracleCheckIds: checks.map((c) => c.id),
     appreciationIds: appreciations.map((a) => a.id),
+    artifactRefs: [],
     state: 'draft',
     createdAt: new Date().toISOString(),
   };
@@ -58,6 +59,7 @@ export function toHypercertLexicon(claim: ImpactClaim): Record<string, unknown> 
         ? { uri: `https://springforth.widespread.workers.dev/possibilities#${claim.possibilityId}` }
         : undefined,
       ...claim.nodeIds.map((id) => ({ uri: `https://springforth.widespread.workers.dev/nodes/${id}` })),
+      ...claim.artifactRefs.map((uri) => ({ uri })),
     ].filter(Boolean),
     createdAt: claim.createdAt,
   };

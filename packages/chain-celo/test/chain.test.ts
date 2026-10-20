@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ALFAJORES, CELO, chainFor, encodeSchemaData, buildAttestTx,
+  CELO, CELO_SEPOLIA, SEPOLIA, chainFor, encodeSchemaData, buildAttestTx,
   buildCreateProfileTx, buildCreateRoundTx, buildAllocateTx, buildMintClaimTx,
 } from '../src/index.ts';
 
 describe('chain config', () => {
   it('both nets carry the public deployments', () => {
     expect(CELO.chainId).toBe(42220);
-    expect(ALFAJORES.chainId).toBe(44787);
+    expect(CELO_SEPOLIA.chainId).toBe(11142220);
+    expect(SEPOLIA.chainId).toBe(11155111);
     expect(CELO.contracts.hypercertMinter).toBeDefined();
-    expect(ALFAJORES.contracts.hypercertMinter).toBeUndefined();
-    expect(chainFor('alfajores').contracts.eas).toBe(ALFAJORES.contracts.eas);
+    expect(CELO_SEPOLIA.contracts.hypercertMinter).toBeUndefined();
+    expect(CELO_SEPOLIA.contracts.eas).toBeUndefined();
+    expect(SEPOLIA.contracts.allo).toBe(SEPOLIA.contracts.allo);
+    expect(chainFor('celo-sepolia').chainId).toBe(11142220);
     expect(chainFor('celo').contracts.eas).toBe(CELO.contracts.eas);
   });
 });
@@ -27,12 +30,12 @@ describe('EAS tx building', () => {
   });
   it('builds attest calldata to the deployed EAS contract', () => {
     const tx = buildAttestTx({
-      cfg: ALFAJORES,
+      cfg: CELO,
       schemaUid: `0x${'22'.repeat(32)}`,
       schema,
       values: { nodeRef: `0x${'11'.repeat(32)}`, score: 80, sourceURI: 'u' },
     });
-    expect(tx.to).toBe(ALFAJORES.contracts.eas);
+    expect(tx.to).toBe(CELO.contracts.eas);
     expect(tx.data).toMatch(/^0x[0-9a-f]+$/);
   });
 });
@@ -40,18 +43,18 @@ describe('EAS tx building', () => {
 describe('Allo tx building', () => {
   it('createProfile targets the registry', () => {
     const tx = buildCreateProfileTx({
-      cfg: ALFAJORES, nonce: 1n, name: 'springforth',
+      cfg: CELO, nonce: 1n, name: 'springforth',
       owner: '0x0000000000000000000000000000000000000001', metadataPointer: 'ipfs://x',
     });
-    expect(tx.to).toBe(ALFAJORES.contracts.alloRegistry);
+    expect(tx.to).toBe(CELO.contracts.alloRegistry);
   });
   it('createRound targets Allo with the QF strategy', () => {
     const tx = buildCreateRoundTx({
-      cfg: ALFAJORES, profileId: `0x${'33'.repeat(32)}`,
+      cfg: CELO, profileId: `0x${'33'.repeat(32)}`,
       initStrategyData: '0x', matchingAmount: 1000000n,
       metadataPointer: 'ipfs://round',
     });
-    expect(tx.to).toBe(ALFAJORES.contracts.allo);
+    expect(tx.to).toBe(CELO.contracts.allo);
     expect(tx.data).toMatch(/^0x[0-9a-f]+$/);
   });
   it('allocate targets Allo', () => {
@@ -68,10 +71,73 @@ describe('hypercert mint', () => {
     });
     expect(tx.to).toBe(CELO.contracts.hypercertMinter);
   });
-  it('refuses on Alfajores — minter not deployed there', () => {
+  it('refuses on celo-sepolia — minter not deployed there', () => {
     expect(() => buildMintClaimTx({
-      cfg: ALFAJORES, account: '0x0000000000000000000000000000000000000001',
+      cfg: CELO_SEPOLIA, account: '0x0000000000000000000000000000000000000001',
       metadataUri: 'x',
     })).toThrow();
+  });
+});
+
+// ── receipt parsing + yield math ─────────────────────────────────────
+import { yieldDeltaUnits, unitsToStable, parsePoolId, parseAttestedUid } from '../src/index.ts';
+import { keccak256, toBytes, type TransactionReceipt } from 'viem';
+
+describe('yield delta', () => {
+  it('first read establishes principal, no accrual', () => {
+    const r = yieldDeltaUnits(undefined, 1000n);
+    expect(r.newPrincipal).toBe(true);
+    expect(r.delta).toBe(0n);
+  });
+  it('growth between reads is the accrued delta', () => {
+    const r = yieldDeltaUnits(1000n, 1042n);
+    expect(r.delta).toBe(42n);
+    expect(unitsToStable(42n, 18)).toBeCloseTo(4.2e-17);
+    expect(unitsToStable(42000000n, 6)).toBeCloseTo(42);
+  });
+  it('withdrawal (shrink) clamps to zero', () => {
+    expect(yieldDeltaUnits(1000n, 900n).delta).toBe(0n);
+  });
+});
+
+describe('parsePoolId', () => {
+  const ALLO = '0x1133eA7Af70876e64665ecD07C0A0476d09465a1';
+  const POOL_TOPIC = keccak256(toBytes(
+    'PoolCreated(uint256,bytes32,(bytes32,address,address,(uint256,string),bytes32,bytes32))'));
+  const poolLog = (addr: string, poolId: bigint) => ({
+    address: addr, data: `0x${'00'.repeat(32)}` as `0x${string}`,
+    topics: [POOL_TOPIC,
+      `0x${poolId.toString(16).padStart(64, '0')}` as `0x${string}`],
+  });
+  it('returns null for a receipt with no Allo log', () => {
+    const receipt = { logs: [] } as unknown as TransactionReceipt;
+    expect(parsePoolId(receipt, ALLO)).toBeNull();
+  });
+  it('ignores logs from other addresses', () => {
+    const receipt = {
+      logs: [poolLog('0x0000000000000000000000000000000000000001', 7n)],
+    } as unknown as TransactionReceipt;
+    expect(parsePoolId(receipt, ALLO)).toBeNull();
+  });
+  it('decodes the indexed poolId from topics[1]', () => {
+    const receipt = { logs: [poolLog(ALLO, 42n)] } as unknown as TransactionReceipt;
+    expect(parsePoolId(receipt, ALLO)).toBe(42n);
+  });
+});
+
+describe('parseAttestedUid', () => {
+  const EAS = '0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92';
+  const ATT_TOPIC = keccak256(toBytes('Attested(address,address,bytes32,bytes32)'));
+  const uid = `0x${'ab'.repeat(32)}` as `0x${string}`;
+  it('returns log.data as the uid on an EAS Attested log', () => {
+    const receipt = { logs: [{ address: EAS, data: uid,
+      topics: [ATT_TOPIC, `0x${'00'.repeat(32)}`, `0x${'11'.repeat(32)}`,
+        `0x${'22'.repeat(32)}`] }] } as unknown as TransactionReceipt;
+    expect(parseAttestedUid(receipt, EAS)).toBe(uid);
+  });
+  it('returns null when no matching log exists', () => {
+    const receipt = { logs: [{ address: EAS, data: uid,
+      topics: [`0x${'ff'.repeat(32)}`] }] } as unknown as TransactionReceipt;
+    expect(parseAttestedUid(receipt, EAS)).toBeNull();
   });
 });

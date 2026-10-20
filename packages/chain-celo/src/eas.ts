@@ -60,6 +60,8 @@ export function buildAttestTx(opts: {
   schema: string; values: Record<string, unknown>;
   recipient?: Address; refUID?: `0x${string}`;
 }): { to: `0x${string}`; data: `0x${string}` } {
+  if (!opts.cfg.contracts.eas)
+    throw new Error(`EAS not deployed on ${opts.cfg.name}`);
   return {
     to: opts.cfg.contracts.eas,
     data: encodeFunctionData({

@@ -52,6 +52,8 @@ export function buildCreateProfileTx(opts: {
   cfg: ChainConfig; nonce: bigint; name: string; owner: Address;
   metadataPointer: string;
 }): { to: `0x${string}`; data: `0x${string}` } {
+  if (!opts.cfg.contracts.alloRegistry)
+    throw new Error(`Allo registry not deployed on ${opts.cfg.name}`);
   return {
     to: opts.cfg.contracts.alloRegistry,
     data: encodeFunctionData({
@@ -69,6 +71,9 @@ export function buildCreateRoundTx(opts: {
   cfg: ChainConfig; profileId: `0x${string}`; initStrategyData: `0x${string}`;
   matchingAmount: bigint; metadataPointer: string; managers?: Address[];
 }): { to: `0x${string}`; data: `0x${string}` } {
+  if (!opts.cfg.contracts.allo || !opts.cfg.contracts.alloQfStrategy
+    || !opts.cfg.stable)
+    throw new Error(`Allo/strategy/stable not fully deployed on ${opts.cfg.name}`);
   return {
     to: opts.cfg.contracts.allo,
     data: encodeFunctionData({
@@ -88,6 +93,8 @@ export function buildCreateRoundTx(opts: {
 export function buildAllocateTx(opts: {
   cfg: ChainConfig; poolId: bigint; strategyData: `0x${string}`;
 }): { to: `0x${string}`; data: `0x${string}` } {
+  if (!opts.cfg.contracts.allo)
+    throw new Error(`Allo not deployed on ${opts.cfg.name}`);
   return {
     to: opts.cfg.contracts.allo,
     data: encodeFunctionData({

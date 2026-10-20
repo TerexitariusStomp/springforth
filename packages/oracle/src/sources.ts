@@ -283,8 +283,61 @@ export async function atlasHazard(h3: string, atlas: AtlasLike): Promise<SourceR
   };
 }
 
+// ── Silvi — verified trees + LEAF species aptness ─────────────────────────
+// silvi.earth is a Celo-based reforestation MRV protocol (MIT-licensed
+// public repo SilviProtocol/silvi). Two lanes: project verified tree
+// counts via the App API (key-gated) and Treekipedia LEAF aptness
+// (documented keyless — degrades to null while upstream is auth-gated).
+export interface SilviLike {
+  trees(): Promise<{ lat?: number; lng?: number; latitude?: number;
+    longitude?: number; status?: string }[] | null>;
+}
+export async function silviVerifiedTrees(
+  loc: GeoLoc, silvi: SilviLike, radiusKm = 15,
+): Promise<SourceReading | null> {
+  const trees = await silvi.trees();
+  if (!trees) return null;
+  let verified = 0, planted = 0;
+  for (const t of trees) {
+    const lat = t.lat ?? t.latitude, lng = t.lng ?? t.longitude;
+    if (lat == null || lng == null || distKm(loc, lat, lng) > radiusKm) continue;
+    if (t.status === 'verified') verified++; else planted++;
+  }
+  if (!verified && !planted) return null;
+  return {
+    key: 'silvi',
+    source: 'field-evidence', domain: 'environmental',
+    value: verified, unit: `Silvi-verified trees within ${radiusKm}km`,
+    at: new Date().toISOString(),
+    methodologyRef: 'Silvi 4-layer MRV (ground verify + drone + satellite); only verified status counted',
+    license: 'site-published evidence', attribution: 'Silvi (silvi.earth)',
+    detail: `${verified} verified + ${planted} unverified Silvi trees within ${radiusKm}km — silvi.earth`,
+  };
+}
+
+// LEAF — "what should grow here": aptness score of the best native
+// species plus count of recommended species, from the public endpoint.
+export interface LeafLike {
+  leaf(loc: { lat: number; lon: number }): Promise<{
+    topScore: number; speciesCount: number; topSpecies: string[] } | null>;
+}
+export async function silviLeafAptness(loc: GeoLoc, leaf: LeafLike): Promise<SourceReading | null> {
+  const r = await leaf.leaf({ lat: loc.lat, lon: loc.lon });
+  if (!r) return null;
+  return {
+    key: 'silvi-leaf',
+    source: 'remote-sensing', domain: 'environmental',
+    value: r.topScore, unit: `LEAF aptness 0–100 (${r.speciesCount} species ≥50)`,
+    at: new Date().toISOString(),
+    methodologyRef: 'Silvi LEAF — 96.5M GBIF occurrences + WCVP native status + 847 WWF ecoregions',
+    license: 'Silvi public API', attribution: 'Silvi Treekipedia (treekipedia.silvi.earth)',
+    detail: `top aptness ${r.topScore}/100 — ${r.topSpecies.join(', ')}`,
+  };
+}
+
 export const EXPECTED_DIRECTION: Record<string, 'decrease' | 'increase' | 'flat'> = {
   openaq: 'decrease', sensorcommunity: 'decrease', 'nasa-power': 'decrease',
   sentinel2: 'flat', worldbank: 'flat', gbif: 'increase',
   treegens: 'increase', atlas: 'decrease',
+  'silvi-leaf': 'increase', silvi: 'increase',
 };

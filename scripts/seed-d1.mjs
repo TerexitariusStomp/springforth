@@ -12,6 +12,7 @@ import { fromJson as fromHolonsJson } from '../packages/holons-adapter/src/index
 import { fromJson as fromArtizenJson } from '../packages/artizen-adapter/src/index.ts';
 import { fromJson as fromVfJson } from '../packages/vf-adapter/src/index.ts';
 import { fromTreegensFeed, fromTreegensArchive } from '../packages/treegens-adapter/src/index.ts';
+import { fromSilviProjects } from '../packages/silvi-adapter/src/index.ts';
 import { detectOverlaps, detectComplements } from '../packages/coordination/src/index.ts';
 
 const DB = 'springforth-coord';
@@ -276,6 +277,26 @@ const tgLive = await safeGet('https://world.treegens.app/.netlify/functions/plan
 const tgArch = await safeGet('https://world.treegens.app/data/pre-app-plantings.json');
 if (tgLive) plans.push(fromTreegensFeed(tgLive));
 if (tgArch) plans.push(fromTreegensArchive(tgArch));
+// ── Silvi lane — Kakamega agroforestry fixture (Silvi's flagship Kenyan
+// project). Western Kenya geography — deliberately non-colliding with
+// the Mida Creek coastal demo; exercises the silvi:app import path and
+// leaves an unfunded zone-target need a future round could cover.
+const silviFixture = [{ id: 'kakamega-29',
+  name: 'Kakamega Forest Agroforestry', status: 'active',
+  location: 'Kakamega, Kenya', country: 'Kenya',
+  campaign: 'Kenya Bioregional', steward: 'Kakamega farmer stewards',
+  trees_target: 50000, trees_planted: 12000, trees_verified: 9400,
+  species: ['Croton megalocarpus', 'Prunus africana'],
+  lat: 0.283, lng: 34.752,
+  zones: [{ id: 'south', name: 'South block',
+    trees_target: 8000, trees_planted: 2100, lat: 0.27, lng: 34.74 }],
+  trees: [
+    { id: 't1', lat: 0.283, lng: 34.752, species: 'Prunus africana', status: 'verified' },
+    { id: 't2', lat: 0.284, lng: 34.751, species: 'Croton megalocarpus', status: 'planted' },
+  ],
+  stac_url: 'https://stac.silvi.earth/collections/kakamega',
+}];
+plans.push(fromSilviProjects(silviFixture, 'silvi:fixture'));
 const nodes = [...plans.flatMap((p) => p.nodes), ...possNodes, ...danceNodes, ...floodNodes, ...midaNodes];
 const overlaps = [...detectOverlaps(nodes), ...detectComplements(nodes)];
 // The possibility's required seedlings need pairs against a real Sarafu

@@ -49,7 +49,7 @@ Domain logic lives in `packages/`; the worker is a thin HTTP shell.
 | `portal` | server-rendered pages (landing, possibilities, coordination, portfolio, outcomes, verify) |
 | `oracle` | open-source readers (remote sensing, air quality, biodiversity, field evidence) |
 | `agent` | deterministic NL query over the coordination graph — cited, read-only |
-| `*-adapter` | OnePlanet (incl. MCP), Sarafu/CLC, Holons, Artizen, Open Collective, ValueFlows, Treegens |
+| `*-adapter` | OnePlanet (incl. MCP), Sarafu/CLC, Holons, Artizen, Open Collective, ValueFlows, Treegens, Silvi |
 | `evidence-anchor` | sha256 manifests → ledger; OpenTimestamps anchoring |
 | `funding` | quadratic matching, assurance pledges, retro tally, claim builder |
 | `attest` | EAS schema payloads (off-chain builder) |

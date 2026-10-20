@@ -141,3 +141,36 @@ describe('parseAttestedUid', () => {
     expect(parseAttestedUid(receipt, EAS)).toBeNull();
   });
 });
+
+// ── Silvi sponsorship rail ───────────────────────────────────────────
+import { buildSponsorSpeciesTx, buildErc20ApproveTx, parseSilviSponsorship } from '../src/index.ts';
+import { encodeAbiParameters, parseAbiParameters } from 'viem';
+
+describe('silvi sponsorship', () => {
+  const CONTRACT = '0x0000000000000000000000000000000000000511' as `0x${string}`;
+  it('builds approve + sponsorSpecies calldata', () => {
+    const approve = buildErc20ApproveTx({
+      token: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+      spender: CONTRACT, amount: 3000000n,
+    });
+    expect(approve.data.startsWith('0x095ea7b3')).toBe(true); // approve(
+    const tx = buildSponsorSpeciesTx({ contract: CONTRACT, taxonId: 'x' });
+    expect(tx.to).toBe(CONTRACT);
+    expect(tx.data).toMatch(/^0x[0-9a-f]+$/);
+  });
+  it('parses SponsorshipReceived from a receipt', () => {
+    const c = '0x0000000000000000000000000000000000000abc' as `0x${string}`;
+    const sender = '0x000000000000000000000000000000000000dEaD' as `0x${string}`;
+    const topic = keccak256(toBytes('SponsorshipReceived(address,string,uint256,string)'));
+    const data = encodeAbiParameters(
+      parseAbiParameters('string taxon_id, uint256 amount, string transaction_hash'),
+      ['taxon-123', 3000000n, '0xabc']);
+    const receipt = { logs: [{ address: c, data,
+      topics: [topic,
+        `0x${'0'.repeat(24)}${sender.slice(2)}` as `0x${string}`] }] } as unknown as TransactionReceipt;
+    const r = parseSilviSponsorship(receipt, c);
+    expect(r!.taxonId).toBe('taxon-123');
+    expect(r!.amount).toBe(3000000n);
+    expect(r!.sender.toLowerCase()).toBe(sender.toLowerCase());
+  });
+});

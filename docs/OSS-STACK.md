@@ -27,6 +27,9 @@ and where the seams are.
 | GBIF | CC0/CC-BY | biodiversity occurrences |
 | World Bank indicators | CC-BY-4.0 | country baselines |
 | Treegens feeds | public | filmed + AI-counted planting records |
+| Silvi App API | public API (key) | projects/zones/trees/STAC — verified tree counts |
+| Silvi Treekipedia LEAF | public API | species aptness — GBIF+WCVP+WWF ecoregions |
+| SilviProtocol/silvi | MIT | treekipedia backend + contracts (sponsor/NFT/EAS) |
 | EA Flood Monitoring | Open Government Licence | flood-risk context |
 | postcodes.io / ONS | OGL | geography + deprivation context |
 | OpenTimestamps calendars | public | Bitcoin ledger anchoring |

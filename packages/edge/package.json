@@ -27,6 +27,7 @@
     "@springforth/oneplanet-adapter": "workspace:*",
     "@springforth/oracle": "workspace:*",
     "@springforth/portal": "workspace:*",
+    "@springforth/silvi-adapter": "workspace:*",
     "@springforth/treegens-adapter": "workspace:*",
     "@springforth/vf-adapter": "workspace:*",
     "h3-js": "^4.2.1",

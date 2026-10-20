@@ -1,5 +1,11 @@
 # Video walkthrough script — ~5 min recording fallback
 
+**Rendered output:** `demo-assets/walkthrough.mp4` (1080p, ~2:28,
+TTS narration, recorded against the live deployment — the quorum flip
+in section 07 is a real on-chain-of-events join, not staged).
+Re-record with `python3 scripts/record-demo-video.py` (needs Brave on
+CDP :9222); `scripts/rerecord-flip.py` re-shoots just the flip beat.
+
 Narration timed to the demo path. Record at 1080p, single take acceptable;
 pause 2s between sections for edit points. URL in overlay throughout:
 springforth.widespread.workers.dev

@@ -13,10 +13,12 @@ curl -s https://springforth.widespread.workers.dev/?format=json    # counts
 cd packages/edge && source <(grep ADMIN_TOKEN .dev.vars) && cd ../..
 ADMIN_TOKEN=$ADMIN_TOKEN node scripts/seed-demo.mjs
 
-# 3. Confirm the live-flip card sits at quorum-1
+# 3. Confirm a live-flip card sits at quorum-1 ('active', 2/3 in).
+#    Completed demo flips show 'quorum' — expected, leave them.
 curl -s "https://springforth.widespread.workers.dev/possibilities?format=json" \
   | python3 -c "import json,sys; \
-    [print(p['id'],p['status']) for p in json.load(sys.stdin)['possibilities'] \
+    [print(p['id'],p['status'],p.get('participantCount')) \
+     for p in json.load(sys.stdin)['possibilities'] \
      if 'in this room' in p['title']]"
 
 # 4. QR for the flip beat

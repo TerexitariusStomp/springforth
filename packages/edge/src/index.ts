@@ -27,7 +27,7 @@ import {
   renderCoordinationPage, renderPossibilitiesPage, renderLandingPage,
   renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
   renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
-  renderClaimPage, renderGovernancePage, langFrom,
+  renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, langFrom,
 } from '@springforth/portal';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
@@ -604,14 +604,17 @@ export default {
     // Rate limit: 120 reads/min or 30 writes/min per (actor-ish key, route
     // family). Key = auth token tail, wallet header, or cf-connecting-ip.
     // /tg is exempt — bot webhook traffic isn't user spam.
-    if (seg[0] !== 'tg' && seg[0] !== 'docs' && !authed(req, env)) {
+    if (seg[0] !== 'tg' && seg[0] !== 'docs' && seg[0] !== 'tour' && !authed(req, env)) {
       const actorKey = (
         req.headers.get('authorization')?.slice(-12)
         ?? req.headers.get('x-actor') ?? req.headers.get('cf-connecting-ip') ?? 'anon'
       ).toLowerCase().replace(/[^a-z0-9.:-]/g, '');
       const write = req.method !== 'GET';
+      // Read ceiling is generous: a judge crowd behind venue NAT shares one
+      // IP — 600/min per route family keeps browsing frictionless while write
+      // budgets stay tight.
       const ok = await rateLimitOk(env, `${actorKey}|${seg[0] ?? 'root'}|${write ? 'w' : 'r'}`,
-        write ? 30 : 120);
+        write ? 30 : 600);
       if (!ok) return err('rate limit exceeded — retry shortly', 429);
     }
     try {
@@ -968,14 +971,79 @@ export default {
       }
       // Dataset releases — admin freezes a store slice into a signed,
       // anchored, optionally-pinned bundle. Public registry at GET.
-      if (seg[0] === 'docs' && req.method === 'GET')
+      if (seg[0] === 'docs.json' && req.method === 'GET') return json(OPENAPI);
+      if (seg[0] === 'docs' && req.method === 'GET') {
+        if (seg[1] === 'json' || url.searchParams.get('format') === 'json')
+          return json(OPENAPI);
+        if ((req.headers.get('accept') ?? '').includes('text/html')
+            || !(req.headers.get('accept') ?? '').includes('application/json'))
+          return new Response(renderDocsPage(OPENAPI.paths), { headers: { 'content-type': 'text/html' } });
         return json(OPENAPI);
+      }
+      if (seg[0] === 'tour' && req.method === 'GET')
+        return new Response(renderTourPage(), { headers: { 'content-type': 'text/html' } });
+      // Recurring support streams — top-level list; round-scoped view
+      // also exists at /rounds/:id/stream.
+      if (seg[0] === 'streams' && req.method === 'GET') {
+        const streams = await list<RecurringSupport>(env.DB, 'recurring-support');
+        const yieldStreams = await list<YieldStream>(env.DB, 'yieldstream');
+        if ((req.headers.get('accept') ?? '').includes('text/html'))
+          return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streams — Springforth</title>
+<style>body{font-family:system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
+.muted{color:#666}.badge{padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem;background:#dfe}</style></head><body>
+<h1>Recurring support</h1>
+<p>Superfluid CFA streams on Celo — continuous backing that accrues into
+donation records hourly (need-targeted) or into the round's matching fund
+(untargeted). Sponsors sign the flow in their own wallet; nothing custodies.</p>
+<table><tr><th>Stream</th><th>Round</th><th>Accrued</th><th>Status</th></tr>
+${streams.map((s) => `<tr><td>${s.id}</td><td>${s.roundId}</td>
+<td>${s.accruedUnits} units</td><td><span class="badge">${s.state}</span></td></tr>`).join('')
+  || '<tr><td colspan="4"><em>No streams yet — POST /rounds/:id/stream returns unsigned createFlow calldata for a wallet to sign.</em></td></tr>'}
+${yieldStreams.map((s) => `<tr><td>${s.id} (yield)</td><td>${s.roundId}</td>
+<td>sponsor aToken position</td><td><span class="badge">${s.state}</span></td></tr>`).join('')}
+</table><footer><small>Springforth — <a href="/">home</a></small></footer></body></html>`,
+            { headers: { 'content-type': 'text/html' } });
+        return json({ streams, yieldStreams });
+      }
+      // Attestations list — EAS payloads stored for claims/donations.
+      if (seg[0] === 'attestations' && req.method === 'GET' && seg.length === 1) {
+        const atts = await list<Attestation>(env.DB, 'attestation');
+        return json({ attestations: atts });
+      }
       if (seg[0] === 'datasets') {
         if (req.method === 'GET' && seg.length === 1) {
           const releases = await list<DatasetRelease>(env.DB, 'dataset-release');
-          return json({ releases,
-            available: Object.fromEntries(
-              Object.entries(DATASET_SOURCES).map(([k, v]) => [k, v.describe])) });
+          const available = Object.fromEntries(
+            Object.entries(DATASET_SOURCES).map(([k, v]) => [k, v.describe]));
+          if ((req.headers.get('accept') ?? '').includes('text/html'))
+            return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datasets — Springforth</title>
+<style>body{font-family:system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
+.muted{color:#666}code{background:#f4f4f4;padding:.1rem .3rem;border-radius:.2rem}</style></head><body>
+<h1>Signed dataset releases</h1>
+<p>Frozen graph slices — sha256-manifested, OpenTimestamps-anchored, IPFS-
+pinnable. Aggregates are public; premium raw feeds move through
+payment-referenced access grants. This is the data-revenue lane.</p>
+<h2>Releases</h2>
+<table><tr><th>Dataset</th><th>Records</th><th>sha256</th><th>CID</th><th>Released</th></tr>
+${releases.map((r) => `<tr><td>${r.name}</td><td>${r.records}</td>
+<td><code>${r.sha256.slice(0, 12)}…</code></td>
+<td>${r.cid ? `<code>${r.cid.slice(0, 12)}…</code>` : '—'}</td>
+<td class="muted">${r.createdAt.slice(0, 10)}</td></tr>`).join('')
+  || '<tr><td colspan="5"><em>No releases yet — POST /datasets/:name/release (admin) freezes a slice.</em></td></tr>'}
+</table>
+<h2>Available slices</h2>
+<table><tr><th>Name</th><th>Contents</th></tr>
+${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>${v}</td></tr>`).join('')}
+</table>
+<footer><small>Springforth — <a href="/">home</a></small></footer></body></html>`,
+              { headers: { 'content-type': 'text/html' } });
+          return json({ releases, available });
         }
         if (req.method === 'POST' && seg[2] === 'release') {
           if (!authed(req, env)) return err('unauthorized', 401);

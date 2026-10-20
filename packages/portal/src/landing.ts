@@ -57,8 +57,9 @@ Real work from imported plans and field records.
     .join('\n');
 
   return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Springforth — ${tt('tagline')}</title>
-<style>body{font-family:system-ui,sans-serif;margin:0;color:#1a1a1a}
+<style>body{font-family:system-ui,sans-serif;overflow-x:auto;margin:0;color:#1a1a1a}
 .wrap{max-width:62rem;margin:0 auto;padding:0 1.25rem}
 .hero{background:#16331f;color:#eaf5ea;padding:3.5rem 0 2.5rem}
 .hero h1{font-size:2.4rem;margin:0 0 .6rem}.hero p{max-width:44rem;line-height:1.55}
@@ -97,7 +98,7 @@ ${cardRows || '<tr><td colspan="3"><em>No cards yet — declare one in the deck 
 <a href="/coordination">${tt('nav.coordination')}</a> ·
 <a href="/commitments">${tt('nav.commitments')}</a> ·
 <a href="/verify">${tt('nav.verify')}</a></p>
-<p class="muted"><a href="?lang=en">English</a> · <a href="?lang=sw">Kiswahili</a></p>
+<p class="muted"><a href="/tour">Judge tour — the 5-minute path →</a> · <a href="?lang=en">English</a> · <a href="?lang=sw">Kiswahili</a></p>
 <footer><small>Springforth — generated ${new Date().toISOString()} ·
 <a href="/ledger">${tt('nav.ledger')}</a></small></footer>
 </div></body></html>`;

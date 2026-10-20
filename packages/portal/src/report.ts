@@ -39,8 +39,9 @@ ${cs.filter((c) => c.result === 'mismatch').length} mismatch</td>
   const appList = appreciations.map((a) =>
     `<li><strong>${esc(a.fromActor)}</strong> → <strong>${esc(a.toActor)}</strong>${a.note ? ` — ${esc(a.note)}` : ''}</li>`).join('\n');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Field report — ${esc(p.title)}</title>
-<style>body{font-family:system-ui,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
 .muted{color:#666}h2{margin-top:2rem}.box{border:1px solid #ccc;border-radius:.4rem;padding:1rem;background:#fafafa}</style></head><body>
 <h1>Field report — ${esc(p.title)}</h1>

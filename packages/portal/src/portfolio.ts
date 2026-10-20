@@ -82,8 +82,9 @@ export function renderPortfolioPage(
   const needs = nodes.filter(isNeed);
   const offers = nodes.filter((n) => n.kind === 'offer');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portfolio — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
 table{border-collapse:collapse;width:100%;margin:.5rem 0}td,th{border:1px solid #ddd;padding:.4rem;text-align:left;font-size:.85rem}
 .badge{background:#e6f4ea;padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem}
 .card{border:1px solid #ddd;border-radius:.5rem;padding:1rem;margin:1rem 0}

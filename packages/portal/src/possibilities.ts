@@ -104,8 +104,9 @@ export function renderPossibilitiesPage(
   const mutual = edges.filter((e) => e.mutual > 0).slice(0, 10)
     .map((e) => `<li>${esc(e.from)} &harr; ${esc(e.to)} — mutual ${e.mutual}</li>`).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Possibilities — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
 .badge{background:#e6f4ea;padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem}
 .card{border:1px solid #ddd;border-radius:.5rem;padding:1rem;margin:1rem 0}
 .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}

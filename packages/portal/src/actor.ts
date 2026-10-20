@@ -5,8 +5,9 @@ const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const shell = (title: string, body: string) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)} — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
+<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:56rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
 .muted{color:#666}code{background:#f4f4f4;padding:.1rem .3rem}</style></head><body>
 ${body}

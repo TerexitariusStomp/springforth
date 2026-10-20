@@ -36,6 +36,8 @@ happened.
 - **Telegram bot** — declare, join, flag needs and appreciate from group chat;
   quorum announcements post back to the declaring group.
 
+**Judging?**  — the 3- and 8-minute live paths.
+
 ## Stack
 
 TypeScript monorepo (pnpm workspaces) → Cloudflare Worker + D1.

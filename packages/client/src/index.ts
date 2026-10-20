@@ -96,12 +96,14 @@ export class SpringforthClient {
 
   // ── Streams ─────────────────────────────────────────────────────
   streams = () => this.get<{ streams: RecurringSupport[] }>('/streams');
-  streamTx = (b: { needNodeId?: string; token: string; flowRate: string; sender: string }) =>
-    this.post('/streams/tx', b);
+  streamTx = (round: string, q: { sender: string; token: string; receiver: string; flowRate: string; op?: 'create' | 'delete' }) =>
+    this.get(`/rounds/${round}/stream/tx?${new URLSearchParams(q as Record<string, string>)}`);
+  createStream = (round: string, b: Partial<RecurringSupport>) =>
+    this.post<RecurringSupport>(`/rounds/${round}/stream`, b);
 
   // ── Evidence / oracle ───────────────────────────────────────────
   oracleChecks = () => this.get<{ checks: OracleCheck[] }>('/outcomes');
-  report = (nodeId: string) => this.get(`/report/${nodeId}`);
+  report = (possibilityId: string) => this.get(`/possibilities/${possibilityId}/report`);
   runOracle = () => this.post('/oracle/run');
   sources = () => this.get('/sources');
   metrics = () => this.get('/metrics');
@@ -125,6 +127,11 @@ export class SpringforthClient {
   grantAccess = (dataset: string, b: { grantee: string; paymentRef: string; days?: number }) =>
     this.post<DataAccessGrant>(`/datasets/${dataset}/grants`, b);
 
+  // ── Subscriptions ───────────────────────────────────────────────
+  subscriptions = () => this.get<{ subscriptions: unknown[] }>('/subscriptions');
+  subscribe = (b: { actor: string; target?: string; events?: string[]; channel?: string; address?: string }) =>
+    this.post('/subscriptions', b);
+
   // ── Ledger ──────────────────────────────────────────────────────
   ledger = () => this.get<{ events: LedgerEvent[] }>('/ledger');
   verifyLedger = () => this.get<{ ok: boolean; length: number }>('/ledger/verify');
@@ -134,5 +141,5 @@ export class SpringforthClient {
   silviSync = (projectId?: string, apiKey?: string) =>
     this.post('/silvi/sync', projectId ? { projectId, apiKey } : {});
   treegensSync = () => this.post('/treegens/sync');
-  importPlans = (format: string, payload: unknown) => this.post('/import', { format, payload });
+  importPlan = (format: string, data: unknown, source?: string) => this.post('/plans', { format, data, source });
 }

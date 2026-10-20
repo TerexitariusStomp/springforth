@@ -37,6 +37,8 @@ export const SOURCES = [
     license: 'CC-BY-4.0', needs: null },
   { key: 'gbif', source: 'bioacoustic' as const, name: 'GBIF — biodiversity occurrences (CC0/CC-BY only)',
     license: 'CC0/CC-BY filtered', needs: null },
+  { key: 'atlas', source: 'atlas' as const, name: 'envhealth-atlas — hazard model',
+    license: 'project data', needs: null },
   { key: 'treegens', source: 'field-evidence' as const, name: 'Treegens — filmed, AI-counted planting records',
     license: 'site-published evidence', needs: null },
 ] as const;
@@ -265,8 +267,24 @@ export async function treegensPlantings(loc: GeoLoc, radiusKm = 15, f: FetchLike
   };
 }
 
+// ── envhealth-atlas — wraps the existing live client shape ──────────────────
+export interface AtlasLike { hazard(cell: string): Promise<{ score: number; date: string } | null> }
+export async function atlasHazard(h3: string, atlas: AtlasLike): Promise<SourceReading | null> {
+  const h = await atlas.hazard(h3);
+  if (!h) return null;
+  return {
+    key: 'atlas',
+    source: 'atlas', domain: 'environmental',
+    value: h.score, unit: 'hazard score 0–4',
+    at: h.date,
+    methodologyRef: 'envhealth-atlas deterministic model (SQL+published coefficients)',
+    license: 'project data', attribution: 'envhealth-atlas.pages.dev',
+    detail: `h3 ${h3} score ${h.score}`,
+  };
+}
+
 export const EXPECTED_DIRECTION: Record<string, 'decrease' | 'increase' | 'flat'> = {
   openaq: 'decrease', sensorcommunity: 'decrease', 'nasa-power': 'decrease',
   sentinel2: 'flat', worldbank: 'flat', gbif: 'increase',
-  treegens: 'increase',
+  treegens: 'increase', atlas: 'decrease',
 };

@@ -11,6 +11,7 @@ export const SOURCE_WEIGHT: Record<OracleCheck['source'], number> = {
   iot: 1.0,
   bioacoustic: 0.9,
   connector: 0.8,
+  atlas: 0.9,
   'field-evidence': 0.8,
   'community-report': 0.6,
 };

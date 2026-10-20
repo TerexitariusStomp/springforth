@@ -26,9 +26,10 @@ import { buildManifest } from '@springforth/evidence-anchor';
 import {
   checkFromReading, EXPECTED_DIRECTION, SOURCES,
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
-  treegensPlantings,
+  treegensPlantings, atlasHazard,
   type SourceReading, type GeoLoc,
 } from '@springforth/oracle';
+import { liveAtlas } from '@springforth/atlas-adapter';
 import { handleTelegramUpdate, sendTelegram } from './telegram.js';
 import { cellToLatLng, isValidCell } from 'h3-js';
 import { get, list, put, ledgerAppend, ledgerEvents, ledgerVerify } from './store.js';
@@ -86,6 +87,7 @@ async function runOracleSources(env: Env, node: PlanNode) {
     sentinel2(loc, fetch, env.TITILER_URL).catch(() => null),
     gbifOccurrences(loc).catch(() => null),
     treegensPlantings(loc).catch(() => null),
+    atlasHazard(node.h3!, liveAtlas()).catch(() => null),
   ]);
 
   const written: OracleCheck[] = [];

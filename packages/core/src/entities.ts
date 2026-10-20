@@ -122,7 +122,7 @@ export const OracleCheck = z.object({
   nodeId: z.string().optional(),
   source: z.enum([
     'field-evidence', 'community-report',
-    'remote-sensing', 'iot', 'bioacoustic', 'connector',
+    'remote-sensing', 'iot', 'bioacoustic', 'connector', 'atlas',
   ]),
   domain: z.enum(['environmental', 'social', 'financial', 'governance']),
   methodologyRef: z.string().optional(),

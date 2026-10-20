@@ -1,0 +1,27 @@
+name = "springforth"
+account_id = "46966abcfb8f1245ec055842177edcb2"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "springforth-coord"
+database_id = "bddc2d20-4ebf-4bae-a7d2-12315badfb6d"
+migrations_dir = "migrations"
+
+[vars]
+ENVIRONMENT = "production"
+
+# Real-time MRV: hourly oracle cycle over live open-data sources.
+[triggers]
+crons = ["0 * * * *"]
+
+# R2 media bucket — requires one manual step: enable R2 in the Cloudflare
+# dashboard (r2 → get started) then uncomment + deploy. Route 503s until then.
+#[[r2_buckets]]
+#binding = "MEDIA"
+#bucket_name = "springforth-media"
+
+# secrets (set via `wrangler secret put`):
+#   ADMIN_TOKEN — bearer token for write endpoints

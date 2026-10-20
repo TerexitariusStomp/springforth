@@ -1,0 +1,18 @@
+{
+  "name": "springforth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Springforth \u2014 custom-code layer for community coordination infrastructure \u2014 possibility cards, resource matching, explainable overlap detection, open-evidence verification.",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "seed": "node --experimental-strip-types scripts/seed-d1.mjs",
+    "deploy": "cd packages/edge && wrangler deploy"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

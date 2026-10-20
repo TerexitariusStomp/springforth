@@ -1,0 +1,76 @@
+# Springforth
+
+Community coordination infrastructure. People declare what they want to make
+happen; the system matches needs to offers across plans and communities;
+quorum binds the commitment; open-evidence sources check what actually
+happened.
+
+**Live:** https://springforth.widespread.workers.dev
+
+## What it does
+
+- **Possibility cards** — "I want to make X happen" with what you bring, what
+  you need, a threshold, a place and a deadline. Cards activate at quorum;
+  deadlines expire what never reaches it.
+- **Resource matching** — needs and offers are first-class nodes in a shared
+  plan graph. Community currencies, neighbourhood hubs, fund projects and
+  council plans all import into the same graph through adapters.
+- **Overlap detection** — same work stated in different systems surfaces as
+  explainable proposed overlaps (evidence + counter-evidence + reasoning);
+  human validation promotes them; coordinated proposals materialise as
+  shared action nodes.
+- **Trust** — post-event appreciation rounds build pairwise edges;
+  mutual recognition = `min(a→b, b→a)`; transitive trust via EigenTrust.
+  Dominant-assurance credits recognise pledgers of cards that expire.
+- **Open-evidence oracle** — hourly readings from public sources (Sentinel-2,
+  OpenAQ, Sensor.Community, NASA POWER, GBIF, Treegens filmed plantings)
+  score movement against baselines. Evidence for review — human approval
+  stays authoritative.
+- **Audit ledger** — every state change is a hash-chained event; heads are
+  anchored to Bitcoin via OpenTimestamps public calendars.
+- **Telegram bot** — declare, join, flag needs and appreciate from group chat;
+  quorum announcements post back to the declaring group.
+
+## Stack
+
+TypeScript monorepo (pnpm workspaces) → Cloudflare Worker + D1.
+Domain logic lives in `packages/`; the worker is a thin HTTP shell.
+
+| Package | Role |
+|---|---|
+| `core` | entity schemas + hash-chained audit ledger |
+| `coordination` | plan graph, overlap detection/validation, possibility lifecycle, trust |
+| `edge` | Cloudflare Worker API + Telegram webhook + hourly oracle cron |
+| `portal` | server-rendered pages (landing, possibilities, coordination, portfolio, outcomes, verify) |
+| `oracle` | open-source readers (remote sensing, air quality, biodiversity, field evidence) |
+| `agent` | deterministic NL query over the coordination graph — cited, read-only |
+| `*-adapter` | OnePlanet (incl. MCP), Sarafu/CLC, Holons, Artizen, Open Collective, ValueFlows, Treegens |
+| `evidence-anchor` | sha256 manifests → ledger; OpenTimestamps anchoring |
+
+## Develop
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm test
+cd packages/edge && wrangler dev        # local worker
+```
+
+## Deploy
+
+```bash
+wrangler d1 create springforth-coord    # then set database_id in wrangler.toml
+wrangler d1 migrations apply springforth-coord --remote
+cd packages/edge && wrangler deploy
+node --experimental-strip-types scripts/seed-d1.mjs   # demo fixture
+```
+
+Secrets (`wrangler secret put`): `ADMIN_TOKEN` (write endpoints),
+`TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` (bot), `OPENAQ_API_KEY`
+(optional), `NOTIFY_WEBHOOK` (optional quorum notifications).
+
+## License
+
+AGPL-3.0-only — see [LICENSE](LICENSE). Custom orchestration layer only;
+the systems it composes are under their own licenses (see
+[docs/OSS-STACK.md](docs/OSS-STACK.md)).

@@ -1,0 +1,17 @@
+{
+  "name": "@springforth/agent",
+  "version": "0.1.0",
+  "description": "Springforth agent — tool-bounded NL interface over the coordination graph; every answer cites node/record ids.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./*": "./src/*.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {
+    "@springforth/coordination": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "@types/node": "^22.10.0"
+  }
+}

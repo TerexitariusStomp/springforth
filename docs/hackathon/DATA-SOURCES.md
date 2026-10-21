@@ -22,7 +22,7 @@ context" — never affects quorum).
 | Source | Rank | Endpoint | Card context produced |
 |---|---|---|---|
 | postcodes.io | (enabler) | `api.postcodes.io/postcodes?lon&lat` | Local authority, LSOA, constituency |
-| English IMD | 1 (25) | `opendatacommunities.org` SPARQL | IMD deprivation decile for the LSOA |
+| English IMD 2025 | 1 (25) | Vendored File 7 CSV → `data/imd2025-lsoa.json` (live SPARQL cert expired upstream) | IMD decile/score/rank for the LSOA |
 | HM Land Registry | 7 (23) | `landregistry.data.gov.uk/landregistry/query` SPARQL | Price-paid transaction count @ postcode |
 | data.gov.uk CKAN | 7 (23) | `data.gov.uk/api/action/package_search` | Dataset count mentioning the place |
 | ONS Beta | 7 (23) | `api.beta.ons.gov.uk/v1/datasets` | Published-dataset surface count |

@@ -1,4 +1,8 @@
 import type { GeoLoc } from './sources.ts';
+// IoD 2025 File 7 (MHCLG, OGL v3) vendored 2025-10-21 — code → [score, rank, decile].
+// The canonical live endpoint (opendatacommunities.org SPARQL) has an expired cert;
+// vendoring the official CSV keeps the endorsed source honest and keyless.
+import imd2025 from '../data/imd2025-lsoa.json';
 
 // Context connectors — turn a lat/lon (and optionally a place/entity name)
 // into verified context cards for possibilities. Unlike oracle readings
@@ -123,16 +127,11 @@ select (count(?txn) as ?n) where { ?txn lrppi:propertyAddress ?addr . ?addr lrco
     if (n != null) add(`Price-paid transactions @ ${pc.postcode}`, n, 'HM Land Registry Price Paid — OGL');
   });
 
-  // English IMD — deprivation decile for the LSOA (Tier A, top-ranked)
+  // English IMD 2025 — decile for the LSOA (Tier A, top-ranked; vendored File 7)
   tasks.push(async () => {
     const lsoaCode = pc?.codes?.lsoa;
-    if (!lsoaCode) return;
-    const q = `prefix imd: <http://opendatacommunities.org/def/ontology/societal-wellbeing/deprivation/>
-select ?d where { <http://opendatacommunities.org/id/geography/administration/lsoa/${lsoaCode}> imd:imdDecile ?d } limit 1`;
-    const d = await get(f, `https://opendatacommunities.org/sparql.json?query=${encodeURIComponent(q)}`)
-      .then((x) => x as { results?: { bindings?: { d?: { value?: string } }[] } });
-    const dec = d?.results?.bindings?.[0]?.d?.value;
-    if (dec) add('IMD deprivation decile (LSOA)', `${dec}/10`, 'English Indices of Deprivation — OGL');
+    const hit = lsoaCode ? (imd2025 as unknown as Record<string, [number, number, number]>)[lsoaCode] : undefined;
+    if (hit) add('IMD deprivation decile (LSOA, IoD 2025)', `${hit[2]}/10 · score ${hit[0]} · rank ${hit[1]} of 33,755`, 'English Indices of Deprivation 2025 — OGL');
   });
 
   // GLEIF — org identity when a name is supplied (Tier A)

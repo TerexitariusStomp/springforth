@@ -55,6 +55,9 @@ import {
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
   treegensPlantings, atlasHazard, trajectory,
   silviVerifiedTrees, silviLeafAptness, evidenceBoost,
+  eaFlood, openMeteo, eaWaterQuality, foodHygiene, inatObservations,
+  osDataHubPlaces, eoDataHubScene, alphaKlimaHazard, naturalEnglandSites,
+  placeContext,
   type SourceReading, type GeoLoc,
 } from '@springforth/oracle';
 import { liveAtlas } from '@springforth/atlas-adapter';
@@ -82,6 +85,11 @@ interface Env {
   SILVI_API_KEY?: string;         // silvi.earth App API — issued PER PROJECT
   SILVI_PROJECT_ID?: string;      // the project SILVI_API_KEY unlocks
   SILVI_API_URL?: string;         // defaults to https://app.silvi.earth
+  OS_DATAHUB_KEY?: string;        // Ordnance Survey Data Hub
+  EODATAHUB_KEY?: string;         // EO Data Hub (Satellite Applications Catapult)
+  ALPHAKLIMA_KEY?: string;        // Alpha-Klima physrisk platform
+  DEFRA_KEY?: string;             // defra data services / Natural England
+  COMPANIES_HOUSE_KEY?: string;   // api.company-information.service.gov.uk
 }
 
 // OpenTimestamps public calendars — free, keyless Bitcoin anchoring.
@@ -213,6 +221,18 @@ async function runOracleSources(env: Env, node: PlanNode) {
         : fetchSilviTrees(env.SILVI_API_URL, env.SILVI_API_KEY),
     }).catch(() => null),
     silviLeafAptness(loc, { leaf: (l) => fetchLeafScore(l) }).catch(() => null),
+    // Hackathon-endorsed public sources — keyless readers degrade to null
+    // outside their coverage (e.g. EA sources on non-UK nodes), gated ones
+    // until their env key lands.
+    eaFlood(loc).catch(() => null),
+    openMeteo(loc).catch(() => null),
+    eaWaterQuality(loc).catch(() => null),
+    foodHygiene(loc).catch(() => null),
+    inatObservations(loc).catch(() => null),
+    osDataHubPlaces(loc, env.OS_DATAHUB_KEY).catch(() => null),
+    eoDataHubScene(loc, env.EODATAHUB_KEY).catch(() => null),
+    alphaKlimaHazard(loc, env.ALPHAKLIMA_KEY).catch(() => null),
+    naturalEnglandSites(loc, env.DEFRA_KEY).catch(() => null),
   ]);
 
   const written: OracleCheck[] = [];
@@ -1435,7 +1455,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           await put(env.DB, 'possibility', p.id, p);
           // Composite declaration: needs become need-nodes (`required`
           // defaults true — blocking for quorum), bringing becomes offers.
-          const mk = (t: string, i: number, kind: 'need' | 'offer') =>
+          const mk = (t: string, i: number, kind: 'need' | 'offer' | 'action') =>
             `${pid}-${kind}-${i}-${t.toLowerCase().replace(/\W+/g, '-').slice(0, 24)}`;
           const needs = (Array.isArray(b.needs) ? b.needs : []) as Record<string, unknown>[];
           const bringing = (Array.isArray(b.bringing) ? b.bringing : []) as Record<string, unknown>[];
@@ -1445,6 +1465,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
               label: String(n.title ?? 'need'), canonical: canonicalize(String(n.title ?? 'need')),
               source: `possibility:${pid}`, possibilityId: pid,
               required: n.required !== false && n.required !== 'false',
+              h3: typeof n.h3 === 'string' && isValidCell(n.h3) ? n.h3 : undefined,
               category: n.category, flaggedBy: p.declarerId,
               orgIds: [p.declarerId], placeId: p.place,
               terms: n.terms, capital: n.capital, description: String(n.description ?? ''),
@@ -1460,6 +1481,21 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
               orgIds: [p.declarerId], placeId: p.place,
               terms: o.terms, capital: o.capital, description: String(o.description ?? ''),
               tags: ['possibility', 'bringing'], timeframe: { from: iso },
+            });
+            await put(env.DB, 'plannode', node.id, node);
+          }
+          // Declared actions the card commits to — h3-located ones become
+          // hourly oracle targets (the UK flood-response lane).
+          const actions = (Array.isArray(b.actions) ? b.actions : []) as Record<string, unknown>[];
+          for (const [i, a] of actions.entries()) {
+            const node = PlanNode.parse({
+              id: mk(String(a.title ?? 'action'), i, 'action'), kind: 'action',
+              label: String(a.title ?? 'action'), canonical: canonicalize(String(a.title ?? 'action')),
+              source: `possibility:${pid}`, possibilityId: pid,
+              h3: typeof a.h3 === 'string' && isValidCell(a.h3) ? a.h3 : undefined,
+              orgIds: [p.declarerId], placeId: p.place,
+              description: String(a.description ?? ''),
+              tags: ['possibility'], timeframe: { to: p.deadline },
             });
             await put(env.DB, 'plannode', node.id, node);
           }
@@ -1570,6 +1606,32 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           return wantsHtml
             ? new Response(null, { status: 303, headers: { location: '/possibilities' } })
             : json(part, 201);
+        }
+        // Verified-context refresh — pulls live open datasets (endorsed
+        // hackathon sources) and merges them onto the card. Context is
+        // enrichment only — it never affects quorum.
+        if (req.method === 'POST' && seg[2] === 'context' && seg[3] === 'refresh') {
+          const b = await req.json().catch(() => ({})) as Record<string, unknown>;
+          let loc: GeoLoc | null = (b.lat != null && b.lon != null)
+            ? { lat: Number(b.lat), lon: Number(b.lon) } : null;
+          if (!loc) {
+            const nodes = (await list<PlanNode>(env.DB, 'plannode'))
+              .filter((n) => n.possibilityId === p.id && n.h3);
+            loc = nodes.length ? locFor(nodes[0]!) : null;
+          }
+          if (!loc) return err('no lat/lon and no h3-located need node on this card', 400);
+          const datasets = await placeContext(loc, {
+            placeName: p.place, entityName: typeof b.entityName === 'string' ? b.entityName : undefined,
+            companiesHouseKey: env.COMPANIES_HOUSE_KEY,
+          });
+          const existing = (p.context?.datasets ?? [])
+            .filter((d) => !datasets.some((n) => n.name === d.name));
+          const merged = [...existing, ...datasets].slice(-40);
+          const updated = Possibility.parse({ ...p, context: { datasets: merged } });
+          await put(env.DB, 'possibility', p.id, updated);
+          await ledgerAppend(env.DB, 'system', 'context.refreshed',
+            { id: p.id, added: datasets.length, lat: loc.lat, lon: loc.lon });
+          return json({ id: p.id, added: datasets.length, datasets });
         }
         // Post-event appreciation round — pairwise, ledger-audited.
         if (req.method === 'POST' && seg[2] === 'appreciate') {

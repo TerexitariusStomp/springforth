@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" font-family="Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c1222"/><stop offset="1" stop-color="#101a30"/>
+    </linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8ab4f8"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7bd88f"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="860" fill="url(#bg)" rx="18"/>
+
+  <text x="60" y="56" fill="#eaf0fb" font-size="30" font-weight="700">Springforth — logical architecture</text>
+  <text x="60" y="84" fill="#9fb2d8" font-size="15">community coordination + funding, edge-native · every state change hash-chained · nothing custodies funds</text>
+
+  <!-- ===================== PRESENTATION ===================== -->
+  <g>
+    <rect x="60" y="110" width="720" height="104" rx="12" fill="#16233f" stroke="#3d5a99" stroke-width="1.4"/>
+    <text x="80" y="136" fill="#8ab4f8" font-size="13" font-weight="700" letter-spacing="2">PRESENTATION</text>
+    <g fill="#dbe4f7" font-size="14">
+      <rect x="80" y="150" width="215" height="46" rx="8" fill="#1d2f52"/>
+      <text x="100" y="169">Portal</text><text x="100" y="187" fill="#9fb2d8" font-size="11">server-rendered HTML · /tour</text>
+      <rect x="311" y="150" width="215" height="46" rx="8" fill="#1d2f52"/>
+      <text x="331" y="169">Telegram bot</text><text x="331" y="187" fill="#9fb2d8" font-size="11">declare · join · appreciate</text>
+      <rect x="542" y="150" width="215" height="46" rx="8" fill="#1d2f52"/>
+      <text x="562" y="169">Typed client + /docs</text><text x="562" y="187" fill="#9fb2d8" font-size="11">OpenAPI surface</text>
+    </g>
+  </g>
+
+  <!-- ===================== EDGE ===================== -->
+  <g>
+    <rect x="60" y="238" width="720" height="104" rx="12" fill="#17352f" stroke="#3e8e6e" stroke-width="1.4"/>
+    <text x="80" y="264" fill="#7bd88f" font-size="13" font-weight="700" letter-spacing="2">EDGE — CLOUDFLARE WORKER</text>
+    <g fill="#dbe4f7" font-size="14">
+      <rect x="80" y="278" width="215" height="46" rx="8" fill="#1e443b"/>
+      <text x="100" y="297">HTTP routes</text><text x="100" y="315" fill="#9fd8bd" font-size="11">rate-limit · auth · CORS</text>
+      <rect x="311" y="278" width="215" height="46" rx="8" fill="#1e443b"/>
+      <text x="331" y="297">Unsigned tx builders</text><text x="331" y="315" fill="#9fd8bd" font-size="11">wallet signs — never the server</text>
+      <rect x="542" y="278" width="215" height="46" rx="8" fill="#1e443b"/>
+      <text x="562" y="297">Hourly oracle cron</text><text x="562" y="315" fill="#9fd8bd" font-size="11">readings → checks → credits</text>
+    </g>
+  </g>
+
+  <!-- ===================== BUSINESS LOGIC ===================== -->
+  <g>
+    <rect x="60" y="366" width="720" height="150" rx="12" fill="#2a2140" stroke="#7a5fc0" stroke-width="1.4"/>
+    <text x="80" y="392" fill="#c3a9f5" font-size="13" font-weight="700" letter-spacing="2">BUSINESS LOGIC — DOMAIN PACKAGES</text>
+    <g font-size="13">
+      <rect x="80" y="406" width="162" height="44" rx="8" fill="#342a52"/><text x="96" y="424" fill="#e6dcff">coordination</text><text x="96" y="441" fill="#b3a3e0" font-size="10.5">quorum · overlap · trust</text>
+      <rect x="254" y="406" width="162" height="44" rx="8" fill="#342a52"/><text x="270" y="424" fill="#e6dcff">funding</text><text x="270" y="441" fill="#b3a3e0" font-size="10.5">quadratic · pairwise · retro</text>
+      <rect x="428" y="406" width="162" height="44" rx="8" fill="#342a52"/><text x="444" y="424" fill="#e6dcff">oracle</text><text x="444" y="441" fill="#b3a3e0" font-size="10.5">readings → checks → trajectory</text>
+      <rect x="602" y="406" width="162" height="44" rx="8" fill="#342a52"/><text x="618" y="424" fill="#e6dcff">attest</text><text x="618" y="441" fill="#b3a3e0" font-size="10.5">impact claims · EAS-shaped</text>
+      <rect x="80" y="460" width="162" height="44" rx="8" fill="#342a52"/><text x="96" y="478" fill="#e6dcff">agent</text><text x="96" y="495" fill="#b3a3e0" font-size="10.5">agentic query endpoints</text>
+      <rect x="254" y="460" width="240" height="44" rx="8" fill="#342a52"/><text x="270" y="478" fill="#e6dcff">adapters</text><text x="270" y="495" fill="#b3a3e0" font-size="10.5">oneplanet · silvi · treegens · atlas · holons</text>
+      <rect x="506" y="460" width="258" height="44" rx="8" fill="#342a52"/><text x="522" y="478" fill="#e6dcff">core + exports</text><text x="522" y="495" fill="#b3a3e0" font-size="10.5">entities · ledger · 360Giving · IATI · hypercerts</text>
+    </g>
+  </g>
+
+  <!-- ===================== DATA ===================== -->
+  <g>
+    <rect x="60" y="540" width="720" height="104" rx="12" fill="#3a2a1a" stroke="#b07a45" stroke-width="1.4"/>
+    <text x="80" y="566" fill="#f0b77e" font-size="13" font-weight="700" letter-spacing="2">DATA ACCESS</text>
+    <g fill="#dbe4f7" font-size="14">
+      <rect x="80" y="580" width="215" height="46" rx="8" fill="#4a3823"/>
+      <text x="100" y="599">D1 records</text><text x="100" y="617" fill="#e8c9a3" font-size="11">all domain state</text>
+      <rect x="311" y="580" width="215" height="46" rx="8" fill="#4a3823"/>
+      <text x="331" y="599">Hash-chained ledger</text><text x="331" y="617" fill="#e8c9a3" font-size="11">→ Bitcoin via OpenTimestamps</text>
+      <rect x="542" y="580" width="215" height="46" rx="8" fill="#4a3823"/>
+      <text x="562" y="599">IPFS datasets</text><text x="562" y="617" fill="#e8c9a3" font-size="11">signed releases · access grants</text>
+    </g>
+  </g>
+
+  <!-- ===================== EXTERNAL ===================== -->
+  <g>
+    <rect x="60" y="668" width="720" height="150" rx="12" fill="#14293d" stroke="#3e7fb8" stroke-width="1.4"/>
+    <text x="80" y="694" fill="#8ec9f0" font-size="13" font-weight="700" letter-spacing="2">EXTERNAL SYSTEMS</text>
+    <g font-size="12.5">
+      <rect x="80" y="708" width="215" height="92" rx="8" fill="#1b3a55"/>
+      <text x="96" y="728" fill="#cfe8fa" font-weight="700">Celo rails</text>
+      <text x="96" y="747" fill="#9fc6e8">Allo · EAS · Hypercerts</text>
+      <text x="96" y="764" fill="#9fc6e8">Superfluid streams</text>
+      <text x="96" y="786" fill="#7fb8dd" font-size="10.5">unsigned txs — wallet signs</text>
+      <rect x="311" y="708" width="215" height="92" rx="8" fill="#1b3a55"/>
+      <text x="327" y="728" fill="#cfe8fa" font-weight="700">Open evidence</text>
+      <text x="327" y="747" fill="#9fc6e8">EA Flood · Open-Meteo · EA WQ</text>
+      <text x="327" y="764" fill="#9fc6e8">Sentinel-2 · OpenAQ · GBIF …</text>
+      <text x="327" y="786" fill="#7fb8dd" font-size="10.5">endorsed public sources</text>
+      <rect x="542" y="708" width="215" height="92" rx="8" fill="#1b3a55"/>
+      <text x="558" y="728" fill="#cfe8fa" font-weight="700">Other systems</text>
+      <text x="558" y="747" fill="#9fc6e8">OnePlanet (MCP) · Silvi</text>
+      <text x="558" y="764" fill="#9fc6e8">Treegens · Sarafu · Holons</text>
+      <text x="558" y="786" fill="#7fb8dd" font-size="10.5">plans import as shared nodes</text>
+    </g>
+  </g>
+
+  <!-- arrows: presentation→edge→logic→data→external -->
+  <line x1="420" y1="214" x2="420" y2="234" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="420" y1="342" x2="420" y2="362" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="420" y1="516" x2="420" y2="536" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="420" y1="644" x2="420" y2="664" stroke="#7bd88f" stroke-width="2" marker-end="url(#arrg)"/>
+
+  <!-- right rail: PS1 loop -->
+  <g>
+    <rect x="820" y="110" width="320" height="708" rx="12" fill="#121c33" stroke="#39558f" stroke-width="1.4" stroke-dasharray="6 5"/>
+    <text x="840" y="140" fill="#8ab4f8" font-size="13" font-weight="700" letter-spacing="2">PS1 — COLLABORATION REVERSE</text>
+
+    <g font-size="12.5" fill="#dbe4f7">
+      <rect x="840" y="156" width="280" height="58" rx="8" fill="#1a2a4d"/>
+      <text x="856" y="177" font-weight="700">1 · plans arrive</text>
+      <text x="856" y="199" fill="#9fb2d8">OnePlanet MCP · CSV · API → nodes</text>
+
+      <rect x="840" y="230" width="280" height="58" rx="8" fill="#1a2a4d"/>
+      <text x="856" y="251" font-weight="700">2 · overlaps surface</text>
+      <text x="856" y="273" fill="#9fb2d8">same work, different systems</text>
+
+      <rect x="840" y="304" width="280" height="58" rx="8" fill="#1a2a4d"/>
+      <text x="856" y="325" font-weight="700">3 · people coordinate</text>
+      <text x="856" y="347" fill="#9fb2d8">possibility cards → quorum</text>
+
+      <rect x="840" y="378" width="280" height="58" rx="8" fill="#1a2a4d"/>
+      <text x="856" y="399" font-weight="700">4 · capital allocates</text>
+      <text x="856" y="421" fill="#9fb2d8">quadratic · clique-resistant</text>
+
+      <rect x="840" y="452" width="280" height="58" rx="8" fill="#1a2a4d"/>
+      <text x="856" y="473" font-weight="700">5 · evidence verifies</text>
+      <text x="856" y="495" fill="#9fb2d8">endorsed public sources attest</text>
+
+      <rect x="840" y="526" width="280" height="58" rx="8" fill="#1a2a4d"/>
+      <text x="856" y="547" font-weight="700">6 · trust compounds</text>
+      <text x="856" y="569" fill="#9fb2d8">appreciation → EigenTrust → future surfacing</text>
+    </g>
+
+    <line x1="980" y1="214" x2="980" y2="226" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="980" y1="288" x2="980" y2="300" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="980" y1="362" x2="980" y2="374" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="980" y1="436" x2="980" y2="448" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="980" y1="510" x2="980" y2="522" stroke="#8ab4f8" stroke-width="2" marker-end="url(#arr)"/>
+
+    <text x="840" y="624" fill="#9fb2d8" font-size="12">one feedback loop —</text>
+    <text x="840" y="644" fill="#9fb2d8" font-size="12">duplication caught early,</text>
+    <text x="840" y="664" fill="#9fb2d8" font-size="12">funding follows evidence,</text>
+    <text x="840" y="684" fill="#9fb2d8" font-size="12">reputation follows delivery.</text>
+
+    <rect x="840" y="710" width="280" height="88" rx="8" fill="#17352f"/>
+    <text x="856" y="732" fill="#7bd88f" font-size="12.5" font-weight="700">GUARANTEES</text>
+    <text x="856" y="754" fill="#9fd8bd" font-size="12">· non-custodial — wallets sign</text>
+    <text x="856" y="772" fill="#9fd8bd" font-size="12">· auditable — every event anchored</text>
+    <text x="856" y="790" fill="#9fd8bd" font-size="12">· fail-soft — core needs no third party</text>
+  </g>
+</svg>

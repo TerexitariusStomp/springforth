@@ -10,6 +10,9 @@ curl -s https://springforth.widespread.workers.dev/ledger/verify   # {"ok":true}
 curl -s https://springforth.widespread.workers.dev/?format=json    # counts
 
 # 2. Re-seed if anything drifted (idempotent — safe to re-run)
+#    (401s? the secret drifted once before — restore it:
+#     grep SPRINGFORTH_ADMIN_TOKEN ~/.hermes/.env | cut -d= -f2 \
+#       | npx wrangler secret put ADMIN_TOKEN)
 cd packages/edge && source <(grep ADMIN_TOKEN .dev.vars) && cd ../..
 ADMIN_TOKEN=$ADMIN_TOKEN node scripts/seed-demo.mjs
 
@@ -38,6 +41,11 @@ open docs/hackathon/demo-assets/join-qr.png
 
 - Demo order: `docs/hackathon/DEMO-SCRIPT.md` (6-min version; 4-min short
   cut marked *).
+- UK endorsed-data beat: the "Shrewsbury riverside flood response" card on
+  `/possibilities` carries live verified context (EA Flood Monitoring,
+  Open-Meteo, FHRS, Land Registry, ONS, CKAN, iNaturalist, Climate TRACE);
+  `/rounds/round-severn-flood` shows the UK pairwise round;
+  `/sources` lists the full endorsed matrix (`DATA-SOURCES.md`).
 - Pairwise contrast: `/rounds/round-mida-creek` vs
   `/rounds/round-pairwise-demo` — same needs, clique discounted
   ($232.84 vs ~$263).

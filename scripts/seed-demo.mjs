@@ -164,6 +164,72 @@ for (const name of ['plannodes', 'oracle-checks', 'donations']) {
 }
 await post('/datasets/plannodes/grants', { grantee: 'demo-research-partner', paymentRef: 'grant-agreement-2026-10', days: 30 });
 
+// ── 7b. UK parallel scene — Shrewsbury / River Severn flood response ──
+// The endorsed-source lane: EA Flood Monitoring + Open-Meteo + EA Water
+// Quality + FHRS + postcodes.io attach as live verified context; the h3'd
+// action node joins the hourly oracle cycle. Mirrors the catalogue's own
+// combination #3 (Community Climate-Resilience Lending).
+console.log('7b. UK scene — Shrewsbury flood response');
+const SEVERN_H3 = '87195c4a9ffffff';  // res-7 cell over the Welsh Bridge reach
+const possUk = (await get('/possibilities?format=json')).possibilities ?? [];
+let uk = possUk.find((p) => p.title?.includes('Shrewsbury riverside'));
+if (!uk) {
+  const r = await pub('/possibilities', {
+    title: 'Shrewsbury riverside flood response — River Severn',
+    description: 'When warnings go out on the Severn loop we stage sandbags, clear gullies, and check on riverside neighbours. Coordinated with the EA flood feed — live readings attach as verified context.',
+    declarerId: 'demo-tom', place: 'shrewsbury',
+    deadline: '2026-12-31T00:00:00Z', minParticipants: 3,
+    needs: [{ title: 'Sandbag crew rota', required: false },
+            { title: 'Pop-up flood barriers (EA depot loan)', required: false }],
+    actions: [{ title: 'Riverside gully clearance + sandbag staging',
+                h3: SEVERN_H3,
+                description: 'Welsh Bridge reach — oracle reads EA warnings + Open-Meteo precip here hourly.' }],
+    bringing: [],
+  });
+  uk = r.body ?? {};
+  console.log('  declared:', uk.id);
+} else console.log('  exists:', uk.id);
+const ukId = uk.id;
+for (const [actor, bringing] of [['demo-tom', 'pickup + trailer'],
+                                 ['demo-sarah', 'gully-clearance kit'],
+                                 ['demo-rhys', '40 sandbags stored dry']]) {
+  const r = await pub(`/possibilities/${ukId}/join`, { actor, bringing });
+  console.log(`  join ${actor}:`, r.status);
+}
+for (const [f, t] of [['demo-tom', 'demo-sarah'], ['demo-sarah', 'demo-tom'],
+                      ['demo-rhys', 'demo-tom'], ['demo-tom', 'demo-rhys'],
+                      ['demo-sarah', 'demo-rhys'], ['demo-rhys', 'demo-sarah']]) {
+  await pub(`/possibilities/${ukId}/appreciate`, { from: f, to: t, note: 'reliable on every shout' });
+}
+// attach live endorsed-source context (EA floods, precip, FHRS, postcodes…)
+const ctx = await post(`/possibilities/${ukId}/context/refresh`, { lat: 52.7069, lon: -2.75 });
+console.log(`  context refresh: +${ctx.added ?? 0} datasets`);
+// field report on the h3'd action node — next cron cycle corroborates
+const ukAction = (await get(`/possibilities/${ukId}`)).nodes?.find((n) => n.kind === 'action');
+if (ukAction) {
+  await pub('/signals', { actor: 'demo-sarah', targetId: ukAction.id,
+    intent: 'field-report', note: 'Gullies on the Welsh Bridge reach cleared Saturday; sandbag pallet staged at the depot.' });
+}
+// a UK matching round so data→funding reads in-place
+const roundsNow = (await get('/rounds?format=json')).rounds ?? [];
+const ukNeedIds = ((await get(`/possibilities/${ukId}`)).nodes ?? []).filter((n) => n.kind === 'need').map((n) => n.id);
+if (!roundsNow.some((r) => r.id === 'round-severn-flood') && ukNeedIds.length) {
+  await post('/rounds', {
+    id: 'round-severn-flood', title: 'Severn catchment resilience round',
+    description: 'Quadratic matching over flood-response needs — oracle-verified context on every card.',
+    sponsorIds: ['severn-catchment-partnership'], matchingFund: { amount: 200, currency: 'USD' },
+    eligibleNeedIds: ukNeedIds, matchingMode: 'pairwise', conviction: true,
+    opensAt: '2026-10-01T00:00:00Z', closesAt: '2026-12-31T00:00:00Z', state: 'open',
+  });
+  console.log('  severn round created');
+  for (const [d, i, amt] of [['demo-tom', 0, 30], ['demo-sarah', 0, 30], ['demo-rhys', 0, 30],
+                             ['demo-daudi', 1, 25], ['demo-elinah', 1, 20]]) {
+    const r = await post('/rounds/round-severn-flood/donate',
+      { needNodeId: ukNeedIds[i % ukNeedIds.length], donor: d, amount: amt });
+    console.log(`  donate ${d}:`, r.id ?? 'err');
+  }
+}
+
 // ── 8. Live-flip card — sits at quorum-1 for the audience beat ──
 console.log('8. live-flip card');
 const possNow = (await get('/possibilities?format=json')).possibilities ?? [];

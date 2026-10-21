@@ -41,6 +41,24 @@ export const SOURCES = [
     license: 'project data', needs: null },
   { key: 'treegens', source: 'field-evidence' as const, name: 'Treegens — filmed, AI-counted planting records',
     license: 'site-published evidence', needs: null },
+  { key: 'ea-flood', source: 'iot' as const, name: 'EA Flood Monitoring — active warnings + gauges',
+    license: 'Open Government Licence', needs: null },
+  { key: 'open-meteo', source: 'remote-sensing' as const, name: 'Open-Meteo — precipitation/forecast',
+    license: 'CC-BY-4.0', needs: null },
+  { key: 'ea-water-quality', source: 'iot' as const, name: 'EA Water Quality — sampling-point coverage',
+    license: 'Open Government Licence', needs: null },
+  { key: 'food-hygiene', source: 'connector' as const, name: 'FSA Food Hygiene Ratings — community venues',
+    license: 'Open Government Licence', needs: null },
+  { key: 'inaturalist', source: 'bioacoustic' as const, name: 'iNaturalist — citizen-science observations',
+    license: 'CC0/CC-BY filtered', needs: null },
+  { key: 'os-datahub', source: 'connector' as const, name: 'Ordnance Survey Data Hub — places/geocode',
+    license: 'OS OpenData / PSGA', needs: 'OS_DATAHUB_KEY' },
+  { key: 'eo-data-hub', source: 'remote-sensing' as const, name: 'EO Data Hub (SatCat) — Sentinel-2/EOCIS LST',
+    license: 'Copernicus/EOCIS open', needs: 'EODATAHUB_KEY' },
+  { key: 'alpha-klima', source: 'remote-sensing' as const, name: 'Alpha-Klima — physical climate risk hazards',
+    license: 'hackathon access', needs: 'ALPHAKLIMA_KEY' },
+  { key: 'natural-england', source: 'connector' as const, name: 'Natural England — designated sites',
+    license: 'Open Government Licence', needs: 'DEFRA_KEY' },
 ] as const;
 
 // ── OpenAQ v3 — PM2.5 (needs free key) ───────────────────────────────────────
@@ -335,9 +353,200 @@ export async function silviLeafAptness(loc: GeoLoc, leaf: LeafLike): Promise<Sou
   };
 }
 
+// ── EA Flood Monitoring — active warnings near a point (OGL, keyless) ────────
+// Hackathon-endorsed (Tier A, 25/25). Reads the live warnings feed and counts
+// those whose flood area centroid sits within radius. Value declines as
+// warnings lift — 'decrease' = resilience improving. EA publishes no
+// safety-critical SLA; treated as corroborating evidence, never sole truth.
+export async function eaFlood(loc: GeoLoc, radiusKm = 40, f: FetchLike = fetch): Promise<SourceReading | null> {
+  const r = await f('https://environment.data.gov.uk/flood-monitoring/id/floods');
+  if (!r.ok) return null;
+  const d = await r.json() as {
+    items?: { severityLevel?: number; severity?: string; eaAreaName?: string;
+      floodArea?: { lat?: number; long?: number; county?: string } }[];
+  };
+  const near = (d.items ?? []).filter((w) => {
+    const fa = w.floodArea;
+    if (fa?.lat == null || fa.long == null) return false;
+    return distKm(loc, fa.lat, fa.long) <= radiusKm;
+  });
+  if (!near.length) return null;
+  const weighted = near.reduce((a, w) => a + Math.max(1, 5 - (w.severityLevel ?? 4)), 0);
+  const worst = Math.min(...near.map((w) => w.severityLevel ?? 4));
+  return {
+    key: 'ea-flood',
+    source: 'iot', domain: 'environmental',
+    value: weighted, unit: `flood-warning weight (${near.length} active)`,
+    at: new Date().toISOString(),
+    methodologyRef: 'EA flood-monitoring id/floods; severity-weighted count within 40km (no safety-critical SLA — corroborative only)',
+    license: 'Open Government Licence', attribution: 'Environment Agency Flood Monitoring (environment.data.gov.uk)',
+    detail: `${near.length} warnings within ${radiusKm}km, worst severity L${worst} — ${near.slice(0, 3).map((w) => w.eaAreaName ?? w.floodArea?.county).filter(Boolean).join(', ')}`,
+    raw: near.slice(0, 10),
+  };
+}
+
+// ── Open-Meteo — 7-day precipitation total (CC-BY-4.0, keyless) ─────────────
+export async function openMeteo(loc: GeoLoc, f: FetchLike = fetch): Promise<SourceReading | null> {
+  const u = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=precipitation_sum&past_days=6&forecast_days=1&timezone=UTC`;
+  const r = await f(u);
+  if (!r.ok) return null;
+  const d = await r.json() as { daily?: { precipitation_sum?: (number | null)[]; time?: string[] } };
+  const days = (d.daily?.precipitation_sum ?? []).filter((v): v is number => v != null);
+  if (!days.length) return null;
+  return {
+    key: 'open-meteo',
+    source: 'remote-sensing', domain: 'environmental',
+    value: Math.round(days.reduce((a, b) => a + b, 0) * 10) / 10, unit: 'mm precip (7d)',
+    at: `${d.daily?.time?.at(-1) ?? new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+    methodologyRef: 'Open-Meteo ERA5+IFS blend; 7-day precipitation_sum; flood-risk corroboration alongside EA gauges',
+    license: 'CC-BY-4.0', attribution: 'Open-Meteo (open-meteo.com)',
+    detail: `${days.length} daily readings at ${loc.lat.toFixed(2)},${loc.lon.toFixed(2)}`,
+    raw: d.daily,
+  };
+}
+
+// ── EA Water Quality — sampling-point coverage (OGL, keyless, ld+json) ──────
+export async function eaWaterQuality(loc: GeoLoc, radiusKm = 10, f: FetchLike = fetch): Promise<SourceReading | null> {
+  const u = `https://environment.data.gov.uk/water-quality/sampling-point?latitude=${loc.lat}&longitude=${loc.lon}&radius=${radiusKm}&limit=1`;
+  const r = await f(u, { headers: { accept: 'application/ld+json' } });
+  if (!r.ok) return null;
+  const d = await r.json() as { totalItems?: number; member?: { properties?: { type?: string } }[] };
+  if (d.totalItems == null) return null;
+  return {
+    key: 'ea-water-quality',
+    source: 'iot', domain: 'environmental',
+    value: d.totalItems, unit: `sampling points within ${radiusKm}km`,
+    at: new Date().toISOString(),
+    methodologyRef: 'EA Water Quality Archive GeoSPARQL; monitoring-coverage signal (density of regulated sampling points)',
+    license: 'Open Government Licence', attribution: 'Environment Agency Water Quality Archive',
+    detail: `${d.totalItems} regulated sampling points — ${d.member?.[0]?.properties?.type ?? 'mixed types'}`,
+  };
+}
+
+// ── FSA Food Hygiene Ratings — community venues (OGL, keyless) ──────────────
+export async function foodHygiene(loc: GeoLoc, radiusM = 2000, f: FetchLike = fetch): Promise<SourceReading | null> {
+  const u = `https://api.ratings.food.gov.uk/establishments?longitude=${loc.lon}&latitude=${loc.lat}&maxDistanceLimit=${radiusM}&pageSize=50`;
+  const r = await f(u, { headers: { 'x-api-version': '2' } });
+  if (!r.ok) return null;
+  const d = await r.json() as { establishments?: { RatingValue?: string }[] };
+  const est = d.establishments ?? [];
+  if (!est.length) return null;
+  const rated = est.map((e) => parseInt(e.RatingValue ?? '', 10)).filter((v) => v >= 0 && v <= 5);
+  return {
+    key: 'food-hygiene',
+    source: 'connector', domain: 'social',
+    value: Math.round((rated.length ? mean(rated) : 0) * 10) / 10, unit: `mean hygiene rating (${est.length} venues)`,
+    at: new Date().toISOString(),
+    methodologyRef: 'FSA FHRS establishment ratings within radius; community-venue quality proxy',
+    license: 'Open Government Licence', attribution: 'Food Standards Agency FHRS',
+    detail: `${est.length} establishments within ${radiusM}m`,
+  };
+}
+
+// ── iNaturalist — citizen-science observations (CC0/CC-BY, keyless) ─────────
+export async function inatObservations(loc: GeoLoc, radiusKm = 10, f: FetchLike = fetch): Promise<SourceReading | null> {
+  const u = `https://api.inaturalist.org/v1/observations?lat=${loc.lat}&lng=${loc.lon}&radius=${radiusKm}&per_page=0&verifiable=true`;
+  const r = await f(u);
+  if (!r.ok) return null;
+  const d = await r.json() as { total_results?: number };
+  if (d.total_results == null) return null;
+  return {
+    key: 'inaturalist',
+    source: 'bioacoustic', domain: 'environmental',
+    value: d.total_results, unit: `verifiable observations within ${radiusKm}km`,
+    at: new Date().toISOString(),
+    methodologyRef: 'iNaturalist v1 observations; verifiable records only — citizen-science biodiversity density',
+    license: 'CC0/CC-BY filtered', attribution: 'iNaturalist (inaturalist.org)',
+    detail: `${d.total_results} verifiable observations`,
+  };
+}
+
+// ── Key-gated endorsed sources — registered, inactive until secrets land ────
+export async function osDataHubPlaces(loc: GeoLoc, key: string | undefined, f: FetchLike = fetch): Promise<SourceReading | null> {
+  if (!key) return null;
+  const u = `https://api.os.uk/search/places/v1/nearest?point=${loc.lon},${loc.lat}&key=${key}`;
+  const r = await f(u);
+  if (!r.ok) return null;
+  const d = await r.json() as { results?: unknown[] };
+  if (!d.results?.length) return null;
+  return {
+    key: 'os-datahub',
+    source: 'connector', domain: 'social',
+    value: d.results.length, unit: 'OS places within sample',
+    at: new Date().toISOString(),
+    methodologyRef: 'OS Data Hub Places v1 nearest; gazetteer coverage',
+    license: 'OS OpenData / PSGA', attribution: 'Ordnance Survey (os.uk)',
+    detail: `${d.results.length} places`,
+  };
+}
+
+export async function eoDataHubScene(loc: GeoLoc, key: string | undefined, f: FetchLike = fetch): Promise<SourceReading | null> {
+  if (!key) return null;
+  const r = await f('https://api.eodatahub.org.uk/stac/search', {
+    method: 'POST', headers: { ...J, authorization: `Bearer ${key}` },
+    body: JSON.stringify({ collections: ['sentinel-2-l2a'], limit: 1,
+      intersects: { type: 'Point', coordinates: [loc.lon, loc.lat] },
+      sortby: [{ field: 'properties.datetime', direction: 'desc' }] }),
+  });
+  if (!r.ok) return null;
+  const d = await r.json() as { features?: { properties: { datetime: string; 'eo:cloud_cover'?: number } }[] };
+  const feat = d.features?.[0];
+  if (!feat) return null;
+  return {
+    key: 'eo-data-hub',
+    source: 'remote-sensing', domain: 'environmental',
+    value: Math.round(100 - (feat.properties['eo:cloud_cover'] ?? 50)), unit: '% usable EODH scene',
+    at: feat.properties.datetime,
+    methodologyRef: 'EO Data Hub STAC latest Sentinel-2; EOCIS LST/land-cover lane',
+    license: 'Copernicus/EOCIS open', attribution: 'Satellite Applications Catapult EO Data Hub',
+    detail: 'latest scene via eodatahub STAC',
+  };
+}
+
+export async function alphaKlimaHazard(loc: GeoLoc, key: string | undefined, f: FetchLike = fetch): Promise<SourceReading | null> {
+  if (!key) return null;
+  const r = await f(`https://platform.alpha-klima.com/prapi/hazards/flood?lat=${loc.lat}&lon=${loc.lon}`,
+    { headers: { authorization: `Bearer ${key}` } });
+  if (!r.ok) return null;
+  const d = await r.json() as { score?: number; value?: number };
+  const v = d.score ?? d.value;
+  if (v == null) return null;
+  return {
+    key: 'alpha-klima',
+    source: 'remote-sensing', domain: 'environmental',
+    value: v, unit: 'flood-hazard score (2050)',
+    at: new Date().toISOString(),
+    methodologyRef: 'Alpha-Klima physrisk (OS-Climate) — flood hazard indicator, forward scenario',
+    license: 'hackathon access', attribution: 'Alpha-Klima / Arfima (alpha-klima.com)',
+    detail: `physical-risk score ${v}`,
+  };
+}
+
+export async function naturalEnglandSites(loc: GeoLoc, key: string | undefined, f: FetchLike = fetch): Promise<SourceReading | null> {
+  if (!key) return null;
+  const r = await f(`https://services.arcgis.com/JJzESW51TqeY9uat/arcgis/rest/services/SSSI_England/FeatureServer/0/query?where=1%3D1&outFields=objectid&returnCountOnly=true&f=json`,
+    { headers: { authorization: `Bearer ${key}` } });
+  if (!r.ok) return null;
+  const d = await r.json() as { count?: number };
+  if (d.count == null) return null;
+  return {
+    key: 'natural-england',
+    source: 'connector', domain: 'environmental',
+    value: d.count, unit: 'SSSI features (national)',
+    at: new Date().toISOString(),
+    methodologyRef: 'Natural England Open Data Geoportal — designated-sites coverage',
+    license: 'Open Government Licence', attribution: 'Natural England',
+    detail: `${d.count} SSSI features`,
+  };
+}
+
 export const EXPECTED_DIRECTION: Record<string, 'decrease' | 'increase' | 'flat'> = {
   openaq: 'decrease', sensorcommunity: 'decrease', 'nasa-power': 'decrease',
   sentinel2: 'flat', worldbank: 'flat', gbif: 'increase',
   treegens: 'increase', atlas: 'decrease',
   'silvi-leaf': 'increase', silvi: 'increase',
+  'ea-flood': 'decrease', 'open-meteo': 'decrease', 'ea-water-quality': 'flat',
+  'food-hygiene': 'increase', inaturalist: 'increase',
+  'os-datahub': 'flat', 'eo-data-hub': 'flat', 'alpha-klima': 'decrease',
+  'natural-england': 'flat',
 };

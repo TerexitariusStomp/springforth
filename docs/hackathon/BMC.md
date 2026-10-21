@@ -9,7 +9,7 @@
 | **Revenue streams** | 1. **Settlement fee** — small % on funded needs (funder-side, opt-in per round). 2. **Yield spread** — stewarded pools/streams earn protocol fee on accrual, non-custodial. 3. **Consented data revenue** — signed dataset releases; premium raw feeds via payment-verified access grants (aggregates stay public). 4. **Hosted deployments** — managed instances for councils/funders |
 | **Key resources** | The appreciation→EigenTrust graph (the moat — sybil resistance competitors can't copy without the coordination layer); hash-chained ledger + Bitcoin anchoring; adapter network; OSS stack (~1.7% custom) |
 | **Key activities** | Overlap detection + human validation; oracle evidence scoring; matching allocation; ledger anchoring; dataset releases; adapter maintenance |
-| **Key partnerships** | OnePlanet (PS1 data backbone + MCP), Treegens (field evidence), Silvi (reforestation MRV, per-project keys), Holons, Artizen, Open Collective, ValueFlows, Sarafu/CLC, oracle data providers (Sentinel-2/GBIF/NASA POWER/OpenAQ) |
+| **Key partnerships** | OnePlanet (PS1 data backbone + MCP), Satellite Applications Catapult / EO Data Hub + Alpha-Klima (endorsed physical-risk data), Geovation (post-event pathway), Treegens (field evidence), Silvi (reforestation MRV, per-project keys), Holons, Artizen, Open Collective, ValueFlows, Sarafu/CLC, oracle data providers (EA Flood Monitoring, Open-Meteo, EA Water Quality, FHRS, Sentinel-2/GBIF/NASA POWER/OpenAQ) |
 | **Cost structure** | Cloudflare edge (D1 + Workers — near-zero marginal cost), oracle API tiers, engineering; communities pay nothing |
 
 ## Why this wins at unit level

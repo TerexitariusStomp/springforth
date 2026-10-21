@@ -23,9 +23,12 @@ happened.
   mutual recognition = `min(a→b, b→a)`; transitive trust via EigenTrust.
   Dominant-assurance credits recognise pledgers of cards that expire.
 - **Open-evidence oracle** — hourly readings from public sources (Sentinel-2,
-  OpenAQ, Sensor.Community, NASA POWER, GBIF, Treegens filmed plantings)
-  score movement against baselines. Evidence for review — human approval
-  stays authoritative.
+  OpenAQ, Sensor.Community, NASA POWER, GBIF, Treegens filmed plantings,
+  plus hackathon-endorsed UK sources: EA Flood Monitoring, Open-Meteo,
+  EA Water Quality, FSA hygiene ratings, iNaturalist — more key-gated on
+  `/sources`). Score movement against baselines; evidence for review —
+  human approval stays authoritative. Full matrix:
+  `docs/hackathon/DATA-SOURCES.md`.
 - **Audit ledger** — every state change is a hash-chained event; heads are
   anchored to Bitcoin via OpenTimestamps public calendars.
 - **Funding layer** — quadratic rounds (Liberal Radicalism) over the needs
@@ -37,6 +40,8 @@ happened.
   quorum announcements post back to the declaring group.
 
 **Judging?**  — the 3- and 8-minute live paths.
+
+![Logical architecture](docs/hackathon/demo-assets/architecture.svg)
 
 ## Stack
 

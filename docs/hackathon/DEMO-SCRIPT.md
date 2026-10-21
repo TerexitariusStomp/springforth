@@ -5,9 +5,11 @@ Base: https://springforth.widespread.workers.dev
 1. **Landing** (/) — "coordinate first" + what needs attention: open cards,
    unmet needs, machine-flagged overlaps awaiting humans. 30s.
 2. **Possibilities** (/possibilities) — the deck: Mida Creek hero card
-   (4/6 committed), flood-response prep (live EA dataset context), dance
-   night (partial, names masked until critical mass), completed Kwale card
-   with its report. 45s.
+   (4/6 committed), **Shrewsbury riverside flood response — live verified
+   context pulled from EA Flood Monitoring, Open-Meteo, EA Water Quality,
+   FHRS, postcodes.io at seed time** (endorsed-source lane), dance night
+   (partial, names masked until critical mass), completed Kwale card with
+   its report. 45s.
 3. **Outcomes** (/outcomes) — the reveal: *"Restored mangrove cover…" —
    4 pursuing this outcome*: Kilifi County, the community plan, and
    **Treegens' real filmed plots at Kisiwani + Dabaso**. 60s.

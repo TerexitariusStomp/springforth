@@ -40,10 +40,11 @@ no login required. Two paths: 3 minutes or 8 minutes.
 
 | Criterion | Where it shows |
 |---|---|
+| Deliverables | `BMC.md`, live demo, `ARCHITECTURE.md` + `demo-assets/architecture.svg` |
 | Business idea | `BMC.md`, `/datasets` (data revenue), round settlement lane |
 | Technical implementation | `/docs`, 175 tests, ledger+OTS, 1.72% custom code |
 | UX / first-time user | `/` triage, `/tour`, mobile-ready pages |
-| Use of datasets | OnePlanet/Treegens/Silvi plans → `/coordination`, `/verify` |
+| Use of datasets | `/sources` (endorsed matrix: `DATA-SOURCES.md`), card verified-context, `/verify` oracle lane, OnePlanet/Treegens/Silvi plans → `/coordination` |
 | Presentation | the pairwise side-by-side + live quorum flip |
 | Feasibility | deployed + seeded + ledger-verified now |
 | Scalability | edge-native, adapter lanes, trust graph compounds |

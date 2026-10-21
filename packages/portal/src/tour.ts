@@ -38,6 +38,10 @@ const STOPS: { href: string; title: string; notice: string; proves: string }[] =
   { href: '/agent', title: 'Agent query (POST {"q":"…"})',
     notice: 'Deterministic cited answers over the live graph — the idea-starter\'s "agentic AI" lane.',
     proves: 'PS1 idea starter' },
+  { href: 'https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/ARCHITECTURE.md',
+    title: 'Logical architecture',
+    notice: 'Tier map + the PS1 feedback loop — presentation → edge → domain → data → external.',
+    proves: 'Required deliverable' },
 ];
 
 export function renderTourPage(): string {

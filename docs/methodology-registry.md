@@ -18,6 +18,15 @@ names the public method behind the reading. This file is the registry
 | `silvi-leaf` | Treekipedia LEAF | Species aptness 0–100 (GBIF+WCVP+WWF) | increase |
 | `aave-atoken` | Aave v3 on-chain | `balanceOf` delta = observed yield | increase |
 | `superfluid-cfa` | Superfluid CFA | elapsed time × flowRate accrual | increase |
+| `ea-flood` | EA Flood Monitoring | Severity-weighted active warnings within 40km (no safety-critical SLA — corroborative) | decrease |
+| `open-meteo` | Open-Meteo | ERA5+IFS blend; 7-day precipitation sum | decrease |
+| `ea-water-quality` | EA Water Quality Archive | Regulated sampling-point density (GeoSPARQL, ld+json) | flat |
+| `food-hygiene` | FSA FHRS | Mean venue hygiene rating within radius | increase |
+| `inaturalist` | iNaturalist v1 | Verifiable citizen-science observations within radius | increase |
+| `os-datahub` | OS Data Hub Places | Gazetteer coverage (env-gated: `OS_DATAHUB_KEY`) | flat |
+| `eo-data-hub` | EO Data Hub (SatCat) | Latest Sentinel-2 scene via STAC (env-gated: `EODATAHUB_KEY`) | flat |
+| `alpha-klima` | Alpha-Klima physrisk | Flood-hazard score, forward scenario (env-gated: `ALPHAKLIMA_KEY`) | decrease |
+| `natural-england` | NE Open Data Geoportal | Designated-sites coverage (env-gated: `DEFRA_KEY`) | flat |
 
 Rules:
 

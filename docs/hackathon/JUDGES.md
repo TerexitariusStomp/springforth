@@ -48,7 +48,7 @@ no login required. Two paths: 3 minutes or 8 minutes.
 | Presentation | the pairwise side-by-side + live quorum flip |
 | Feasibility | deployed + seeded + ledger-verified now |
 | Scalability | edge-native, adapter lanes, trust graph compounds |
-| Impact potential | coordinations/week north star at `/metrics` |
+| Impact potential | coordinations/week north star + per-currency coordinated value at `/metrics`; "Coordinated value (est.)" on each card (`VALUATION.md`) |
 
 Repo: github.com/TerexitariusStomp/springforth (MIT-clean provenance,
 `docs/PROVENANCE.md`).

@@ -40,10 +40,10 @@ if (!beach) {
 } else console.log('  exists:', beach.id);
 const beachId = beach.id;
 
-for (const [actor, bringing] of [['demo-amina', '4 sacks + first aid kit'],
-                                  ['demo-brian', 'wheelbarrow + troughs'],
-                                  ['demo-christine', 'propagules from Kikambala group']]) {
-  const r = await pub(`/possibilities/${beachId}/join`, { actor, bringing });
+for (const [actor, bringing, hours] of [['demo-amina', '4 sacks + first aid kit', 3],
+                                  ['demo-brian', 'wheelbarrow + troughs', 3],
+                                  ['demo-christine', 'propagules from Kikambala group', 2]]) {
+  const r = await pub(`/possibilities/${beachId}/join`, { actor, bringing, hours });
   console.log(`  join ${actor}:`, r.status);
 }
 // appreciations → mutual trust edges (needed for pairwise + governance cohort)
@@ -58,11 +58,12 @@ for (const [f, t] of [['demo-amina', 'demo-brian'], ['demo-brian', 'demo-amina']
 // ── 2. Funding arc — donations on Mida + pairwise round showing discount ──
 console.log('2. funding arc');
 const midasNeeds = ['poss-mida-creek-mangrove-need-0', 'poss-mida-creek-mangrove-need-1', 'poss-mida-creek-mangrove-need-2'];
-const donors = [['demo-amina', 12], ['demo-brian', 20], ['demo-christine', 8],
-                ['demo-daudi', 45], ['demo-elinah', 30], ['demo-faiz', 5], ['demo-grace', 15]];
+// Kenya scene denominates in KES — the unit of the country.
+const donors = [['demo-amina', 1600], ['demo-brian', 2600], ['demo-christine', 1000],
+                ['demo-daudi', 5800], ['demo-elinah', 3900], ['demo-faiz', 650], ['demo-grace', 1900]];
 for (const [i, [d, amt]] of donors.entries()) {
   const r = await post(`/rounds/round-mida-creek/donate`,
-    { needNodeId: midasNeeds[i % 3], donor: d, amount: amt, currency: 'USD' });
+    { needNodeId: midasNeeds[i % 3], donor: d, amount: amt, currency: 'KES' });
   console.log(`  donate ${d} $${amt}:`, r.id ?? 'err');
 }
 
@@ -72,7 +73,7 @@ if (!pwRound) {
   pwRound = await post('/rounds', {
     id: 'round-pairwise-demo', title: 'Kilifi coast pairwise round',
     description: 'Same needs, pairwise matching — the appreciation graph discounts coordinated donor rings.',
-    sponsorIds: ['kilifi-regen-network'], matchingFund: { amount: 300, currency: 'USD' },
+    sponsorIds: ['kilifi-regen-network'], matchingFund: { amount: 40000, currency: 'KES' },
     eligibleNeedIds: midasNeeds, matchingMode: 'pairwise', conviction: true,
     acceptedTokens: { USD: 'fiat-ledger', cUSD: '0x765de816845861e75a25fca122bb6898b8b1282a' },
     opensAt: '2026-10-01T00:00:00Z', closesAt: '2026-12-31T00:00:00Z', state: 'open',
@@ -80,9 +81,9 @@ if (!pwRound) {
   console.log('  pairwise round:', pwRound.id ?? 'err');
 } else console.log('  pairwise round exists');
 // clique donors all back need-0; independents spread — pairwise discounts the clique
-for (const [d, need, amt] of [['demo-amina', 0, 40], ['demo-brian', 0, 40], ['demo-christine', 0, 40],
-                               ['demo-daudi', 1, 25], ['demo-elinah', 2, 25]]) {
-  const r = await post(`/rounds/round-pairwise-demo/donate`, { needNodeId: midasNeeds[need], donor: d, amount: amt });
+for (const [d, need, amt] of [['demo-amina', 0, 5200], ['demo-brian', 0, 5200], ['demo-christine', 0, 5200],
+                               ['demo-daudi', 1, 3200], ['demo-elinah', 2, 3200]]) {
+  const r = await post(`/rounds/round-pairwise-demo/donate`, { needNodeId: midasNeeds[need], donor: d, amount: amt, currency: 'KES' });
   console.log(`  pw donate ${d} → need-${need}:`, r.id ?? 'err');
 }
 const app = await post(`/rounds/round-pairwise-demo/apply`,
@@ -145,7 +146,7 @@ console.log('6. retro arc');
 const retro = await get('/retro');
 if (!(retro.rounds ?? []).some((r) => r.id === 'retro-q4-kilifi')) {
   const rr = await post('/retro', { id: 'retro-q4-kilifi',
-    title: 'Kilifi coast retro round — Q4', fund: { amount: 150, currency: 'USD' },
+    title: 'Kilifi coast retro round — Q4', fund: { amount: 19500, currency: 'KES' },
     claimIds: claim?.id ? [claim.id] : [], badgeholderCount: 4, pointsPerBallot: 9,
     ballotClose: '2026-11-01T00:00:00Z' });
   console.log('  retro round:', rr.id ?? 'err');
@@ -180,20 +181,22 @@ if (!uk) {
     declarerId: 'demo-tom', place: 'shrewsbury',
     deadline: '2026-12-31T00:00:00Z', minParticipants: 3,
     needs: [{ title: 'Sandbag crew rota', required: false },
-            { title: 'Pop-up flood barriers (EA depot loan)', required: false }],
+            { title: 'Pop-up flood barriers (EA depot loan)', required: false },
+            { title: 'Flood consumables (sand, tape, gloves)', required: false,
+              budget: 150, budgetCurrency: 'GBP' }],
     actions: [{ title: 'Riverside gully clearance + sandbag staging',
                 h3: SEVERN_H3,
                 description: 'Welsh Bridge reach — oracle reads EA warnings + Open-Meteo precip here hourly.' }],
-    bringing: [],
+    bringing: [{ title: '40 sandbags stored dry', budget: 120, budgetCurrency: 'GBP' }],
   });
   uk = r.body ?? {};
   console.log('  declared:', uk.id);
 } else console.log('  exists:', uk.id);
 const ukId = uk.id;
-for (const [actor, bringing] of [['demo-tom', 'pickup + trailer'],
-                                 ['demo-sarah', 'gully-clearance kit'],
-                                 ['demo-rhys', '40 sandbags stored dry']]) {
-  const r = await pub(`/possibilities/${ukId}/join`, { actor, bringing });
+for (const [actor, bringing, hours] of [['demo-tom', 'pickup + trailer', 4],
+                                 ['demo-sarah', 'gully-clearance kit', 3],
+                                 ['demo-rhys', '40 sandbags stored dry', 2]]) {
+  const r = await pub(`/possibilities/${ukId}/join`, { actor, bringing, hours });
   console.log(`  join ${actor}:`, r.status);
 }
 for (const [f, t] of [['demo-tom', 'demo-sarah'], ['demo-sarah', 'demo-tom'],
@@ -217,7 +220,7 @@ if (!roundsNow.some((r) => r.id === 'round-severn-flood') && ukNeedIds.length) {
   await post('/rounds', {
     id: 'round-severn-flood', title: 'Severn catchment resilience round',
     description: 'Quadratic matching over flood-response needs — oracle-verified context on every card.',
-    sponsorIds: ['severn-catchment-partnership'], matchingFund: { amount: 200, currency: 'USD' },
+    sponsorIds: ['severn-catchment-partnership'], matchingFund: { amount: 200, currency: 'GBP' },
     eligibleNeedIds: ukNeedIds, matchingMode: 'pairwise', conviction: true,
     opensAt: '2026-10-01T00:00:00Z', closesAt: '2026-12-31T00:00:00Z', state: 'open',
   });

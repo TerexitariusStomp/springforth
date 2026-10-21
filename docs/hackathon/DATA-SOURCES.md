@@ -41,6 +41,18 @@ context" — never affects quorum).
 | Natural England | 16 (22) | `DEFRA_KEY` | NE Open Data Geoportal — designated sites |
 | OnePlanet | mentor | `ONEPLANET_API_KEY` | `mcp.oneplanet.com/mcp` — client verified against `vendor/oneplanet-mcp-guide.pdf` |
 
+## Valuation benchmarks (cited, on-card)
+
+Published figures attached to GB cards as verified context + used by the
+coordinated-value block — see `VALUATION.md` for methodology.
+
+| Figure | Value | Source |
+|---|---|---|
+| Volunteer time rate | £14.43/h | ONS Household Satellite Accounts (2017) — cited by NCVO; DCMS replacement-cost method |
+| Avg flood damage per home | £30,000 | Environment Agency; corroborated by ABI 2025 claims data |
+| Avg flood damage per business | £82,000 | Environment Agency |
+| Properties at flood risk in England | 5.2M | Environment Agency |
+
 ## Already live (pre-existing registry)
 
 OpenAQ, Sensor.Community, NASA POWER, Sentinel-2 (earth-search STAC),

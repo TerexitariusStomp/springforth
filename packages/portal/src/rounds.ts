@@ -25,13 +25,18 @@ ${body}
 ${footer()}
 </body></html>`;
 
-export function renderRoundsPage(rounds: FundingRound[]): string {
+export function renderRoundsPage(rounds: FundingRound[], donations: Donation[] = []): string {
   const rows = rounds.map((r) => `<tr>
 <td><a href="/rounds/${esc(r.id)}">${esc(r.title)}</a></td>
 <td>${esc(r.matchingFund.currency)} ${MONEY.format(r.matchingFund.amount)}</td>
 <td>${r.eligibleNeedIds.length}</td>
 <td><span class="badge">${esc(r.state)}</span></td>
 <td class="muted">${esc(r.closesAt.slice(0, 10))}</td></tr>`).join('\n');
+  // Committed totals per currency — never converted, side by side.
+  const byCur = new Map<string, number>();
+  for (const d of donations) byCur.set(d.currency, (byCur.get(d.currency) ?? 0) + d.amount);
+  const totals = [...byCur.entries()]
+    .map(([c, a]) => `${esc(c)} ${MONEY.format(a)}`).join(' · ');
   return shell('Funding rounds', `
 <h1>Funding rounds</h1>
 <p>Small donations attract a sponsor matching fund allocated by
@@ -39,6 +44,8 @@ export function renderRoundsPage(rounds: FundingRound[]): string {
 gift. Donations are records of intent; settlement rides external rails.
 Mechanism: Weyl–Buterin–Hitzig "Liberal Radicalism" (2018), as run by
 Gitcoin Grants / Allo Protocol.</p>
+${totals ? `<p class="muted">Committed on record: <strong>${totals}</strong> —
+each round denominates in its country's unit; totals are never converted.</p>` : ''}
 <table><tr><th>Round</th><th>Matching fund</th><th>Eligible needs</th><th>State</th><th>Closes</th></tr>
 ${rows || '<tr><td colspan="5"><em>No rounds yet — POST /rounds (admin) opens one.</em></td></tr>'}</table>`);
 }

@@ -6,6 +6,7 @@ import {
   ActorWallet, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
   DatasetRelease, DataAccessGrant, Subscription,
+  valueCoordinated,
 } from '@springforth/core';
 import {
   allocateMatching, pairwiseAllocate, refreshPledge, badgeholders, tallyRound,
@@ -108,6 +109,36 @@ function locFor(node: PlanNode): GeoLoc | null {
   return null;
 }
 
+
+// Volunteer-time benchmark (treasury lane): ONS Household Satellite
+// Accounts 2017 rate, as cited by NCVO and the DCMS volunteering-value
+// methodology (replacement-cost method). Applied only to GB-placed
+// cards — no cited Kenya rate is carried yet, an honest gap.
+const VOLUNTEER_GB = {
+  key: 'GB', hourRate: 14.43, currency: 'GBP',
+  source: 'ONS Household Satellite Accounts (2017)',
+};
+const GB_PLACE = /shrewsbury|severn|london|england|britain|uk\b|manchester|bristol|oxford|cardiff|edinburgh|birmingham|leeds|glasgow/i;
+
+// Donations + derived match per need node (match is computed per round,
+// mapped back by needNodeId). Shared by the deck and /metrics.
+async function fundingMaps(env: Env) {
+  const [dons, rnds] = await Promise.all([
+    list<Donation>(env.DB, 'donation'), list<FundingRound>(env.DB, 'round'),
+  ]);
+  const matchByNeed = new Map<string, { needNodeId: string; amount: number; currency: string }>();
+  for (const r of rnds) {
+    const alloc = await allocFor(env, r, dons.filter((d) => d.roundId === r.id));
+    for (const a of alloc) {
+      // Two rounds can fund the same need — matches accumulate per currency.
+      const key = `${a.needNodeId}|${r.matchingFund.currency}`;
+      const prev = matchByNeed.get(key);
+      matchByNeed.set(key, { needNodeId: a.needNodeId,
+        amount: (prev?.amount ?? 0) + a.match, currency: r.matchingFund.currency });
+    }
+  }
+  return { dons, rnds, matchByNeed };
+}
 
 // Round allocation dispatcher — 'lr' is classic quadratic; 'pairwise'
 // discounts coordinated donor pairs via the appreciation trust graph +
@@ -388,10 +419,13 @@ async function accrueStreams(env: Env): Promise<number> {
     const amount = Number(units) / 1e18;
     if (s.needNodeId) {
       // need-targeted stream → periodic Donation records (they join QF).
+      // Denominate in the round's own unit — GBP rounds don't mint USD.
+      const round = await get<FundingRound>(env.DB, 'round', s.roundId);
       const don = Donation.parse({
         id: `don-stream-${s.id}-${now.toString(36)}`,
         roundId: s.roundId, needNodeId: s.needNodeId,
-        donor: s.supporter, amount, currency: 'USD',
+        donor: s.supporter, amount,
+        currency: round?.matchingFund.currency ?? 'USD',
         settlement: 'settled', settlementRef: `superfluid:${s.id}`,
         at: new Date(now).toISOString(),
       });
@@ -1478,6 +1512,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
               category: n.category, flaggedBy: p.declarerId,
               orgIds: [p.declarerId], placeId: p.place,
               terms: n.terms, capital: n.capital, description: String(n.description ?? ''),
+              budget: n.budget != null ? Number(n.budget) : undefined,
+              budgetCurrency: n.budgetCurrency ?? n.currency,
               tags: ['possibility'], timeframe: { to: p.deadline },
             });
             await put(env.DB, 'plannode', node.id, node);
@@ -1489,6 +1525,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
               source: `possibility:${pid}`, possibilityId: pid,
               orgIds: [p.declarerId], placeId: p.place,
               terms: o.terms, capital: o.capital, description: String(o.description ?? ''),
+              budget: o.budget != null ? Number(o.budget) : undefined,
+              budgetCurrency: o.budgetCurrency ?? o.currency,
               tags: ['possibility', 'bringing'], timeframe: { from: iso },
             });
             await put(env.DB, 'plannode', node.id, node);
@@ -1517,11 +1555,14 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         }
         if (req.method === 'GET' && seg.length === 1) {
           await sweepPossibilities(env);
-          const [poss, nodes, recs, parts, apps, passes] = await Promise.all([
+          const [poss, nodes, recs, parts, apps, passes, { dons, matchByNeed }] = await Promise.all([
             list<Possibility>(env.DB, 'possibility'), list<PlanNode>(env.DB, 'plannode'),
             list<OverlapRecord>(env.DB, 'overlap'), list<Participation>(env.DB, 'participation'),
             list<Appreciation>(env.DB, 'appreciation'), list<Pass>(env.DB, 'pass'),
+            fundingMaps(env),
           ]);
+          const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
+            .map((n) => [n.id, n.possibilityId]));
           const edges = trustEdges(apps);
           const viewer = url.searchParams.get('actor') ?? undefined;
           const now = Date.now();
@@ -1547,6 +1588,18 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
                 .map((n) => ({ ...n, met: coordinated.has(n.id) })),
               bringing: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'offer'),
               quorum: q,
+              value: valueCoordinated({
+                hours: myParts.map((x) => x.hours ?? 0).filter((h) => h > 0),
+                donations: dons.filter((d) => possByNeed.get(d.needNodeId) === p.id)
+                  .map((d) => ({ amount: d.amount, currency: d.currency })),
+                matched: [...matchByNeed.values()].filter((m) => possByNeed.get(m.needNodeId) === p.id)
+                  .map((m) => ({ amount: m.amount, currency: m.currency })),
+                inKind: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'offer' && n.budget != null)
+                  .map((n) => ({ amount: n.budget!, currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
+                needsCost: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'need' && n.budget != null)
+                  .map((n) => ({ amount: n.budget!, currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
+                benchmark: GB_PLACE.test(p.place ?? '') ? VOLUNTEER_GB : undefined,
+              }),
             };
           }).sort((a, b) =>
             (live.includes(a.status) ? 0 : 1) - (live.includes(b.status) ? 0 : 1)
@@ -1607,6 +1660,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           const part = Participation.parse({
             id: `part-${p.id}-${actor.toLowerCase().replace(/\W+/g, '-')}`,
             possibilityId: p.id, actor, bringingNodeId, at: iso,
+            hours: b.hours ? Number(b.hours) : undefined,
           });
           await put(env.DB, 'participation', part.id, part);
           await ledgerAppend(env.DB, actor, 'possibility.joined', { id: p.id, bringingNodeId });
@@ -1882,9 +1936,10 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
       }
       // Network health — north-star + funnel metrics.
       if (req.method === 'GET' && seg[0] === 'metrics') {
-        const [poss, parts, apps, recs] = await Promise.all([
+        const [poss, parts, apps, recs, { dons, matchByNeed }, nodes] = await Promise.all([
           list<Possibility>(env.DB, 'possibility'), list<Participation>(env.DB, 'participation'),
           list<Appreciation>(env.DB, 'appreciation'), list<OverlapRecord>(env.DB, 'overlap'),
+          fundingMaps(env), list<PlanNode>(env.DB, 'plannode'),
         ]);
         const now = Date.now();
         const statuses = poss.map((p) => ({ p, s: effectiveStatus(p, now) }));
@@ -1906,6 +1961,43 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           successfulCoordinationsPerWeek: successfulCoordinationsPerWeek(poss, apps, now),
           expiringSoon, passesLogged: passes.length,
           complementsConfirmed: recs.filter((r) => r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated')).length,
+          // Monetary value, per currency (never converted) — committed and
+          // matched are ledger-derived; volunteer time is declared hours ×
+          // the cited ONS rate where the card places in GB. Aggregated per
+          // card so rates stay local.
+          ...(() => {
+            const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
+              .map((n) => [n.id, n.possibilityId]));
+            const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number }> = {};
+            let hoursTotal = 0;
+            for (const p of poss) {
+              const mine = parts.filter((x) => x.possibilityId === p.id);
+              const v = valueCoordinated({
+                hours: mine.map((x) => x.hours ?? 0).filter((h) => h > 0),
+                donations: dons.filter((d) => possByNeed.get(d.needNodeId) === p.id)
+                  .map((d) => ({ amount: d.amount, currency: d.currency })),
+                matched: [...matchByNeed.values()].filter((m) => possByNeed.get(m.needNodeId) === p.id)
+                  .map((m) => ({ amount: m.amount, currency: m.currency })),
+                inKind: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'offer' && n.budget != null)
+                  .map((n) => ({ amount: n.budget!,
+                    currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
+                needsCost: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'need' && n.budget != null)
+                  .map((n) => ({ amount: n.budget!,
+                    currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
+                benchmark: GB_PLACE.test(p.place ?? '') ? VOLUNTEER_GB : undefined,
+              });
+              hoursTotal += v.hoursTotal;
+              for (const [cur, cv] of Object.entries(v.byCurrency)) {
+                const a = (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0 });
+                a.committed += cv.committed; a.matched += cv.matched;
+                a.inKind += cv.inKind; a.volunteerTime += cv.volunteerTime; a.total += cv.total;
+                a.asked += cv.asked;
+              }
+            }
+            for (const a of Object.values(acc))
+              for (const k of Object.keys(a) as (keyof typeof a)[]) a[k] = Math.round(a[k] * 100) / 100;
+            return { valueByCurrency: acc, declaredHoursTotal: Math.round(hoursTotal * 100) / 100 };
+          })(),
         });
       }
       // ── Funding layer — public mechanisms only ──────────────────────
@@ -1934,7 +2026,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         if (req.method === 'GET' && seg.length === 1) {
           const rounds = await list<FundingRound>(env.DB, 'round');
           if (url.searchParams.get('format') === 'json') return json({ rounds });
-          return new Response(renderRoundsPage(rounds), { headers: { 'content-type': 'text/html' } });
+          const dons = await list<Donation>(env.DB, 'donation');
+          return new Response(renderRoundsPage(rounds, dons), { headers: { 'content-type': 'text/html' } });
         }
         const round = await get<FundingRound>(env.DB, 'round', seg[1] ?? '');
         if (!round) return err('round not found', 404);

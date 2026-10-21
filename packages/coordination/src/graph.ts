@@ -36,6 +36,9 @@ export const PlanNode = z.object({
   tags: z.array(z.string()).default([]),
   timeframe: z.object({ from: z.string().optional(), to: z.string().optional() }).default({}),
   budget: z.number().optional(),
+  // ISO currency for `budget` — needs carry the declared cost of the ask,
+  // offers the in-kind value brought. Never converted; shown per-currency.
+  budgetCurrency: z.string().optional(),
   description: z.string().default(''),
   // CLC fields — present on offer/need nodes. `terms` is the voucher's
   // published conditions (unit of account, symbol, redemption notes);

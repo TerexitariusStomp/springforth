@@ -46,7 +46,13 @@ franchise, not a token. This proposal already passed and rewrote the
 matching coefficient." [/datasets briefly: "signed data releases anchored
 to Bitcoin — the data-revenue lane"]
 
-**(3:30–4:10) The flip** (/possibilities) — "This card sits at two of
+**(3:30–3:45) Value in money terms** (/possibilities — Severn card) —
+"For the treasurers: every environmental unit carries a cited money
+figure. Committed and matched on the ledger, declared volunteer hours at
+the ONS rate, in-kind budgets — in GBP here, KES in Kilifi, never
+converted. Methodology's public." [pause on the value block]
+
+**(3:45–4:10) The flip** (/possibilities) — "This card sits at two of
 three. Join — " [join from a second browser/phone or narrate the QR]
 "— quorum reached, commitment bound, and the declaring group gets pinged
 on Telegram. People AND required resources — that's what quorum means."

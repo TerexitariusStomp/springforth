@@ -73,6 +73,10 @@ export const Participation = z.object({
   possibilityId: z.string().min(1),
   actor: z.string().min(1),
   bringingNodeId: z.string().optional(),      // offer node for "I'm bringing X"
+  // Participant-declared hours pledged to this possibility — feeds the
+  // derived "coordinated value" estimate (valuation.ts). Declared, not
+  // verified; always labelled as such downstream.
+  hours: z.number().positive().optional(),
   at: z.string().datetime(),
 });
 export type Participation = z.infer<typeof Participation>;

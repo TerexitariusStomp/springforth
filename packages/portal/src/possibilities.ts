@@ -1,5 +1,5 @@
 import type { PlanNode, TrustEdge } from '@springforth/coordination';
-import type { PossibilityStatus } from '@springforth/core';
+import type { PossibilityStatus, Valuation } from '@springforth/core';
 import { footer } from './nav.ts';
 
 // /possibilities — the card deck. Each card is a declared possibility
@@ -26,12 +26,41 @@ export interface PossibilityCard {
   quorum: { met: boolean; required: number; requiredMet: number };
   report?: { summary: string; evidence: string; learnings: string; at: string };
   context?: { datasets?: { name: string; value: string; source: string; fetchedAt: string }[] };
+  // Derived monetary valuation (ledger + declared + cited-benchmark inputs,
+  // per currency) — see docs/hackathon/VALUATION.md for the methodology.
+  value?: Valuation;
 }
 
 const STATUS_STYLE: Record<string, string> = {
   draft: '#ccc', active: '#7fb3e8', quorum: '#8fd18f',
   completed: '#4a7a4a', expired: '#e88f8f',
 };
+
+const money = (amount: number, currency: string) =>
+  new Intl.NumberFormat('en-GB', { style: 'currency', currency, maximumFractionDigits: 2 })
+    .format(amount);
+
+// "Coordinated value (est.)" — derived at render from ledger donations/match,
+// participant-declared hours and offer budgets, and cited benchmark rates.
+// Per-currency rows, never converted; every component carries its provenance.
+function valueBlock(v: Valuation): string {
+  const rows = Object.entries(v.byCurrency).filter(([, c]) => c.total > 0 || c.asked > 0)
+    .map(([cur, c]) => {
+      const parts: string[] = [];
+      if (c.committed > 0) parts.push(`${money(c.committed, cur)} committed`);
+      if (c.matched > 0) parts.push(`${money(c.matched, cur)} matched`);
+      if (c.inKind > 0) parts.push(`${money(c.inKind, cur)} in-kind (declared)`);
+      if (c.volunteerTime > 0) parts.push(`${money(c.volunteerTime, cur)} volunteer time (est.)`);
+      if (c.asked > 0) parts.push(`${money(c.asked, cur)} declared cost of open needs`);
+      return `<li>${esc(cur)} <strong>${money(c.total, cur)}</strong> — ${parts.join(' · ')}</li>`;
+    }).join('');
+  if (!rows && !(v.hoursTotal > 0)) return '';
+  return `<p class="meta"><strong>Coordinated value (est.)</strong> —
+environmental units in money, for treasurers:
+<ul class="needs">${rows}</ul>
+${v.method.length ? `<small>${v.method.map(esc).join(' · ')}</small>` : ''}
+<small><a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/VALUATION.md">methodology</a></small></p>`;
+}
 
 function countdown(deadline: string | undefined): string {
   if (!deadline) return 'open-ended';
@@ -51,7 +80,7 @@ function card(c: PossibilityCard): string {
   const bringing = c.bringing.map((n) => `<li>${esc(n.label)} — ${esc(n.orgIds[0] ?? '')}</li>`).join('');
   const joined = (c.participants ?? []).map((x) => `<li>${esc(x.actor)}${x.bringingNodeId ? ' + bringing' : ''}</li>`).join('');
   const partCap = c.maxParticipants ? `/${c.maxParticipants} cap` : '';
-  return `<div class="card" style="border-left:6px solid ${STATUS_STYLE[c.status] ?? '#ccc'}">
+  return `<div class="card" id="${esc(c.id)}" style="border-left:6px solid ${STATUS_STYLE[c.status] ?? '#ccc'}">
 <h3>&#8220;${esc(c.title)}&#8221;</h3>
 <p><span class="badge">${esc(c.status)}</span>
 ${c.tipping ? '<span class="badge tip">tipping — 30% reached, momentum building</span>' : ''}
@@ -62,6 +91,7 @@ ${c.tipping ? '<span class="badge tip">tipping — 30% reached, momentum buildin
 <div class="bar"><div class="fill" style="width:${Math.round(cover * 100)}%"></div></div>
 <p class="meta">needs:resources cover ${(cover * 100).toFixed(0)}% ·
 trust ${c.scoring.trust.toFixed(2)} · urgency ${c.scoring.urgency.toFixed(2)}</p>
+${c.value ? valueBlock(c.value) : ''}
 <p>Declared by <strong>${esc(c.declarerId)}</strong>${c.place ? ` · ${esc(c.place)}` : ''}
 ${c.timeStart ? ` · ${esc(c.timeStart.slice(0, 10))}${c.timeEnd ? ` → ${esc(c.timeEnd.slice(0, 10))}` : ''}` : ''}
 · <a href="/possibilities/${esc(c.id)}/ics">add to calendar (.ics)</a></p>
@@ -75,6 +105,7 @@ ${c.participants === undefined
 ${live ? `<form method="post" action="/possibilities/${esc(c.id)}/join" class="val">
   <input name="actor" placeholder="your name" required>
   <input name="bringing" placeholder="what you'll bring (optional)">
+  <input name="hours" type="number" min="0" step="0.5" placeholder="hours (optional)" style="max-width:7rem">
   <button>I'm coming</button>
 </form>
 <form method="post" action="/possibilities/${esc(c.id)}/need" class="val">

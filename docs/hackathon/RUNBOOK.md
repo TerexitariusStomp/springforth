@@ -33,6 +33,13 @@ curl -s "https://springforth.widespread.workers.dev/possibilities?format=json" \
 
 # 4. QR for the flip beat
 open docs/hackathon/demo-assets/join-qr.png
+
+# 5. Value block renders (treasurer beat)
+curl -s "https://springforth.widespread.workers.dev/possibilities?format=json" \
+  | python3 -c "import json,sys; \
+    [print(p['id'],'→',p.get('value',{}).get('byCurrency')) \
+     for p in json.load(sys.stdin)['possibilities'] \
+     if 'Shrewsbury' in p['title']]"
 ```
 
 ## If prod is down or slow
@@ -53,6 +60,10 @@ open docs/hackathon/demo-assets/join-qr.png
   Open-Meteo, FHRS, Land Registry, ONS, CKAN, iNaturalist, Climate TRACE);
   `/rounds/round-severn-flood` shows the UK pairwise round;
   `/sources` lists the full endorsed matrix (`DATA-SOURCES.md`).
+- Treasurer beat: pause on the Severn card's **"Coordinated value (est.)"**
+  block — committed + matched (£, ledger) + declared hours × ONS £14.43/h
+  + in-kind budgets + EA/ABI £30k/home risk benchmarks. Methodology:
+  `VALUATION.md`.
 - Pairwise contrast: `/rounds/round-mida-creek` vs
   `/rounds/round-pairwise-demo` — same needs, clique discounted
   ($232.84 vs ~$263).
@@ -60,6 +71,23 @@ open docs/hackathon/demo-assets/join-qr.png
   live + Telegram pings. If the room has no signal, join twice yourself
   from two devices — never fake it.
 - Judge self-serve: `/tour` on the landing page is the 5-minute path.
+
+## Submission pack — Shared tab, Oct 27 2–3 PM
+
+Per Richard Peers (Oct 21): submissions post to **Team Two via the Shared
+tab**; criteria + suggested elements are in Resources/Notes. Stage:
+
+- [ ] `docs/hackathon/BMC.md` — Business Model Canvas (their 9 blocks)
+- [ ] `docs/hackathon/PITCH.md` — pitch notes (rubric-mapped)
+- [ ] `docs/hackathon/ARCHITECTURE.md` + `architecture.png` — logical architecture
+- [ ] `docs/hackathon/VALUATION.md` — valuation methodology
+- [ ] Live demo URL: `https://springforth.widespread.workers.dev` (+ `/tour`)
+- [ ] `demo-assets/walkthrough.mp4` — 2:30 captioned fallback video
+- [ ] Repo link: github.com/TerexitariusStomp/springforth
+- [ ] `DATA-SOURCES.md` — endorsed-source matrix
+
+Confirm on the day: file upload vs link post vs both (Richard's fuller
+post is expected "today").
 
 ## After
 

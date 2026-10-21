@@ -37,6 +37,28 @@ OpenTimestamps.
   clique discount, dominant-assurance pledges, retro rounds, streams.
   Nothing custodies funds; wallets sign unsigned transactions we build.
 
+## Value in money terms — the treasurer's three frames
+
+Mentor feedback (treasury lane): *"turn environmental/climate units into
+monetary value to capture the risk, cost or value creation."* All three
+frames are live:
+
+- **Risk** — the Shrewsbury card carries cited £ benchmarks beside live EA
+  flood warnings: £30,000 average flood damage per home, £82,000 per
+  business, 5.2M English properties at risk (EA/ABI). The value at stake
+  is on the card, not in a slide.
+- **Cost** — needs carry declared budgets (the cost of the ask); offers
+  carry declared in-kind value (the cost already covered).
+- **Value creation** — every card computes "Coordinated value (est.)":
+  committed + matched on the ledger, plus declared hours × the cited ONS
+  £14.43/h volunteer-time rate, plus in-kind budgets — per currency,
+  never converted. `/metrics` aggregates it; methodology is public at
+  `VALUATION.md`.
+
+Everything is science-backed and labelled: ledger-derived, declared, or
+cited estimate — nothing invented. Sarafu/CLC voucher flows extend the same
+framing: community currency is already denominated in the local unit (KES).
+
 ## How we score against the published criteria
 
 | Criterion | Where it shows |
@@ -47,7 +69,7 @@ OpenTimestamps.
 | Presentation | `/tour` self-serve path, pairwise side-by-side allocation, live quorum flip |
 | Feasibility | deployed, seeded, ledger-verified — running now |
 | Scalability | edge-native worker, adapter lanes, trust graph compounds |
-| Impact potential | coordinations/week north star at `/metrics` |
+| Impact potential | coordinations/week north star + per-currency coordinated value at `/metrics`; VALUATION.md methodology |
 
 Deliverables: **BMC** (`BMC.md`) · **clickable demo** (live + `/tour`) ·
 **logical architecture** (`ARCHITECTURE.md`).

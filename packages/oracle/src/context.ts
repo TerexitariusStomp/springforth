@@ -39,6 +39,12 @@ export async function placeContext(loc: GeoLoc, opts: {
     add('Local authority', pc.admin_district ?? '', 'postcodes.io (ONS Postcode Directory)');
     if (pc.lsoa) add('LSOA', pc.lsoa, 'postcodes.io');
     if (pc.parliamentary_constituency) add('Parliamentary constituency', pc.parliamentary_constituency, 'postcodes.io');
+    // Treasury framing — cited £ benchmarks (published population averages,
+    // GB-only since postcodes.io resolved this point; est., never derived).
+    add('Flood damage, avg per home (est.)', '£30,000', 'Environment Agency / ABI (2025)');
+    add('Flood damage, avg per business (est.)', '£82,000', 'Environment Agency');
+    add('Properties at flood risk in England', '5.2M', 'Environment Agency');
+    add('Volunteer time value rate (est.)', '£14.43/h', 'ONS Household Satellite Accounts (2017)');
   }
 
   // EA Flood Monitoring — live warnings near the point (Tier A, 25/25)

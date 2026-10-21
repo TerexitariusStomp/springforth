@@ -1,165 +1,165 @@
 1
-00:00:00,400 --> 00:00:04,973
+00:00:00,400 --> 00:00:04,469
 Communities have overlapping plans in
 different systems.
 
 2
-00:00:04,973 --> 00:00:09,546
+00:00:04,469 --> 00:00:08,538
 Springforth deduplicates them into
 coordinated, funded action.
 
 3
-00:00:09,546 --> 00:00:14,119
+00:00:08,538 --> 00:00:12,607
 This is the live deployment — the landing
 page opens with what needs attention right
 now.
 
 4
-00:00:15,120 --> 00:00:20,270
+00:00:14,907 --> 00:00:19,442
 Across imported plans — OnePlanet, a county
 CSV, Treegens field records, Silvi —
 
 5
-00:00:20,270 --> 00:00:25,420
+00:00:19,442 --> 00:00:23,975
 the overlap layer flags where strategies
 collide or complement.
 
 6
-00:00:25,420 --> 00:00:30,570
+00:00:23,975 --> 00:00:28,509
 Each record carries confidence, evidence,
 counter-evidence,
 
 7
-00:00:30,570 --> 00:00:35,719
+00:00:28,509 --> 00:00:33,043
 and humans validate: separate, coordinate,
 or combine.
 
 8
-00:00:36,719 --> 00:00:40,799
+00:00:35,344 --> 00:00:39,094
 Two rounds, same three needs. Standard
 quadratic on the left.
 
 9
-00:00:40,799 --> 00:00:44,880
+00:00:39,094 --> 00:00:42,845
 Pairwise on the right — the three donors who
 appreciated each other get discounted:
 
 10
-00:00:44,880 --> 00:00:48,960
+00:00:42,845 --> 00:00:46,596
 $232.84 versus ~$263.
 
 11
-00:00:48,960 --> 00:00:53,039
+00:00:46,596 --> 00:00:50,346
 The appreciation graph is the sybil signal —
 
 12
-00:00:53,039 --> 00:00:57,119
+00:00:50,346 --> 00:00:54,097
 no external passport, no staking token.
 
 13
-00:00:57,119 --> 00:01:01,200
+00:00:54,097 --> 00:00:57,847
 Collusion costs you; diversity pays.
 
 14
-00:01:02,199 --> 00:01:06,730
+00:01:00,148 --> 00:01:04,256
 Every delivery action gets scored by
 independent public sources:
 
 15
-00:01:06,730 --> 00:01:11,259
+00:01:04,256 --> 00:01:08,364
 Sentinel-2 scene coverage, GBIF biodiversity
 records, NASA weather, Treegens filmed
 trees.
 
 16
-00:01:11,259 --> 00:01:15,789
+00:01:08,364 --> 00:01:12,472
 A field report corroborated by satellite
 earns the reporter an assurance credit —
 
 17
-00:01:15,789 --> 00:01:20,319
+00:01:12,472 --> 00:01:16,579
 measure-to-earn.
 
 18
-00:01:21,320 --> 00:01:24,030
+00:01:18,880 --> 00:01:21,332
 The outcome becomes a hypercert-shaped
 impact claim
 
 19
-00:01:24,030 --> 00:01:26,740
+00:01:21,332 --> 00:01:23,784
 with an EAS attestation.
 
 20
-00:01:26,740 --> 00:01:29,450
+00:01:23,784 --> 00:01:26,236
 Every chain route returns unsigned calldata
 —
 
 21
-00:01:29,450 --> 00:01:32,159
+00:01:26,236 --> 00:01:28,688
 wallets sign, nothing custodies.
 
 22
-00:01:33,160 --> 00:01:37,490
+00:01:30,988 --> 00:01:35,072
 Protocol parameters are tuned by ballot,
 gated by EigenTrust standing —
 
 23
-00:01:37,490 --> 00:01:41,820
+00:01:35,072 --> 00:01:39,156
 the social graph is the franchise, not a
 token.
 
 24
-00:01:41,820 --> 00:01:46,150
+00:01:39,156 --> 00:01:43,240
 This proposal already passed and rewrote the
 matching coefficient.
 
 25
-00:01:46,150 --> 00:01:50,480
+00:01:43,240 --> 00:01:47,324
 And signed data releases, anchored to
 Bitcoin — the data-revenue lane.
 
 26
-00:01:51,480 --> 00:01:54,640
+00:01:49,624 --> 00:01:52,280
 This card sits at two of three. Join —
 
 27
-00:01:54,640 --> 00:01:57,800
+00:01:52,280 --> 00:01:54,936
 — quorum reached, commitment bound,
 
 28
-00:01:57,800 --> 00:02:00,960
+00:01:54,936 --> 00:01:57,591
 the declaring group gets pinged on Telegram.
 
 29
-00:02:00,960 --> 00:02:04,120
+00:01:57,591 --> 00:02:00,248
 People AND required resources — that's what
 quorum means.
 
 30
-00:02:05,120 --> 00:02:08,893
+00:02:06,124 --> 00:02:09,633
 Every decision hash-chained, the head
 anchored to Bitcoin via OpenTimestamps.
 
 31
-00:02:08,893 --> 00:02:12,666
+00:02:09,633 --> 00:02:13,142
 The full API is documented with a typed
 client —
 
 32
-00:02:12,666 --> 00:02:16,440
+00:02:13,142 --> 00:02:16,652
 this is infrastructure others build on.
 
 33
-00:02:17,440 --> 00:02:20,786
+00:02:18,951 --> 00:02:21,989
 Overlapping plans to coordinated, funded
 action —
 
 34
-00:02:20,786 --> 00:02:24,133
+00:02:21,989 --> 00:02:25,026
 with collusion resistance grown from the
 coordination itself.
 
 35
-00:02:24,133 --> 00:02:27,480
+00:02:25,026 --> 00:02:28,063
 Springforth. PS1. Team Two.
 

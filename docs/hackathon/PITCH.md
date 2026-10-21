@@ -74,6 +74,30 @@ framing: community currency is already denominated in the local unit (KES).
 Deliverables: **BMC** (`BMC.md`) · **clickable demo** (live + `/tour`) ·
 **logical architecture** (`ARCHITECTURE.md`).
 
+## Where this sits in the funding landscape — the flywheel question
+
+The Gitcoin × Bread proposal (Oct 20) validates the spine: on-chain match
+that *must exist before it's promised*, a permanent ERC-4626-style
+endowment that spends only yield, governance-encoded round rules. It is
+the Pastry crowdfunding layer with a treasury behind it.
+
+Its open problem is the one we hit designing our Artizen-archive sibling
+(**Commons Protocol**: 3,375 rescued projects, marketplace + Pot
+endowment): **yield alone starves the flywheel** — ~$400k at 4–6% is
+~$20k/yr of match. Commons' answer was an *activity* revenue stream —
+0.5% on every artifact sale + escrowed unclaimed royalties compounding
+the endowment — and loop closure: funded projects launch new collections
+that drive new sales. Add demand-gating (pledge + reputation-backing
+targets before match unlocks) and non-transferable seasonal points
+steering allocation — and the funding engine is complete.
+
+Springforth keeps that flywheel lineage (quadratic/pairwise matching,
+retro rounds, dominant-assurance pledges, recurring streams) and adds
+what neither Pastry nor Commons had: **activation quorum, an evidence
+oracle, and treasurer-grade value accounting on every card** — the
+layer that tells a funder not just "your $1 matched 3×" but "£135
+coordinated £584.87 and est. £360k of damage risk."
+
 ## Community operating system, not a marketplace
 
 Following the mentor guidance in the hackathon notebook (Richard Peers'

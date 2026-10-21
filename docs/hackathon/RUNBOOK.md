@@ -89,6 +89,30 @@ tab**; criteria + suggested elements are in Resources/Notes. Stage:
 Confirm on the day: file upload vs link post vs both (Richard's fuller
 post is expected "today").
 
+### Ready-to-paste post
+
+> **Team Two — PS1 submission: Springforth**
+>
+> Springforth turns fragmented community plans and "I want to…"
+> declarations into coordinated commitments and quorum-activated funding —
+> needs matched to offers first, pooled funding second, human approval
+> before anything moves, every step on a hash-chained audit ledger.
+>
+> - **Live demo**: https://springforth.widespread.workers.dev — `/tour`
+>   is the 5-minute self-serve path; `/docs` is the API reference
+> - **Code + docs**: https://github.com/TerexitariusStomp/springforth
+>   (MIT-clean; BMC, pitch, architecture, valuation methodology under
+>   `docs/hackathon/`)
+> - **Walkthrough video** (2:30, captioned): attached / link below
+> - Evidence lane reads endorsed public sources hourly (EA Flood,
+>   Open-Meteo, FHRS, IoD 2025); funding lane runs quadratic + pairwise
+>   matching behind a demand gate — match exists before it is promised;
+>   every card carries treasurer-grade value accounting (committed +
+>   matched + in-kind + volunteer time, per-currency, never converted).
+>
+> Happy to walk any judge through the ledger-verify or the valuation
+> methodology live.
+
 ## After
 
 - `/ledger/anchor` (admin) to Bitcoin-anchor the day's ledger head.

@@ -6,7 +6,7 @@ import {
   ActorWallet, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
   DatasetRelease, DataAccessGrant, Subscription,
-  valueCoordinated,
+  valueCoordinated, roundDemand, endowmentAccrual,
 } from '@springforth/core';
 import {
   allocateMatching, pairwiseAllocate, refreshPledge, badgeholders, tallyRound,
@@ -128,7 +128,16 @@ async function fundingMaps(env: Env) {
     list<Donation>(env.DB, 'donation'), list<FundingRound>(env.DB, 'round'),
   ]);
   const matchByNeed = new Map<string, { needNodeId: string; amount: number; currency: string }>();
+  const [pledges, nodes] = await Promise.all([
+    list<Pledge>(env.DB, 'pledge'), list<PlanNode>(env.DB, 'plannode'),
+  ]);
+  const needPoss = new Map(nodes.filter((n) => n.possibilityId != null)
+    .map((n) => [n.id, n.possibilityId!]));
   for (const r of rnds) {
+    // Demand gate + endowment: locked rounds contribute no match — proven
+    // demand before treasury flows (Commons mechanic); endowment never
+    // allocates its locked principal.
+    if (r.endowment || !roundDemand(r, pledges, needPoss).active) continue;
     const alloc = await allocFor(env, r, dons.filter((d) => d.roundId === r.id));
     for (const a of alloc) {
       // Two rounds can fund the same need — matches accumulate per currency.
@@ -2027,6 +2036,11 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             matchingMode: b.matchingMode === 'pairwise' ? 'pairwise' : 'lr',
             conviction: b.conviction === true,
             acceptedTokens: (b.acceptedTokens ?? {}) as Record<string, string>,
+            pledgeGoal: b.pledgeGoal != null ? Number(b.pledgeGoal) : undefined,
+            pledgeGoalCurrency: b.pledgeGoalCurrency ? String(b.pledgeGoalCurrency) : undefined,
+            minBackers: b.minBackers != null ? Number(b.minBackers) : undefined,
+            skimBps: b.skimBps != null ? Number(b.skimBps) : undefined,
+            endowment: b.endowment === true,
           });
           await put(env.DB, 'round', round.id, round);
           await ledgerAppend(env.DB, 'api', 'round.opened', { id: round.id });
@@ -2035,8 +2049,16 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         if (req.method === 'GET' && seg.length === 1) {
           const rounds = await list<FundingRound>(env.DB, 'round');
           if (url.searchParams.get('format') === 'json') return json({ rounds });
-          const dons = await list<Donation>(env.DB, 'donation');
-          return new Response(renderRoundsPage(rounds, dons), { headers: { 'content-type': 'text/html' } });
+          const [dons, pledges, rnodes] = await Promise.all([
+            list<Donation>(env.DB, 'donation'), list<Pledge>(env.DB, 'pledge'),
+            list<PlanNode>(env.DB, 'plannode'),
+          ]);
+          const needPoss = new Map(rnodes.filter((n) => n.possibilityId != null)
+            .map((n) => [n.id, n.possibilityId!]));
+          const gates = new Map(rounds.map((r) => [r.id, roundDemand(r, pledges, needPoss)]));
+          const endow = endowmentAccrual(rounds, dons);
+          return new Response(renderRoundsPage(rounds, dons, gates, endow),
+            { headers: { 'content-type': 'text/html' } });
         }
         const round = await get<FundingRound>(env.DB, 'round', seg[1] ?? '');
         if (!round) return err('round not found', 404);

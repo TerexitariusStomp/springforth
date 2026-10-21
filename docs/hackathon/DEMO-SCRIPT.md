@@ -28,7 +28,13 @@ Base: https://springforth.widespread.workers.dev
    earned recognition, quorum rate, appreciation ratio — and
    `valueByCurrency`: GBP for the Severn scene, KES for Kilifi, never
    converted. 30s.
-7. **Ledger** (/ledger/verify) — hash-chain verify; mention the
+7. **Rounds** (/rounds) — the flywheel beat: Severn shows *"demand met —
+   2 backers · 120 pledged"* beside the Kilifi pilot's *"matching locked —
+   backers/pledged short of gate"*: **proven demand before treasury
+   flows**. Below, the permanent endowment: locked principal + accrued
+   0.5% activity fees — the match exists before it is promised (the
+   mechanic the Gitcoin × Bread proposal is converging on). 20s.
+8. **Ledger** (/ledger/verify) — hash-chain verify; mention the
    OpenTimestamps Bitcoin anchor at /ledger/anchor. 15s.
 
 Telegram lane (optional +30s): /new declares a card from a group chat;

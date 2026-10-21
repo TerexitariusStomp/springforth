@@ -160,6 +160,19 @@ export const FundingRound = z.object({
   acceptedTokens: z.record(z.string(), z.string()).default({}),
   // on-chain mirror — Allo round id once created (phase 3).
   chainRef: z.string().optional(),
+  // Demand gate (Commons-proven mechanic): matching stays locked until
+  // committed pledges reach pledgeGoal across minBackers distinct pledgers
+  // — proven demand before treasury flows. Unset = always active.
+  pledgeGoal: z.number().min(0).optional(),
+  pledgeGoalCurrency: z.string().optional(),  // defaults to matchingFund.currency
+  minBackers: z.number().int().min(0).optional(),
+  // Activity-fee skim: this many bps of each donation accrues to the
+  // endowment round — recurring revenue from transaction flow, not a
+  // one-way tax on donations.
+  skimBps: z.number().int().min(0).max(10000).optional(),
+  // Permanent endowment: matchingFund is locked principal; only accrued
+  // skim is allocable. Endowment rounds never allocate match themselves.
+  endowment: z.boolean().default(false),
 });
 export type FundingRound = z.infer<typeof FundingRound>;
 

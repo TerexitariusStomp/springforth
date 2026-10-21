@@ -1,4 +1,4 @@
-import type { Donation, FundingRound, RoundApplication } from '@springforth/core';
+import type { DemandGate, Donation, FundingRound, RoundApplication } from '@springforth/core';
 import type { PlanNode } from '@springforth/coordination';
 import type { NodeMatch } from '@springforth/funding';
 import { footer } from './nav.ts';
@@ -25,13 +25,36 @@ ${body}
 ${footer()}
 </body></html>`;
 
-export function renderRoundsPage(rounds: FundingRound[], donations: Donation[] = []): string {
-  const rows = rounds.map((r) => `<tr>
-<td><a href="/rounds/${esc(r.id)}">${esc(r.title)}</a></td>
+export function renderRoundsPage(
+  rounds: FundingRound[], donations: Donation[] = [],
+  gates?: Map<string, DemandGate>,
+  endowment?: { accrued: Record<string, number>; principal: Record<string, number> },
+): string {
+  const fmt = (o: Record<string, number>) => Object.entries(o).filter(([, v]) => v > 0)
+    .map(([c, v]) => `${esc(c)} ${MONEY.format(Math.round(v * 100) / 100)}`).join(' · ');
+  const rows = rounds.filter((r) => !r.endowment).map((r) => {
+    const g = gates?.get(r.id);
+    const gate = g?.gated
+      ? g.active
+        ? ` <span class="badge">demand met — ${g.backers.length} backers · ${MONEY.format(g.pledged)} pledged</span>`
+        : ` <span class="badge" style="background:#fec">matching locked — ${g.backers.length}/${g.minBackers} backers · ${MONEY.format(g.pledged)}/${MONEY.format(g.goal)} pledged</span>`
+      : '';
+    const skim = r.skimBps ? ` <span class="muted">· ${r.skimBps / 100}% of donations seeds the endowment</span>` : '';
+    return `<tr>
+<td><a href="/rounds/${esc(r.id)}">${esc(r.title)}</a>${gate}${skim}</td>
 <td>${esc(r.matchingFund.currency)} ${MONEY.format(r.matchingFund.amount)}</td>
 <td>${r.eligibleNeedIds.length}</td>
 <td><span class="badge">${esc(r.state)}</span></td>
-<td class="muted">${esc(r.closesAt.slice(0, 10))}</td></tr>`).join('\n');
+<td class="muted">${esc(r.closesAt.slice(0, 10))}</td></tr>`;
+  }).join('\n');
+  const accruedStr = endowment ? fmt(endowment.accrued) : '';
+  const principalStr = endowment ? fmt(endowment.principal) : '';
+  const endowCard = accruedStr || principalStr ? `
+<h2>Permanent endowment</h2>
+<p class="muted">Locked principal: <strong>${principalStr || '—'}</strong> ·
+accrued activity fees: <strong>${accruedStr || '—'}</strong> — fees skim off
+donations compound the endowment; it spends accrued fees only, never
+principal. <em>The match that exists before it is promised.</em></p>` : '';
   // Committed totals per currency — never converted, side by side.
   const byCur = new Map<string, number>();
   for (const d of donations) byCur.set(d.currency, (byCur.get(d.currency) ?? 0) + d.amount);
@@ -47,7 +70,8 @@ Gitcoin Grants / Allo Protocol.</p>
 ${totals ? `<p class="muted">Committed on record: <strong>${totals}</strong> —
 each round denominates in its country's unit; totals are never converted.</p>` : ''}
 <table><tr><th>Round</th><th>Matching fund</th><th>Eligible needs</th><th>State</th><th>Closes</th></tr>
-${rows || '<tr><td colspan="5"><em>No rounds yet — POST /rounds (admin) opens one.</em></td></tr>'}</table>`);
+${rows || '<tr><td colspan="5"><em>No rounds yet — POST /rounds (admin) opens one.</em></td></tr>'}</table>
+${endowCard}`);
 }
 
 export function renderRoundPage(

@@ -61,7 +61,9 @@ const midasNeeds = ['poss-mida-creek-mangrove-need-0', 'poss-mida-creek-mangrove
 // Kenya scene denominates in KES — the unit of the country.
 const donors = [['demo-amina', 1600], ['demo-brian', 2600], ['demo-christine', 1000],
                 ['demo-daudi', 5800], ['demo-elinah', 3900], ['demo-faiz', 650], ['demo-grace', 1900]];
+const seededDons = (await get('/rounds/round-mida-creek?format=json')).donations ?? [];
 for (const [i, [d, amt]] of donors.entries()) {
+  if (seededDons.some((x) => x.donor === d)) { console.log(`  donate ${d}: exists`); continue; }
   const r = await post(`/rounds/round-mida-creek/donate`,
     { needNodeId: midasNeeds[i % 3], donor: d, amount: amt, currency: 'KES' });
   console.log(`  donate ${d} $${amt}:`, r.id ?? 'err');
@@ -81,8 +83,10 @@ if (!pwRound) {
   console.log('  pairwise round:', pwRound.id ?? 'err');
 } else console.log('  pairwise round exists');
 // clique donors all back need-0; independents spread — pairwise discounts the clique
+const pwDons = (await get('/rounds/round-pairwise-demo?format=json')).donations ?? [];
 for (const [d, need, amt] of [['demo-amina', 0, 5200], ['demo-brian', 0, 5200], ['demo-christine', 0, 5200],
                                ['demo-daudi', 1, 3200], ['demo-elinah', 2, 3200]]) {
+  if (pwDons.some((x) => x.donor === d)) { console.log(`  pw donate ${d}: exists`); continue; }
   const r = await post(`/rounds/round-pairwise-demo/donate`, { needNodeId: midasNeeds[need], donor: d, amount: amt, currency: 'KES' });
   console.log(`  pw donate ${d} → need-${need}:`, r.id ?? 'err');
 }
@@ -222,6 +226,9 @@ if (!roundsNow.some((r) => r.id === 'round-severn-flood') && ukNeedIds.length) {
     description: 'Quadratic matching over flood-response needs — oracle-verified context on every card.',
     sponsorIds: ['severn-catchment-partnership'], matchingFund: { amount: 200, currency: 'GBP' },
     eligibleNeedIds: ukNeedIds, matchingMode: 'pairwise', conviction: true,
+    // demand gate: match unlocks once £100 is pledged across ≥2 backers;
+    // 0.5% of every donation skims to the permanent endowment
+    pledgeGoal: 100, minBackers: 2, skimBps: 50,
     opensAt: '2026-10-01T00:00:00Z', closesAt: '2026-12-31T00:00:00Z', state: 'open',
   });
   console.log('  severn round created');
@@ -231,6 +238,39 @@ if (!roundsNow.some((r) => r.id === 'round-severn-flood') && ukNeedIds.length) {
       { needNodeId: ukNeedIds[i % ukNeedIds.length], donor: d, amount: amt });
     console.log(`  donate ${d}:`, r.id ?? 'err');
   }
+}
+// Demand-gate pledges on the Severn card — proves demand, unlocks match
+if (ukNeedIds.length) {
+  for (const [who, amt] of [['demo-amina', 60], ['demo-daudi', 60]]) {
+    const r = await pub(`/possibilities/${ukId}/pledge`,
+      { pledger: who, amount: amt, currency: 'GBP', needNodeId: ukNeedIds[0] });
+    console.log(`  severn pledge ${who}:`, r.status ?? r.body?.id ?? 'ok');
+  }
+}
+// A second round still short of its gate — shows matching locked
+if (!roundsNow.some((r) => r.id === 'round-kenya-demand-gated') && midasNeeds?.length) {
+  await post('/rounds', {
+    id: 'round-kenya-demand-gated',
+    title: 'Kilifi coastal round — demand-gated pilot',
+    description: 'Match stays locked until pledged backing proves demand — the fund exists before it is promised.',
+    sponsorIds: ['kilifi-county'], matchingFund: { amount: 10000, currency: 'KES' },
+    eligibleNeedIds: midasNeeds.slice(0, 1), pledgeGoal: 5000, minBackers: 3,
+    opensAt: '2026-10-01T00:00:00Z', closesAt: '2026-12-31T00:00:00Z', state: 'open',
+  });
+  const r = await pub(`/possibilities/poss-mida-creek-mangrove/pledge`,
+    { pledger: 'demo-kioko', amount: 500, currency: 'KES', needNodeId: midasNeeds[0] });
+  console.log('  gated pledge:', r.status ?? 'ok');
+}
+// Permanent endowment — locked principal, spends accrued skim only
+if (!roundsNow.some((r) => r.id === 'round-commons-endowment')) {
+  await post('/rounds', {
+    id: 'round-commons-endowment', title: 'Commons endowment (permanent)',
+    description: 'Locked principal — only accrued activity fees are allocable. Never allocates match itself.',
+    sponsorIds: ['springforth'], matchingFund: { amount: 250, currency: 'GBP' },
+    eligibleNeedIds: [], endowment: true,
+    opensAt: '2026-10-01T00:00:00Z', closesAt: '2030-12-31T00:00:00Z', state: 'open',
+  });
+  console.log('  endowment created');
 }
 
 // ── 8. Live-flip card — sits at quorum-1 for the audience beat ──

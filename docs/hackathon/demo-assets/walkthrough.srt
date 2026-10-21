@@ -1,0 +1,165 @@
+1
+00:00:00,400 --> 00:00:04,973
+Communities have overlapping plans in
+different systems.
+
+2
+00:00:04,973 --> 00:00:09,546
+Springforth deduplicates them into
+coordinated, funded action.
+
+3
+00:00:09,546 --> 00:00:14,119
+This is the live deployment — the landing
+page opens with what needs attention right
+now.
+
+4
+00:00:15,120 --> 00:00:20,270
+Across imported plans — OnePlanet, a county
+CSV, Treegens field records, Silvi —
+
+5
+00:00:20,270 --> 00:00:25,420
+the overlap layer flags where strategies
+collide or complement.
+
+6
+00:00:25,420 --> 00:00:30,570
+Each record carries confidence, evidence,
+counter-evidence,
+
+7
+00:00:30,570 --> 00:00:35,719
+and humans validate: separate, coordinate,
+or combine.
+
+8
+00:00:36,719 --> 00:00:40,799
+Two rounds, same three needs. Standard
+quadratic on the left.
+
+9
+00:00:40,799 --> 00:00:44,880
+Pairwise on the right — the three donors who
+appreciated each other get discounted:
+
+10
+00:00:44,880 --> 00:00:48,960
+$232.84 versus ~$263.
+
+11
+00:00:48,960 --> 00:00:53,039
+The appreciation graph is the sybil signal —
+
+12
+00:00:53,039 --> 00:00:57,119
+no external passport, no staking token.
+
+13
+00:00:57,119 --> 00:01:01,200
+Collusion costs you; diversity pays.
+
+14
+00:01:02,199 --> 00:01:06,730
+Every delivery action gets scored by
+independent public sources:
+
+15
+00:01:06,730 --> 00:01:11,259
+Sentinel-2 scene coverage, GBIF biodiversity
+records, NASA weather, Treegens filmed
+trees.
+
+16
+00:01:11,259 --> 00:01:15,789
+A field report corroborated by satellite
+earns the reporter an assurance credit —
+
+17
+00:01:15,789 --> 00:01:20,319
+measure-to-earn.
+
+18
+00:01:21,320 --> 00:01:24,030
+The outcome becomes a hypercert-shaped
+impact claim
+
+19
+00:01:24,030 --> 00:01:26,740
+with an EAS attestation.
+
+20
+00:01:26,740 --> 00:01:29,450
+Every chain route returns unsigned calldata
+—
+
+21
+00:01:29,450 --> 00:01:32,159
+wallets sign, nothing custodies.
+
+22
+00:01:33,160 --> 00:01:37,490
+Protocol parameters are tuned by ballot,
+gated by EigenTrust standing —
+
+23
+00:01:37,490 --> 00:01:41,820
+the social graph is the franchise, not a
+token.
+
+24
+00:01:41,820 --> 00:01:46,150
+This proposal already passed and rewrote the
+matching coefficient.
+
+25
+00:01:46,150 --> 00:01:50,480
+And signed data releases, anchored to
+Bitcoin — the data-revenue lane.
+
+26
+00:01:51,480 --> 00:01:54,640
+This card sits at two of three. Join —
+
+27
+00:01:54,640 --> 00:01:57,800
+— quorum reached, commitment bound,
+
+28
+00:01:57,800 --> 00:02:00,960
+the declaring group gets pinged on Telegram.
+
+29
+00:02:00,960 --> 00:02:04,120
+People AND required resources — that's what
+quorum means.
+
+30
+00:02:05,120 --> 00:02:08,893
+Every decision hash-chained, the head
+anchored to Bitcoin via OpenTimestamps.
+
+31
+00:02:08,893 --> 00:02:12,666
+The full API is documented with a typed
+client —
+
+32
+00:02:12,666 --> 00:02:16,440
+this is infrastructure others build on.
+
+33
+00:02:17,440 --> 00:02:20,786
+Overlapping plans to coordinated, funded
+action —
+
+34
+00:02:20,786 --> 00:02:24,133
+with collusion resistance grown from the
+coordination itself.
+
+35
+00:02:24,133 --> 00:02:27,480
+Springforth. PS1. Team Two.
+

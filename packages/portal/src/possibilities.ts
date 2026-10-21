@@ -53,8 +53,11 @@ function valueBlock(v: Valuation): string {
       if (c.volunteerTime > 0) parts.push(`${money(c.volunteerTime, cur)} volunteer time (est.)`);
       if (c.asked > 0) parts.push(`${money(c.asked, cur)} declared cost of open needs`);
       const risk = c.riskAvoided > 0
-        ? ` <em>+ est. ${money(c.riskAvoided, cur)} damage risk mitigated</em>` : '';
-      return `<li>${esc(cur)} <strong>${money(c.total, cur)}</strong> — ${parts.join(' · ')}${risk}</li>`;
+        ? ` <em>+ est. ${money(c.riskAvoided, cur)} damage risk mitigated` +
+          (c.riskPerUnit > 0 ? ` (est. ${money(Math.round(c.riskPerUnit), cur)} per ${money(1, cur)})` : '') +
+          `</em>` : '';
+      const lev = c.leverage > 0 ? ` <small>(×${c.leverage} mobilization)</small>` : '';
+      return `<li>${esc(cur)} <strong>${money(c.total, cur)}</strong>${lev} — ${parts.join(' · ')}${risk}</li>`;
     }).join('');
   if (!rows && !(v.hoursTotal > 0)) return '';
   return `<p class="meta"><strong>Coordinated value (est.)</strong> —

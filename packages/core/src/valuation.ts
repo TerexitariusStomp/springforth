@@ -41,6 +41,8 @@ export interface CurrencyValue {
   total: number;
   asked: number;                         // declared cost of open needs — outside total
   riskAvoided: number;                   // homes × cited per-home damage — outside total
+  leverage: number;                      // total ÷ committed — value mobilized per £1 in
+  riskPerUnit: number;                   // riskAvoided ÷ total — est. £ protected per £1
 }
 
 export interface Valuation {
@@ -50,7 +52,7 @@ export interface Valuation {
 }
 
 const bump = (acc: Record<string, CurrencyValue>, cur: string) =>
-  (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0, riskAvoided: 0 });
+  (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0, riskAvoided: 0, leverage: 0, riskPerUnit: 0 });
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -85,7 +87,14 @@ export function valueCoordinated(i: ValuationInput): Valuation {
   } else if (i.householdsProtected) {
     method.push(`${i.householdsProtected} homes declared protected — no cited damage rate available`);
   }
-  for (const v of Object.values(by))
+  for (const v of Object.values(by)) {
     v.total = r2(v.committed + v.matched + v.inKind + v.volunteerTime);
+    v.leverage = v.committed > 0 ? r2(v.total / v.committed) : 0;
+    v.riskPerUnit = v.total > 0 && v.riskAvoided > 0 ? r2(v.riskAvoided / v.total) : 0;
+    if (v.leverage > 0)
+      method.push(`mobilization — ${v.committed} committed → ${v.total} coordinated (×${v.leverage})`);
+    if (v.riskPerUnit > 0)
+      method.push(`benefit-cost — est. ${v.riskPerUnit} risk mitigated per unit coordinated`);
+  }
   return { byCurrency: by, hoursTotal, method };
 }

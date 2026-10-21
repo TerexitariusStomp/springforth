@@ -41,6 +41,13 @@ asked       = Σ declared budgets on the card's open need nodes (declared)
 riskAvoided = declared households protected × cited per-home damage (est.)
 ```
 
+And two derived ratios answer "how much does £1 in become":
+
+```
+leverage    = total ÷ committed          — value mobilized per £1 in
+riskPerUnit = riskAvoided ÷ total        — est. £ risk mitigated per £1
+```
+
 Totals are computed and rendered **per ISO currency and never converted**.
 Mixed-currency contributions display side by side; no FX rate is assumed.
 

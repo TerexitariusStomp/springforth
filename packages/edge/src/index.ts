@@ -1971,7 +1971,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           ...(() => {
             const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
               .map((n) => [n.id, n.possibilityId]));
-            const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number; riskAvoided: number }> = {};
+            const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number; riskAvoided: number; leverage: number; riskPerUnit: number }> = {};
             let hoursTotal = 0;
             for (const p of poss) {
               const mine = parts.filter((x) => x.possibilityId === p.id);
@@ -1992,11 +1992,16 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
               });
               hoursTotal += v.hoursTotal;
               for (const [cur, cv] of Object.entries(v.byCurrency)) {
-                const a = (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0, riskAvoided: 0 });
+                const a = (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0, riskAvoided: 0, leverage: 0, riskPerUnit: 0 });
                 a.committed += cv.committed; a.matched += cv.matched;
                 a.inKind += cv.inKind; a.volunteerTime += cv.volunteerTime; a.total += cv.total;
                 a.asked += cv.asked; a.riskAvoided += cv.riskAvoided;
               }
+            }
+            // Ratios are derived post-sum — they must never be summed across cards.
+            for (const a of Object.values(acc)) {
+              a.leverage = a.committed > 0 ? Math.round(a.total / a.committed * 100) / 100 : 0;
+              a.riskPerUnit = a.total > 0 && a.riskAvoided > 0 ? Math.round(a.riskAvoided / a.total * 100) / 100 : 0;
             }
             for (const a of Object.values(acc))
               for (const k of Object.keys(a) as (keyof typeof a)[]) a[k] = Math.round(a[k] * 100) / 100;

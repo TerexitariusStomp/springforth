@@ -41,6 +41,10 @@ export const Possibility = z.object({
   status: PossibilityStatus.default('draft'),
   quorumAt: z.string().datetime().optional(),
   maxParticipants: z.number().int().min(0).optional(), // optional cap (GDD field)
+  // Declarer-stated households the action protects — feeds the derived
+  // "risk mitigated" estimate (valuation.ts × cited per-home damage avg).
+  // Declared, not verified — always labelled est. downstream.
+  householdsProtected: z.number().int().min(0).optional(),
   // Completion report (Bloom Action Report analog) — what happened, the
   // evidence, the learnings. `nextNeeds` spawn new need nodes at
   // completion ("what support would help" — the loop continues).

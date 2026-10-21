@@ -44,7 +44,7 @@ const money = (amount: number, currency: string) =>
 // participant-declared hours and offer budgets, and cited benchmark rates.
 // Per-currency rows, never converted; every component carries its provenance.
 function valueBlock(v: Valuation): string {
-  const rows = Object.entries(v.byCurrency).filter(([, c]) => c.total > 0 || c.asked > 0)
+  const rows = Object.entries(v.byCurrency).filter(([, c]) => c.total > 0 || c.asked > 0 || c.riskAvoided > 0)
     .map(([cur, c]) => {
       const parts: string[] = [];
       if (c.committed > 0) parts.push(`${money(c.committed, cur)} committed`);
@@ -52,7 +52,9 @@ function valueBlock(v: Valuation): string {
       if (c.inKind > 0) parts.push(`${money(c.inKind, cur)} in-kind (declared)`);
       if (c.volunteerTime > 0) parts.push(`${money(c.volunteerTime, cur)} volunteer time (est.)`);
       if (c.asked > 0) parts.push(`${money(c.asked, cur)} declared cost of open needs`);
-      return `<li>${esc(cur)} <strong>${money(c.total, cur)}</strong> — ${parts.join(' · ')}</li>`;
+      const risk = c.riskAvoided > 0
+        ? ` <em>+ est. ${money(c.riskAvoided, cur)} damage risk mitigated</em>` : '';
+      return `<li>${esc(cur)} <strong>${money(c.total, cur)}</strong> — ${parts.join(' · ')}${risk}</li>`;
     }).join('');
   if (!rows && !(v.hoursTotal > 0)) return '';
   return `<p class="meta"><strong>Coordinated value (est.)</strong> —

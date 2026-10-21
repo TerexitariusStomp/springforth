@@ -13,11 +13,14 @@ export interface Money { amount: number; currency: string }
 
 export interface Benchmark {
   // e.g. { key: 'GB', hourRate: 14.43, currency: 'GBP',
-  //        source: 'ONS Household Satellite Accounts (2017)' }
+  //        source: 'ONS Household Satellite Accounts (2017)',
+  //        riskPerHome: 30000, riskSource: 'Environment Agency / ABI (2025)' }
   key: string;
   hourRate: number;
   currency: string;
   source: string;
+  riskPerHome?: number;                  // cited avg loss per flooded home
+  riskSource?: string;                   // provenance for riskPerHome
 }
 
 export interface ValuationInput {
@@ -26,6 +29,7 @@ export interface ValuationInput {
   matched: Money[];                      // matching-fund allocation
   inKind: Money[];                       // declared budgets on offer nodes
   needsCost: Money[];                    // declared budgets on need nodes (cost of the ask)
+  householdsProtected?: number;          // declared homes the action protects
   benchmark?: Benchmark;                 // volunteer-hour rate for the place
 }
 
@@ -36,6 +40,7 @@ export interface CurrencyValue {
   volunteerTime: number;                 // declared hours × cited rate
   total: number;
   asked: number;                         // declared cost of open needs — outside total
+  riskAvoided: number;                   // homes × cited per-home damage — outside total
 }
 
 export interface Valuation {
@@ -45,7 +50,7 @@ export interface Valuation {
 }
 
 const bump = (acc: Record<string, CurrencyValue>, cur: string) =>
-  (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0 });
+  (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0, riskAvoided: 0 });
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -69,6 +74,16 @@ export function valueCoordinated(i: ValuationInput): Valuation {
       `${i.benchmark.currency} ${i.benchmark.hourRate}/h (${i.benchmark.source})`);
   } else if (hoursTotal > 0) {
     method.push(`${r2(hoursTotal)}h declared — no cited local rate available`);
+  }
+  // Risk frame — declarer-stated households × cited per-home damage avg.
+  // An estimate of losses the action mitigates, never part of `total`.
+  if (i.householdsProtected && i.benchmark?.riskPerHome) {
+    const v = bump(by, i.benchmark.currency);
+    v.riskAvoided = r2(i.householdsProtected * i.benchmark.riskPerHome);
+    method.push(`risk mitigated — ${i.householdsProtected} homes declared × ` +
+      `${i.benchmark.currency} ${i.benchmark.riskPerHome}/home (${i.benchmark.riskSource})`);
+  } else if (i.householdsProtected) {
+    method.push(`${i.householdsProtected} homes declared protected — no cited damage rate available`);
   }
   for (const v of Object.values(by))
     v.total = r2(v.committed + v.matched + v.inKind + v.volunteerTime);

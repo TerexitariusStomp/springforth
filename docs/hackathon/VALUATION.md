@@ -33,6 +33,14 @@ inKind        = Σ declared budgets on the card's offer nodes   (declared)
 volunteerTime = Σ participant-declared hours × cited hour rate (est.)
 ```
 
+Two declared figures sit **outside** the total — they frame cost and risk,
+not value created:
+
+```
+asked       = Σ declared budgets on the card's open need nodes (declared)
+riskAvoided = declared households protected × cited per-home damage (est.)
+```
+
 Totals are computed and rendered **per ISO currency and never converted**.
 Mixed-currency contributions display side by side; no FX rate is assumed.
 
@@ -41,7 +49,7 @@ Mixed-currency contributions display side by side; no FX rate is assumed.
 | Figure | Value | Source |
 |---|---|---|
 | Volunteer time rate | £14.43/hour | ONS Household Satellite Accounts (2017), cited by NCVO; method per DCMS *Estimating the economic and social value of volunteering* — replacement-cost method |
-| Avg flood damage per home | £30,000 | Environment Agency flood-warning guidance; corroborated by ABI 2025 claims data (avg domestic flood payout £30k, +60% YoY) |
+| Avg flood damage per home | £30,000 | Environment Agency flood-warning guidance; corroborated by ABI 2025 claims data (avg domestic flood payout £30k, +60% YoY). Also feeds `riskAvoided = homes × rate` |
 | Avg flood damage per business | £82,000 | Environment Agency |
 | Properties at flood risk in England | 5.2M | Environment Agency |
 
@@ -54,12 +62,14 @@ empty.
 
 ## Limitations (stated, not hidden)
 
-- **Declared ≠ verified.** Hours and in-kind budgets are self-reported by
+- **Declared ≠ verified.** Hours, protected-household counts and in-kind budgets are self-reported by
   participants; they are inputs to an estimate, not audited facts. The
   ledger records who declared them and when.
 - **Population averages.** The £30k/£82k flood figures are national
-  averages, not property-level assessments — they frame *risk at stake*,
-  not predicted losses.
+  averages, not property-level assessments. `riskAvoided` = declarer-stated
+  protected homes × £30k — an honest estimate of losses mitigated, shown
+  **outside** the total (losses avoided ≠ money moved). Realised savings
+  still need before/after claim evidence (open issue).
 - **Vintage.** The ONS rate is from the 2017 Household Satellite Accounts;
   it is the most recent published UK figure but understates current wages.
 - **Derived ≠ recorded.** Valuation is computed at render time and never

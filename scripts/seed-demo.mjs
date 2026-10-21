@@ -178,7 +178,7 @@ if (!uk) {
   const r = await pub('/possibilities', {
     title: 'Shrewsbury riverside flood response — River Severn',
     description: 'When warnings go out on the Severn loop we stage sandbags, clear gullies, and check on riverside neighbours. Coordinated with the EA flood feed — live readings attach as verified context.',
-    declarerId: 'demo-tom', place: 'shrewsbury',
+    declarerId: 'demo-tom', place: 'shrewsbury', householdsProtected: 12,
     deadline: '2026-12-31T00:00:00Z', minParticipants: 3,
     needs: [{ title: 'Sandbag crew rota', required: false },
             { title: 'Pop-up flood barriers (EA depot loan)', required: false },

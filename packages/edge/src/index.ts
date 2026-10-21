@@ -117,6 +117,7 @@ function locFor(node: PlanNode): GeoLoc | null {
 const VOLUNTEER_GB = {
   key: 'GB', hourRate: 14.43, currency: 'GBP',
   source: 'ONS Household Satellite Accounts (2017)',
+  riskPerHome: 30_000, riskSource: 'Environment Agency / ABI (2025)',
 };
 const GB_PLACE = /shrewsbury|severn|london|england|britain|uk\b|manchester|bristol|oxford|cardiff|edinburgh|birmingham|leeds|glasgow/i;
 
@@ -1492,6 +1493,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             place: b.place, timeStart: b.timeStart, timeEnd: b.timeEnd,
             deadline: b.deadline, minParticipants: Number(b.minParticipants ?? 0),
             maxParticipants: b.maxParticipants ? Number(b.maxParticipants) : undefined,
+            householdsProtected: b.householdsProtected ? Number(b.householdsProtected) : undefined,
             context: b.context,
             status: 'active', createdAt: iso,
           });
@@ -1598,6 +1600,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
                   .map((n) => ({ amount: n.budget!, currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
                 needsCost: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'need' && n.budget != null)
                   .map((n) => ({ amount: n.budget!, currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
+                householdsProtected: p.householdsProtected,
                 benchmark: GB_PLACE.test(p.place ?? '') ? VOLUNTEER_GB : undefined,
               }),
             };
@@ -1968,7 +1971,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           ...(() => {
             const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
               .map((n) => [n.id, n.possibilityId]));
-            const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number }> = {};
+            const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number; riskAvoided: number }> = {};
             let hoursTotal = 0;
             for (const p of poss) {
               const mine = parts.filter((x) => x.possibilityId === p.id);
@@ -1984,14 +1987,15 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
                 needsCost: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'need' && n.budget != null)
                   .map((n) => ({ amount: n.budget!,
                     currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
+                householdsProtected: p.householdsProtected,
                 benchmark: GB_PLACE.test(p.place ?? '') ? VOLUNTEER_GB : undefined,
               });
               hoursTotal += v.hoursTotal;
               for (const [cur, cv] of Object.entries(v.byCurrency)) {
-                const a = (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0 });
+                const a = (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0, riskAvoided: 0 });
                 a.committed += cv.committed; a.matched += cv.matched;
                 a.inKind += cv.inKind; a.volunteerTime += cv.volunteerTime; a.total += cv.total;
-                a.asked += cv.asked;
+                a.asked += cv.asked; a.riskAvoided += cv.riskAvoided;
               }
             }
             for (const a of Object.values(acc))

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { valueCoordinated } from '../src/valuation.ts';
 
-const GB = { key: 'GB', hourRate: 14.43, currency: 'GBP', source: 'ONS HHSA 2017' };
+const GB = { key: 'GB', hourRate: 14.43, currency: 'GBP', source: 'ONS HHSA 2017',
+             riskPerHome: 30000, riskSource: 'EA / ABI (2025)' };
 
 describe('valueCoordinated', () => {
   it('sums components per currency without converting', () => {
@@ -41,6 +42,28 @@ describe('valueCoordinated', () => {
     expect(v.byCurrency).toEqual({});
     expect(v.hoursTotal).toBe(0);
     expect(v.method).toHaveLength(0);
+  });
+
+  it('computes risk mitigated outside the value total', () => {
+    const v = valueCoordinated({
+      hours: [], donations: [{ amount: 10, currency: 'GBP' }],
+      matched: [], inKind: [], needsCost: [],
+      householdsProtected: 12, benchmark: GB,
+    });
+    const g = v.byCurrency.GBP;
+    expect(g.riskAvoided).toBe(360_000);
+    expect(g.total).toBe(10);                          // risk stays out of total
+    expect(v.method.join(' ')).toContain('12 homes declared');
+    expect(v.method.join(' ')).toContain('EA / ABI (2025)');
+  });
+
+  it('shows protected homes without a cited damage rate', () => {
+    const v = valueCoordinated({
+      hours: [], donations: [], matched: [], inKind: [], needsCost: [],
+      householdsProtected: 5,
+    });
+    expect(v.method.join(' ')).toContain('5 homes declared protected');
+    expect(Object.keys(v.byCurrency)).toHaveLength(0);
   });
 
   it('never lets volunteer time leak into an uncited currency', () => {

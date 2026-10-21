@@ -694,11 +694,20 @@ export default {
       // Data sources registry — provenance surface.
       if (req.method === 'GET' && seg[0] === 'sources') {
         const snapshots = await list<Snapshot & { latest?: { at: string } }>(env.DB, 'oracle-snapshot');
-        return json({ sources: SOURCES.map((s) => ({
+        const rows = SOURCES.map((s) => ({
           ...s,
           configured: s.needs ? !!env[s.needs as 'OPENAQ_API_KEY'] : true,
           lastFetch: snapshots.filter((x) => x.source === s.source).at(-1)?.latest?.at ?? null,
-        })) });
+        }));
+        if ((req.headers.get('accept') ?? '').includes('text/html')) {
+          const tr = rows.map((s) => `<tr><td><code>${s.key}</code></td><td>${s.name}</td><td>${s.license}</td><td>${s.configured ? '✅ live' : `key-gated (<code>${s.needs}</code>)`}</td><td>${s.lastFetch ?? '—'}</td></tr>`).join('');
+          return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data sources — Springforth</title><style>body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:.45rem .6rem;text-align:left;font-size:.92rem}th{background:#f4f6f4}code{background:#eef;padding:.1em .35em;border-radius:.25em}</style></head><body>
+<h1>Evidence + context sources</h1>
+<p>Oracle readers run hourly per h3-located action node; context connectors attach as "Verified context" on possibility cards. Selection follows the hackathon-endorsed ranking — full matrix in <a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/DATA-SOURCES.md">DATA-SOURCES.md</a>. Key-gated lanes activate when their env secret lands.</p>
+<table><tr><th>key</th><th>source</th><th>license</th><th>state</th><th>last fetch</th></tr>${tr}</table>
+<p><a href="/">home</a> · <a href="/tour">judge tour</a></p></body></html>`, { headers: { 'content-type': 'text/html' } });
+        }
+        return json({ sources: rows });
       }
       // Verify — open-evidence readings rendered for review.
       if (req.method === 'GET' && seg[0] === 'verify') {

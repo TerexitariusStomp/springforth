@@ -1,5 +1,12 @@
 # Pitch-morning runbook — Oct 28
 
+> **Confirmed schedule** (Lobby → Notes → "Dates for the Hackathon", Oct 5):
+> Submissions **Oct 27, 2–3 PM** · Pitches **Oct 28, 10 AM–12 PM** ·
+> Judging 1–2 PM · Awards 3–4 PM. **8 minutes per team**, slots allocated
+> nearer the deadline, Teams meeting lands in calendar. Demo script is a
+> 6-min cut (leaves ~2 min for questions/hand-off); the 2:30 captioned
+> video is the fallback.
+
 ## Pre-flight (10 min before)
 
 ```bash

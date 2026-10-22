@@ -1594,7 +1594,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             { id: pid, needs: needs.length, bringing: bringing.length });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
-            ? new Response(null, { status: 303, headers: { location: '/possibilities' } })
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${pid}` } })
             : json(p, 201);
         }
         if (req.method === 'GET' && seg.length === 1) {
@@ -1650,7 +1650,10 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             (live.includes(a.status) ? 0 : 1) - (live.includes(b.status) ? 0 : 1)
             || b.score - a.score);
           if (url.searchParams.get('format') === 'json') return json({ possibilities: cards });
-          return new Response(renderPossibilitiesPage(cards, edges, viewer), { headers: { 'content-type': 'text/html' } });
+          return new Response(renderPossibilitiesPage(cards, edges, viewer, {
+            status: url.searchParams.get('status') ?? '',
+            lang: langFrom(url, req.headers.get('cookie')),
+          }), { headers: { 'content-type': 'text/html' } });
         }
         const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');
         if (!p) return err('possibility not found', 404);

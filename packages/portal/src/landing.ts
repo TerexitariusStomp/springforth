@@ -100,29 +100,31 @@ const toneFor = (status: string, pct: number): string =>
       : status === 'expired' ? 'muted'
         : pct >= 80 ? 'gold' : '';
 
-// Shared deck-card markup — used on the landing preview and /possibilities.
-export function deckCard(
-  c: LandingCard,
-  opts: { needs?: string[]; base?: string } = {},
-): string {
-  const p = c.possibility;
-  const status = effectiveStatus(p);
-  const min = p.minParticipants || 0;
-  const pct = min ? Math.min(100, Math.round((c.participants / min) * 100)) : 0;
-  const more = Math.max(0, min - c.participants);
+// Normalized card data — both the landing preview and the /possibilities
+// deck render through this so the card look stays in one place.
+export interface DeckCardData {
+  id: string; title: string; place?: string;
+  status: string; participants: number; min: number;
+  deadline?: string; needs?: string[];
+}
+
+export function deckCard(d: DeckCardData, opts: { base?: string } = {}): string {
+  const pct = d.min ? Math.min(100, Math.round((d.participants / d.min) * 100)) : 0;
+  const more = Math.max(0, d.min - d.participants);
   const base = opts.base ?? '/possibilities';
-  const needs = opts.needs?.slice(0, 3) ?? [];
-  return `<article class="possibility-card${toneFor(status, pct) ? ` ${toneFor(status, pct)}` : ''}" data-status="${esc(status)}" data-search="${esc(`${p.title} ${p.place ?? ''}`.toLowerCase())}">
-<div class="card-top"><span class="category">${esc(status)}</span>
+  const needs = d.needs?.slice(0, 3) ?? [];
+  const tone = toneFor(d.status, pct);
+  return `<article class="possibility-card${tone ? ` ${tone}` : ''}" data-status="${esc(d.status)}" data-search="${esc(`${d.title} ${d.place ?? ''}`.toLowerCase())}">
+<div class="card-top"><span class="category">${esc(d.status)}</span>
 <span class="card-status"><i></i>${pct}% to quorum</span></div>
-<h3><a href="${base}#${esc(p.id)}" style="color:inherit;text-decoration:none">${esc(p.title)}</a></h3>
-<p class="location">${esc(p.place ?? 'anywhere')}</p>
-<div class="card-metric"><div><strong>${c.participants}</strong><span>committed</span></div>
-<div><strong>${min || '—'}</strong><span>goal</span></div>
-<div><strong>${daysLeft(p.deadline)}</strong><span>left</span></div></div>
+<h3><a href="${base}#${esc(d.id)}" style="color:inherit;text-decoration:none">${esc(d.title)}</a></h3>
+<p class="location">${esc(d.place ?? 'anywhere')}</p>
+<div class="card-metric"><div><strong>${d.participants}</strong><span>committed</span></div>
+<div><strong>${d.min || '—'}</strong><span>goal</span></div>
+<div><strong>${daysLeft(d.deadline)}</strong><span>left</span></div></div>
 <div class="card-progress"><span style="width:${pct}%"></span></div>
 ${needs.length ? `<p class="needs"><span>Needs</span>${needs.map((n) => `<b>${esc(n)}</b>`).join('')}</p>` : ''}
-<a class="join-button" href="${base}#${esc(p.id)}"><span>${more > 0 ? `${more} more to activate` : status === 'quorum' ? 'At quorum' : 'See the card'}</span><span>→</span></a>
+<a class="join-button" href="${base}#${esc(d.id)}"><span>${more > 0 ? `${more} more to activate` : d.status === 'quorum' ? 'At quorum' : 'See the card'}</span><span>→</span></a>
 </article>`;
 }
 
@@ -218,8 +220,11 @@ ${attn.length ? `<section class="attention"><h2>${tt('attention.title')}</h2>${a
     <a class="muted" href="/possibilities" style="text-decoration:none">${i.cards.length} cards · ${live.length} open · ${atQuorum.length} at quorum →</a>
   </div>
   <div class="card-grid">
-    ${featured.map((c) => deckCard(c)).join('') ||
-    `<div class="empty-state">${tt('attention.none')}</div>`}
+    ${featured.map((c) => deckCard({
+      id: c.possibility.id, title: c.possibility.title, place: c.possibility.place,
+      status: effectiveStatus(c.possibility), participants: c.participants,
+      min: c.possibility.minParticipants || 0, deadline: c.possibility.deadline,
+    })).join('') || `<div class="empty-state">${tt('attention.none')}</div>`}
   </div>
 </section>
 

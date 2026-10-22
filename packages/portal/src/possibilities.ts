@@ -1,11 +1,13 @@
 import type { PlanNode, TrustEdge } from '@springforth/coordination';
 import type { PossibilityStatus, Valuation } from '@springforth/core';
-import { footer } from './nav.ts';
+import { deckCard } from './landing.ts';
+import { pageShell } from './theme.ts';
+import type { Lang } from './i18n.ts';
 
-// /possibilities — the card deck. Each card is a declared possibility
-// ("I want to…") with its needs progress, participant count, deadline
-// countdown, and the current escalation step. Same portal constraints:
-// one self-contained HTML file, no JS framework, plain HTML forms.
+// /possibilities — the card deck. Compact Figma cards in a filterable grid;
+// each card opens a full detail overlay (pure CSS :target — no JS needed)
+// carrying needs, bringing, participants, forms, and the value block.
+// #declare is a real form posting to POST /possibilities.
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -30,11 +32,6 @@ export interface PossibilityCard {
   // per currency) — see docs/hackathon/VALUATION.md for the methodology.
   value?: Valuation;
 }
-
-const STATUS_STYLE: Record<string, string> = {
-  draft: '#ccc', active: '#7fb3e8', quorum: '#8fd18f',
-  completed: '#4a7a4a', expired: '#e88f8f',
-};
 
 const money = (amount: number, currency: string) =>
   new Intl.NumberFormat('en-GB', { style: 'currency', currency, maximumFractionDigits: 2 })
@@ -73,7 +70,8 @@ function countdown(deadline: string | undefined): string {
   return d < 0 ? 'deadline passed' : d === 0 ? 'today' : `${d} day${d === 1 ? '' : 's'} left`;
 }
 
-function card(c: PossibilityCard): string {
+// Full card detail — lives inside the :target overlay panel.
+function cardDetail(c: PossibilityCard): string {
   const live = c.status === 'active' || c.status === 'draft';
   const cover = c.scoring.cover;
   const needRows = c.needs.map((n) => `<li>
@@ -85,10 +83,12 @@ function card(c: PossibilityCard): string {
   const bringing = c.bringing.map((n) => `<li>${esc(n.label)} — ${esc(n.orgIds[0] ?? '')}</li>`).join('');
   const joined = (c.participants ?? []).map((x) => `<li>${esc(x.actor)}${x.bringingNodeId ? ' + bringing' : ''}</li>`).join('');
   const partCap = c.maxParticipants ? `/${c.maxParticipants} cap` : '';
-  return `<div class="card" id="${esc(c.id)}" style="border-left:6px solid ${STATUS_STYLE[c.status] ?? '#ccc'}">
+  return `<div class="card-overlay" id="${esc(c.id)}">
+<div class="detail-panel" role="dialog" aria-modal="true" aria-label="${esc(c.title)}">
+<a class="modal-close" href="#deck" aria-label="Close">✕</a>
 <h3>&#8220;${esc(c.title)}&#8221;</h3>
-<p><span class="badge">${esc(c.status)}</span>
-${c.tipping ? '<span class="badge tip">tipping — 30% reached, momentum building</span>' : ''}
+<p><span class="badge lime">${esc(c.status)}</span>
+${c.tipping ? '<span class="badge gold">tipping — 30% reached, momentum building</span>' : ''}
 <span class="badge">${esc(countdown(c.deadline))}</span>
 <span class="badge">${c.participantCount}/${c.minParticipants} in${partCap}</span>
 <span class="badge">needs ${c.quorum.requiredMet}/${c.quorum.required}</span>
@@ -130,45 +130,130 @@ ${c.status === 'completed' || c.status === 'quorum' ? `<form method="post" actio
   <button>Appreciate</button>
 </form>` : ''}
 ${c.report ? `<p class="res"><strong>Report:</strong> ${esc(c.report.summary)}${c.report.learnings ? ` — <em>${esc(c.report.learnings)}</em>` : ''}</p>` : ''}
-</div>`;
+</div></div>`;
 }
+
+const STATUS_FILTERS: Array<[string, string]> = [
+  ['', 'All'], ['active', 'Building'], ['quorum', 'At quorum'],
+  ['completed', 'Completed'], ['draft', 'Draft'], ['expired', 'Expired'],
+];
+
+const DECK_CSS = `
+.card-overlay{display:none}
+.card-overlay:target{display:grid;position:fixed;inset:0;z-index:50;padding:20px;place-items:center;background:rgba(8,28,20,.7);backdrop-filter:blur(8px)}
+.detail-panel{width:min(700px,100%);max-height:88vh;overflow:auto;padding:36px;position:relative;border-radius:18px;background:#f8f9f4;box-shadow:0 30px 100px rgba(0,0,0,.3)}
+.detail-panel h3{margin:0 0 12px;font-family:var(--sf-serif);font-weight:400;color:#183a2d;font-size:30px;line-height:1.16}
+.detail-panel .needs{list-style:none;padding-left:.25rem;margin:.2rem 0;font-size:13px}
+.detail-panel .needs li{padding:.15rem 0}
+.val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+.val input{padding:.5rem .7rem;flex:1;min-width:8rem;border:1px solid var(--sf-line);border-radius:8px;font:inherit;font-size:13px}
+.val button{padding:.5rem 1.1rem;cursor:pointer;background:var(--sf-green-3);color:#fff;border:0;border-radius:99px;font-weight:800;font-size:12px}
+.res{background:rgba(200,243,109,.25);padding:.6rem .8rem;border-radius:.5rem;font-size:13px}
+.req{color:#a33;font-size:.8rem}.nice{color:#888;font-size:.8rem}.met{color:#4a7a4a;font-size:.8rem}
+.tip{background:#fde8c8;color:#7a5a00}.meta{font-size:.8rem;color:#777}
+.bar{background:#edf0ea;border-radius:99px;height:6px;margin:.5rem 0;overflow:hidden}
+.fill{background:var(--sf-lime);height:100%}
+.ctx{color:#2f5c67;font-size:13px}
+.mutual-panel{max-width:1250px;margin:3rem auto 0;background:#fff;border:1px solid var(--sf-line-2);border-radius:12px;padding:26px}
+.mutual-panel h3{font-family:var(--sf-serif);font-weight:400;font-size:24px;margin:0 0 6px}
+.mutual-panel ul{list-style:none;padding:0;font-size:13px}
+@media(max-width:720px){.detail-panel{padding:26px 18px}}
+`;
 
 export function renderPossibilitiesPage(
   cards: PossibilityCard[], edges: TrustEdge[] = [], viewer?: string,
+  opts: { status?: string; lang?: Lang } = {},
 ): string {
-  const body = cards.map(card).join('\n');
+  const status = opts.status ?? '';
+  const filtered = status ? cards.filter((c) => c.status === status) : cards;
+  const grid = filtered.map((c) => deckCard({
+    id: c.id, title: c.title, place: c.place,
+    status: c.status, participants: c.participantCount,
+    min: c.minParticipants || 0, deadline: c.deadline,
+    needs: c.needs.filter((n) => !n.met).slice(0, 3).map((n) => n.label),
+  }, { base: '' })).join('\n');
+  const overlays = cards.map(cardDetail).join('\n');
   const mutual = edges.filter((e) => e.mutual > 0).slice(0, 10)
     .map((e) => `<li>${esc(e.from)} &harr; ${esc(e.to)} — mutual ${e.mutual}</li>`).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Possibilities — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-.badge{background:#e6f4ea;padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem}
-.card{border:1px solid #ddd;border-radius:.5rem;padding:1rem;margin:1rem 0}
-.val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
-.val input{padding:.3rem;flex:1;min-width:8rem}.val button{padding:.35rem .8rem;cursor:pointer}
-.res{background:#e6f4ea;padding:.4rem;border-radius:.25rem}
-.needs{list-style:none;padding-left:.25rem;margin:.2rem 0}
-.req{color:#a33;font-size:.8rem}.nice{color:#888;font-size:.8rem}.met{color:#4a7a4a;font-size:.8rem}
-.tip{background:#fde8c8;color:#7a5a00}.meta{font-size:.8rem;color:#777}
-.bar{background:#eee;border-radius:.25rem;height:.5rem;margin:.4rem 0;overflow:hidden}
-.fill{background:#8fd18f;height:100%}
-blockquote{border-left:3px solid #ccc;margin:0;padding:.2rem 1rem;color:#555}</style></head><body>
-<h1>Possibility deck</h1>
-<p>Declare what you want to make happen — bring what you have, name what you
-need. When <strong>every required need is met</strong> and the participant
-threshold is reached, quorum binds the commitment and the group goes.
-Deadlines expire what never reaches quorum instead of
-lingering. Post-event appreciation feeds the trust graph — mutual
-recognition surfaces cards to the people who know you.</p>
-<blockquote>Cards sort by <code>score = 0.5·trust + 0.3·urgency + 0.2·cover</code> —
-trust proximity${viewer ? ` (viewing as ${esc(viewer)})` : ''}, time urgency,
-and how much of the required need-set is already met.</blockquote>
-<p><a href="/possibilities?format=json">JSON</a> · <a href="/coordination">coordination</a> ·
-<a href="/commitments">commitments</a> · <a href="/outcomes">outcomes</a></p>
-${body || '<p><em>No possibilities declared yet — POST /possibilities with a title, declarer, needs and deadline.</em></p>'}
-${mutual ? `<h2>Mutual recognition</h2><p>Pairwise appreciation made visible —
-mutual recognition steers which cards surface to whom.</p><ul>${mutual}</ul>` : ''}
-${footer()}
-</body></html>`;
+
+  const body = `
+<section class="section" id="deck" style="padding-top:60px">
+  <div class="section-heading">
+    <div><span class="kicker">Possibilities</span>
+      <h2>The <em>deck</em></h2></div>
+    <p>Every card is a real commitment window. When every required need is met
+    and the participant threshold is reached, quorum binds the commitment —
+    and appreciation afterward feeds the trust graph.
+    ${viewer ? `<br><em>Sorting for ${esc(viewer)}</em>` : ''}</p>
+  </div>
+  <div class="deck-controls">
+    <nav class="filters" aria-label="Filter by status">
+      ${STATUS_FILTERS.map(([v, l]) =>
+        `<a href="/possibilities${v ? `?status=${v}` : ''}" class="${status === v ? 'active' : ''}"
+          ${status === v ? 'aria-pressed="true"' : ''}>${l}</a>`).join('')}
+    </nav>
+    <label class="search-field">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="deck-search" type="search" placeholder="Search title or place…" aria-label="Search cards">
+    </label>
+  </div>
+  <div class="card-grid" id="card-grid">
+    ${grid || `<div class="empty-state">No cards here yet — <a href="#declare">declare one</a>.</div>`}
+  </div>
+  ${mutual ? `<div class="mutual-panel"><h3>Mutual recognition</h3>
+    <p class="muted">Pairwise appreciation made visible — mutual recognition steers which cards surface to whom.</p>
+    <ul>${mutual}</ul></div>` : ''}
+  <p class="muted" style="max-width:1250px;margin:2rem auto 0">
+    <a href="/possibilities?format=json">JSON</a> ·
+    <a href="/coordination">coordination</a> · <a href="/commitments">commitments</a> ·
+    <a href="/outcomes">outcomes</a> · Cards sort by
+    <code>score = 0.5·trust + 0.3·urgency + 0.2·cover</code></p>
+</section>
+
+${overlays}
+
+<div class="modal-anchor" id="declare">
+  <div class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="declare-h">
+      <a class="modal-close" href="#deck" aria-label="Close">✕</a>
+      <span class="kicker">New card</span>
+      <h2 id="declare-h">Declare a possibility</h2>
+      <p>"I want to…" — what you'll make happen, where, by when, and how many
+      people it takes to activate. Needs and offers come next on the card.</p>
+      <form method="post" action="/possibilities">
+        <input type="text" name="website" tabindex="-1" autocomplete="off"
+          style="position:absolute;left:-9999px" aria-hidden="true">
+        <label>Possibility
+          <textarea name="title" required placeholder="I want to…"></textarea></label>
+        <label>Your name
+          <input name="declarerId" required placeholder="who's declaring"></label>
+        <div class="modal-row">
+          <label>Where <input name="place" placeholder="town, venue, or 'anywhere'"></label>
+          <label>Deadline <input name="deadline" type="date"></label>
+        </div>
+        <div class="modal-row">
+          <label>Min participants
+            <input name="minParticipants" type="number" min="1" value="3"></label>
+          <label>Description <input name="description" placeholder="one line (optional)"></label>
+        </div>
+        <button class="modal-submit" type="submit">Declare it</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('deck-search')?.addEventListener('input', (e) => {
+  const q = (e.target.value || '').toLowerCase();
+  document.querySelectorAll('#card-grid .possibility-card').forEach((el) => {
+    el.style.display = !q || (el.dataset.search || '').includes(q) ? '' : 'none';
+  });
+});
+</script>`;
+
+  return pageShell({
+    title: 'The deck — Springforth',
+    desc: 'Real commitment windows: join a card that is building, or declare the thing only you can start.',
+    lang: opts.lang ?? 'en', extraCss: DECK_CSS,
+  }, body);
 }

@@ -14,6 +14,8 @@ const esc = (s: string) =>
 
 export const SPARK = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v5m0 10v5M2 12h5m10 0h5M5.6 5.6l3.2 3.2m6.4 6.4l3.2 3.2M5.6 18.4l3.2-3.2m6.4-6.4l3.2-3.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`;
 
+export const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#123B2C"/><path d="M32 12v10m0 20v10M12 32h10m20 0h10M18.5 18.5l7 7m13 13l7 7M18.5 45.5l7-7m13-13l7-7" stroke="#C8F36D" stroke-width="5" stroke-linecap="round" fill="none"/></svg>`;
+
 // Design tokens + shared components (Figma port). Pico provides the
 // element baseline; these classes carry the product look.
 export const SF_CSS = `
@@ -393,6 +395,7 @@ const NAV_ITEMS: Array<[string, string]> = [
   ['/rounds', 'Rounds'],
   ['/outcomes', 'Outcomes'],
   ['/coordination', 'Coordination'],
+  ['/whitepaper', 'Paper'],
   ['/docs', 'API'],
   ['/all', 'All'],
 ];
@@ -421,7 +424,7 @@ export const siteFooter = (gen = new Date().toISOString()): string => `
   <div>
     <a href="/possibilities">Deck</a><a href="/rounds">Rounds</a>
     <a href="/outcomes">Outcomes</a><a href="/coordination">Coordination</a>
-    <a href="/ledger">Ledger</a><a href="/docs">API</a>
+    <a href="/ledger">Ledger</a><a href="/whitepaper">Paper</a><a href="/docs">API</a>
     <a href="https://t.me/springforth_bot" rel="noopener">Telegram</a>
   </div>
   <span>generated ${esc(gen)} · <a href="/ledger/verify" style="color:rgba(255,255,255,.7)">verify the ledger</a></span>
@@ -441,7 +444,8 @@ export function pageShell(o: ShellOpts, bodyHtml: string): string {
   const lang = o.lang ?? 'en';
   return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(o.title)}</title>
+<title>Springforth</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="${esc(desc)}">
 <meta property="og:title" content="${esc(o.title)}">
 <meta property="og:description" content="${esc(desc)}">

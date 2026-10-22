@@ -29,7 +29,8 @@ import {
   renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
   renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
   renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, renderAllPage, langFrom,
-  tickerLines, tickerHtml, pageShell,
+  renderWhitepaper,
+  tickerLines, tickerHtml, pageShell, FAVICON_SVG,
 } from '@springforth/portal';
 import { PICO_CSS, HTMX_JS } from './vendor.js';
 import { ogPng } from './og.js';
@@ -689,6 +690,11 @@ export default {
         if (seg[1] === 'htmx.js')
           return new Response(HTMX_JS, { headers: { ...cache, 'content-type': 'text/javascript' } });
       }
+      // GET /favicon.svg — the spark mark as the tab icon (public, cached).
+      if ((req.method === 'GET' || req.method === 'HEAD') && seg[0] === 'favicon.svg') {
+        return new Response(FAVICON_SVG,
+          { headers: { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400' } });
+      }
       // GET /og.png — the social share card (embedded PNG, generated asset)
       if (req.method === 'GET' && seg[0] === 'og.png') {
         return new Response(ogPng().buffer as ArrayBuffer, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } });
@@ -1086,6 +1092,8 @@ export default {
       }
       if (seg[0] === 'tour' && req.method === 'GET')
         return new Response(renderTourPage(), { headers: { 'content-type': 'text/html' } });
+      if (seg[0] === 'whitepaper' && req.method === 'GET')
+        return new Response(renderWhitepaper(), { headers: { 'content-type': 'text/html' } });
       // Every surface on one scrollable page — review mode.
       if (seg[0] === 'all' && req.method === 'GET')
         return new Response(await renderAllPage(env.SELF ?? { fetch }, url.origin),

@@ -16,3 +16,5 @@ export { navLinks, footer } from './nav.ts';
 export { renderDocsPage } from './docs.ts';
 export { renderTourPage } from './tour.ts';
 export { renderAllPage } from './all.ts';
+export { renderWhitepaper } from './whitepaper.ts';
+export { FAVICON_SVG } from './theme.ts';

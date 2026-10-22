@@ -77,30 +77,72 @@ export class OnePlanetMcp {
   }
 }
 
-// OnePlanet workspace tool names aren't published — discover and route
-// adaptively. Prefer plan/resource reads; fall back to search.
+// OnePlanet exposes OAIs (Outcomes / Actions / Indicators) via
+// `query_plan_oais` — items carry { uuid, name, description, label, due_date,
+// status }. Verified live against mcp.oneplanet.com/mcp (SFLive sandbox).
+const OAI_PAT = /oai|plan.*content|list_connections/i;
 const READ_PAT = /(get|read|fetch|show|view).*(plan|workspace|node|outcome|action)/i;
 const LIST_PAT = /(list|all|plans)/i;
 const SEARCH_PAT = /(search|find|query|ask)/i;
+
+const OAI_KIND: Record<string, 'outcomes' | 'actions' | 'indicators'> = {
+  outcome: 'outcomes', action: 'actions', indicator: 'indicators' };
+
+// OAI item → the per-collection shape normalizePlan already consumes.
+function toOpPlan(planId: string, items: Json[]): Json {
+  const plan: Json & { outcomes: Json[]; actions: Json[]; indicators: Json[];
+    organisations: Json[]; places: Json[]; frameworks: Json[] } = {
+    id: planId, outcomes: [], actions: [], indicators: [],
+    organisations: [], places: [], frameworks: [] };
+  for (const it of items) {
+    const bucket = OAI_KIND[String(it.label ?? '').toLowerCase()];
+    if (!bucket) continue;
+    plan[bucket].push({
+      id: it.uuid ?? it.id, title: it.name ?? it.title,
+      description: it.description, endDate: it.due_date ?? undefined,
+    });
+  }
+  return plan;
+}
 
 export async function fetchPlanMcp(url: string, key: string, planId: string,
   fetchFn: McpFetch = fetch): Promise<ExternalPlan> {
   const mcp = new OnePlanetMcp(url, key, fetchFn);
   const tools = await mcp.listTools();
   const pick = (pat: RegExp) => tools.find((t) => pat.test(t.name) || pat.test(t.description ?? ''));
+
+  // Fast path — the real OAI listing tool; returns the node array directly.
+  // Name match first: descriptions mention OAIs broadly and would catch
+  // e.g. list_workspaces before query_plan_oais.
+  const oai = tools.find((t) => /oai/i.test(t.name)) ?? pick(OAI_PAT);
+  if (oai) {
+    for (const args of [{ plan_uuid: planId, limit: 100 }, { planId, limit: 100 },
+      { plan_id: planId, limit: 100 }, { uuid: planId, limit: 100 }]) {
+      try {
+        const data = await mcp.callTool(oai.name, args) as Json;
+        const items = (data?.items ?? data?.results ?? data) as Json[];
+        if (Array.isArray(items) && items.length)
+          return normalizePlan(toOpPlan(planId, items), 'oneplanet-mcp');
+      } catch { /* try next arg shape */ }
+    }
+  }
+
+  // Fallback — adaptive discovery over whatever read/search tools exist.
   const reader = pick(READ_PAT) ?? pick(LIST_PAT) ?? pick(SEARCH_PAT);
   if (!reader) throw new Error('mcp: no plan/query tools exposed');
-  // try id-style args, then query-style
   let data: unknown;
-  for (const args of [{ id: planId }, { planId }, { plan_id: planId }, { query: planId }, { q: planId }]) {
+  for (const args of [{ id: planId }, { planId }, { plan_id: planId }, { plan_uuid: planId }, { query: planId }, { q: planId }]) {
     try { data = await mcp.callTool(reader.name, args); break; } catch { /* try next arg shape */ }
   }
   if (data === undefined) data = await mcp.callTool(reader.name, { query: planId });
-  // if the tool returned a list, find the plan; else use the object directly
   const d = data as Json | Json[];
   const obj = Array.isArray(d)
     ? (d.find((x) => String(x.id ?? x.planId ?? '') === planId) ?? d[0])
     : d;
   const plan = ((obj as Json)?.plan ?? obj) as Json;
+  // a summary/envelope may still wrap items — surface them if present
+  const items = (plan.items ?? plan.oais ?? plan.results) as Json[] | undefined;
+  if (Array.isArray(items) && items.length)
+    return normalizePlan(toOpPlan(planId, items), 'oneplanet-mcp');
   return normalizePlan({ id: planId, ...plan }, 'oneplanet-mcp');
 }

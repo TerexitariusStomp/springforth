@@ -74,11 +74,11 @@ a{color:var(--sf-sage)}
 .glow-one{width:500px;height:500px;right:3%;top:11%;background:rgba(89,139,95,.2);box-shadow:0 0 140px rgba(172,235,120,.1)}
 .glow-two{width:300px;height:300px;left:-10%;bottom:-15%;background:rgba(241,126,100,.09)}
 .hero h1,.section-heading h2,.how h2,.impact h2,.cta h2{font-family:var(--sf-serif);font-weight:400;letter-spacing:-2.8px;line-height:.99}
-.hero h1{font-size:clamp(52px,7vw,104px);max-width:900px;margin:0}
+.hero h1{font-size:clamp(52px,7vw,104px);max-width:900px;margin:0;color:#f7f8f2}
 .hero h1 em,.section-heading h2 em,.how h2 em,.impact h2 em,.cta h2 em{color:var(--sf-coral-2);font-weight:inherit;font-style:italic}
 .hero-copy{max-width:610px;font-size:18px;line-height:1.7;color:rgba(245,248,240,.72);margin:30px 0}
 .hero-actions{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
-.trust-line{margin-top:50px;display:flex;align-items:center;gap:16px;font-size:12px;color:var(--sf-mist)}
+.trust-line{margin-top:50px;display:flex;align-items:center;gap:16px;font-size:12px;color:rgba(255,255,255,.78)}
 .trust-line p{margin:0}
 .trust-line strong{color:white}
 .avatar-stack{display:flex}
@@ -106,8 +106,8 @@ a{color:var(--sf-sage)}
 .mini-avatars i:last-child{background:var(--sf-lime-2)}
 .float-badge{position:absolute;display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:12px;color:#143629;background:#f7f8f2;font-size:10px;box-shadow:0 20px 50px rgba(4,23,14,.28);text-decoration:none}
 .float-badge strong{display:block;font-size:15px;color:#143629}
-.badge-one{right:clamp(340px,30vw,480px);top:210px;transform:rotate(-4deg)}
-.badge-two{right:clamp(30px,6vw,100px);top:520px;transform:rotate(3deg)}
+.badge-one{right:clamp(340px,30vw,480px);top:480px;transform:rotate(-4deg)}
+.badge-two{right:clamp(30px,6vw,100px);top:560px;transform:rotate(3deg)}
 
 /* ── ticker ─────────────────────────────────────────── */
 .ticker{min-height:64px;padding:0 clamp(24px,6vw,90px);display:flex;align-items:center;gap:38px;border-bottom:1px solid #dce1d7;background:var(--sf-cream-3);overflow:hidden;white-space:nowrap}

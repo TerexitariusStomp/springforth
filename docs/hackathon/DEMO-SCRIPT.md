@@ -2,9 +2,13 @@
 
 Base: https://springforth.widespread.workers.dev
 
-1. **Landing** (/) — "coordinate first" + what needs attention: open cards,
-   unmet needs, machine-flagged overlaps awaiting humans. 30s.
-2. **Possibilities** (/possibilities) — the deck: Mida Creek hero card
+1. **Landing** (/) — the redesigned hero: orbit card = the real
+   nearest-to-quorum card, activity ticker = real ledger events (self-
+   refreshes), trust line + impact panel = real counts — nothing invented.
+   Scroll past for the attention triage + live deck preview. 30s.
+2. **Possibilities** (/possibilities) — the deck grid: tone-by-status cards,
+   status chips (?status=) + search, click a card for the full overlay —
+   Mida Creek hero card
    (4/6 committed), **Shrewsbury riverside flood response — live verified
    context pulled from EA Flood Monitoring, Open-Meteo, EA Water Quality,
    FHRS, postcodes.io at seed time** (endorsed-source lane), dance night

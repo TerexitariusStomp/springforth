@@ -1,6 +1,8 @@
 export { renderCoordinationPage } from './coordination.ts';
 export { renderPossibilitiesPage, type PossibilityCard } from './possibilities.ts';
-export { renderLandingPage, type LandingInput, type LandingCard } from './landing.ts';
+export { renderLandingPage, tickerLines, tickerHtml, deckCard,
+  type LandingInput, type LandingCard, type TickerEvent } from './landing.ts';
+export { pageShell, topbar, siteFooter, SF_CSS, SPARK, type ShellOpts } from './theme.ts';
 export { renderPortfolioPage } from './portfolio.ts';
 export { renderOutcomesPage } from './outcomes.ts';
 export { renderRoundsPage, renderRoundPage, renderRoundAdmin } from './rounds.ts';

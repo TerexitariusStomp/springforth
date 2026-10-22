@@ -29,7 +29,9 @@ import {
   renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
   renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
   renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, renderAllPage, langFrom,
+  tickerLines, tickerHtml,
 } from '@springforth/portal';
+import { PICO_CSS, HTMX_JS } from './vendor.js';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
   detectOverlaps, detectComplements, validateOverlap, mergeProposal, isNeed,
@@ -683,12 +685,29 @@ export default {
       if (!ok) return err('rate limit exceeded — retry shortly', 429);
     }
     try {
+      // Vendored MIT assets — same-origin, no CDN at runtime.
+      if (req.method === 'GET' && seg[0] === 'vendor' && seg.length === 2) {
+        const cache = { 'content-type': '', 'cache-control': 'public, max-age=86400' };
+        if (seg[1] === 'pico.css')
+          return new Response(PICO_CSS, { headers: { ...cache, 'content-type': 'text/css' } });
+        if (seg[1] === 'htmx.js')
+          return new Response(HTMX_JS, { headers: { ...cache, 'content-type': 'text/javascript' } });
+      }
+      // GET /partials/ticker — htmx target for the landing activity ticker.
+      if (req.method === 'GET' && seg[0] === 'partials' && seg[1] === 'ticker') {
+        const [poss, events] = await Promise.all([
+          list<Possibility>(env.DB, 'possibility'), ledgerEvents(env.DB),
+        ]);
+        const possById = new Map(poss.map((p) => [p.id, p]));
+        return new Response(tickerHtml(tickerLines(events, possById)),
+          { headers: { 'content-type': 'text/html' } });
+      }
       // GET / → the triage landing: how it works + what needs attention
       if (req.method === 'GET' && seg.length === 0) {
-        const [poss, parts, recs, nodes, plans] = await Promise.all([
+        const [poss, parts, recs, nodes, plans, events] = await Promise.all([
           list<Possibility>(env.DB, 'possibility'), list<Participation>(env.DB, 'participation'),
           list<OverlapRecord>(env.DB, 'overlap'), list<PlanNode>(env.DB, 'plannode'),
-          list<ExternalPlan>(env.DB, 'plan'),
+          list<ExternalPlan>(env.DB, 'plan'), ledgerEvents(env.DB),
         ]);
         if (url.searchParams.get('format') === 'json')
           return json({ possibilities: poss.length, nodes: nodes.length, plans: plans.length, overlaps: recs.length });
@@ -697,12 +716,21 @@ export default {
           .map((r) => r.nodeIds[0]));
         const counts = new Map<string, number>();
         for (const pt of parts) counts.set(pt.possibilityId, (counts.get(pt.possibilityId) ?? 0) + 1);
+        const possById = new Map(poss.map((p) => [p.id, p]));
+        const completed = poss.filter((p) => p.status === 'completed').length;
+        const reached = poss.filter((p) => p.quorumAt || p.status === 'completed').length;
         return new Response(renderLandingPage({
           cards: poss.map((p) => ({ possibility: p, participants: counts.get(p.id) ?? 0 })),
           proposedOverlaps: recs.filter((r) => r.status === 'proposed').length,
           unmetNeeds: nodes.filter((n) => isNeed(n) && !rallied.has(n.id)).length,
           actionNodes: nodes.filter((n) => n.kind === 'action'),
           planCount: plans.length,
+          ticker: tickerLines(events, possById),
+          participantsTotal: new Set(parts.map((pt) => pt.actor)).size,
+          placesCount: new Set(poss.map((p) => p.place).filter((x): x is string => !!x)).size,
+          hoursTotal: parts.reduce((s, pt) => s + (pt.hours ?? 0), 0),
+          completedCount: completed,
+          quorumRate: poss.length ? Math.round((reached / poss.length) * 100) : 0,
           lang: langFrom(url, req.headers.get('cookie')),
         }), { headers: { 'content-type': 'text/html' } });
       }

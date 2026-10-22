@@ -7,7 +7,7 @@ const round: FundingRound = {
   matchingFund: { amount: 500, currency: 'USD' },
   eligibleNeedIds: ['n1', 'n2'],
   opensAt: '2026-10-15T00:00:00Z', closesAt: '2026-11-15T00:00:00Z', state: 'allocated',
-  matchingMode: 'lr', conviction: false, acceptedTokens: {},
+  matchingMode: 'lr', conviction: false, acceptedTokens: {}, endowment: false,
 };
 const allocation = [
   { needNodeId: 'n1', donations: 100, donorCount: 9, weight: 900, match: 450, total: 550 },

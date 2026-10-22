@@ -16,6 +16,8 @@ describe('portal renderers', () => {
     const html = renderLandingPage({
       cards: [{ possibility, participants: 2 }],
       proposedOverlaps: 1, unmetNeeds: 2, actionNodes: [], planCount: 3,
+      ticker: [], participantsTotal: 4, placesCount: 2, hoursTotal: 12,
+      completedCount: 1, quorumRate: 50,
     });
     expect(html).toContain('Plant mangroves');
     expect(html).toContain('/possibilities');

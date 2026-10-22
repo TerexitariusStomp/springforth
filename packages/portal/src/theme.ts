@@ -49,7 +49,7 @@ body{margin:0;min-width:320px;background:var(--sf-cream);color:var(--sf-ink)}
    our sections control their own inner measure. */
 body>header{padding:0;max-width:none;margin:0}
 body>main{padding:0;max-width:none;margin:0}
-body>footer{padding:0;max-width:none;margin:0;background:none}
+body>footer{padding:0;max-width:none;margin:0}
 a{color:var(--sf-sage)}
 .skip-link{position:absolute;left:-999px;top:0;background:var(--sf-lime);color:var(--sf-ink);padding:.6rem 1rem;z-index:99;font-weight:800;font-size:12px}
 .skip-link:focus{left:8px;top:8px}
@@ -66,6 +66,7 @@ a{color:var(--sf-sage)}
 .nav-toggle{display:none}
 .nav-toggle summary{list-style:none;cursor:pointer;display:grid;place-items:center;width:40px;height:40px;border-radius:8px;color:var(--sf-pale)}
 .nav-toggle summary::-webkit-details-marker{display:none}
+.nav-toggle summary::after,.nav-toggle summary::before{display:none!important}
 .nav-toggle[open] summary{background:rgba(255,255,255,.1)}
 .nav-menu{position:absolute;top:72px;left:0;right:0;z-index:30;display:flex;flex-direction:column;gap:4px;padding:16px 24px 22px;background:var(--sf-green);border-bottom:1px solid rgba(255,255,255,.14)}
 .nav-menu a{color:var(--sf-pale);text-decoration:none;font-size:14px;font-weight:700;padding:8px 0}
@@ -218,12 +219,12 @@ a{color:var(--sf-sage)}
 .cta p{color:rgba(255,255,255,.85);font-size:14px}
 
 /* ── footer ─────────────────────────────────────────── */
-footer{min-height:150px;padding:45px clamp(24px,6vw,90px);display:grid;grid-template-columns:1fr 1fr 2fr 1fr;align-items:center;gap:30px;color:rgba(255,255,255,.72);background:var(--sf-green-0);font-size:11px}
+body>footer{min-height:150px;padding:45px clamp(24px,6vw,90px);display:grid;grid-template-columns:1fr 1fr 2fr 1fr;align-items:center;gap:30px;color:rgba(255,255,255,.72);background:var(--sf-green-0);font-size:11px}
 .footer-brand{color:var(--sf-pale);display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;text-decoration:none}
-footer>div{display:flex;justify-content:center;gap:22px;color:rgba(255,255,255,.7);flex-wrap:wrap}
-footer>div a{color:rgba(255,255,255,.7);text-decoration:none}
-footer>div a:hover{color:var(--sf-pale)}
-footer>span{text-align:right;line-height:1.7}
+body>footer>div{display:flex;justify-content:center;gap:22px;color:rgba(255,255,255,.7);flex-wrap:wrap}
+body>footer>div a{color:rgba(255,255,255,.7);text-decoration:none}
+body>footer>div a:hover{color:var(--sf-pale)}
+body>footer>span{text-align:right;line-height:1.7}
 
 /* ── generic content pages ──────────────────────────── */
 .page{max-width:1250px;margin:auto;padding:56px clamp(24px,6vw,90px) 100px}
@@ -292,9 +293,9 @@ dialog.sf-dialog,.modal-anchor:not(:target) .modal-backdrop{display:none}
   .card-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
   .how{gap:50px}
   .impact{gap:60px}
-  footer{grid-template-columns:1fr 1fr}
-  footer>div{justify-content:flex-start}
-  footer>span{text-align:left}
+  body>footer{grid-template-columns:1fr 1fr}
+  body>footer>div{justify-content:flex-start}
+  body>footer>span{text-align:left}
 }
 @media (max-width:720px){
   .hero h1{font-size:46px;letter-spacing:-1.8px}
@@ -310,10 +311,12 @@ dialog.sf-dialog,.modal-anchor:not(:target) .modal-backdrop{display:none}
   .how,.impact{grid-template-columns:1fr;gap:50px}
   .impact-panel{padding:25px}
   .big-stat strong{font-size:50px}
-  footer{grid-template-columns:1fr;padding:45px 24px}
+  body>footer{grid-template-columns:1fr;padding:45px 24px}
   .modal{padding:35px 22px 24px}
   .modal h2{font-size:34px}
   .modal-row{grid-template-columns:1fr}
+  .page table{display:block;overflow-x:auto;max-width:100%}
+  .page table td,.page table th{min-width:7rem}
 }
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}

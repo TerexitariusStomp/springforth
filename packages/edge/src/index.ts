@@ -28,7 +28,7 @@ import {
   renderCoordinationPage, renderPossibilitiesPage, renderLandingPage,
   renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
   renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
-  renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, langFrom,
+  renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, renderAllPage, langFrom,
 } from '@springforth/portal';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
@@ -1055,6 +1055,9 @@ export default {
       }
       if (seg[0] === 'tour' && req.method === 'GET')
         return new Response(renderTourPage(), { headers: { 'content-type': 'text/html' } });
+      // Every surface on one scrollable page — review mode.
+      if (seg[0] === 'all' && req.method === 'GET')
+        return new Response(renderAllPage(), { headers: { 'content-type': 'text/html' } });
       // Recurring support streams — top-level list; round-scoped view
       // also exists at /rounds/:id/stream.
       if (seg[0] === 'streams' && req.method === 'GET') {

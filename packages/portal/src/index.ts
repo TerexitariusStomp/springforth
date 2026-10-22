@@ -13,3 +13,4 @@ export { t, langFrom, LANGS, type Lang } from './i18n.ts';
 export { navLinks, footer } from './nav.ts';
 export { renderDocsPage } from './docs.ts';
 export { renderTourPage } from './tour.ts';
+export { renderAllPage } from './all.ts';

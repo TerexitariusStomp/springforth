@@ -82,6 +82,8 @@ details.hub-sec>summary:focus-visible,.hub-nav a:focus-visible,
 .nav-menu a{color:var(--sf-pale);display:flex;align-items:center;min-height:44px;text-decoration:none;font-size:14px;font-weight:700}
 .nav-more{position:relative;display:flex;align-items:center}
 .nav-drop{position:absolute;top:calc(100% + 14px);right:0;z-index:30;min-width:170px;display:none;flex-direction:column;padding:.5rem;background:var(--sf-green);border:1px solid rgba(255,255,255,.14);border-radius:12px;box-shadow:0 16px 40px rgba(11,25,19,.35)}
+/* Invisible bridge across the 14px gap so :hover isn't lost mid-travel. */
+.nav-drop::before{content:'';position:absolute;top:-14px;left:0;right:0;height:14px}
 .nav-more:hover .nav-drop,.nav-more:focus-within .nav-drop{display:flex}
 .nav-drop a{color:var(--sf-pale);display:flex;align-items:center;min-height:44px;text-decoration:none;font-size:13px;font-weight:600;padding:0 .8rem;border-radius:8px;opacity:.8}
 .nav-drop a:hover{opacity:1;background:rgba(255,255,255,.08)}
@@ -162,6 +164,8 @@ details.hub-sec>summary:focus-visible,.hub-nav a:focus-visible,
 .filters a.active{color:var(--sf-green-3);border-color:var(--sf-coral)}
 .search-field{min-width:220px;display:flex;align-items:center;gap:9px;color:var(--sf-faint);padding-bottom:12px}
 .search-field input{width:100%;min-height:44px;border:0;outline:0;background:transparent;color:var(--sf-ink);font-size:13px;font-family:inherit}
+/* Beat Pico's input:not(...)[type=search] (0,2,1) — the field has its own icon. */
+.search-field input[type=search]{background-image:none;padding-inline-start:0}
 .deck-count{display:inline-flex;align-items:center;min-height:44px}
 .card-grid{max-width:1250px;margin:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px}
 .possibility-card{--accent:var(--sf-lime-deep);min-height:400px;border-radius:12px;padding:24px;display:flex;flex-direction:column;background:var(--sf-card);border:1px solid var(--sf-line-2);box-shadow:0 16px 45px rgba(34,53,42,.05);transition:transform .25s,box-shadow .25s}
@@ -277,6 +281,8 @@ body>footer{min-height:150px;padding:45px clamp(24px,6vw,90px);display:grid;grid
 .page th,.page td{border-bottom:1px solid var(--sf-line-2);padding:.65rem .8rem;text-align:left}
 .page th{background:var(--sf-cream-3);font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--sf-ink-mute)}
 .page input,.page select,.page textarea{min-height:44px;border:1px solid var(--sf-line);border-radius:8px;padding:.55rem .7rem;font:inherit;font-size:13px;background:var(--sf-card)}
+/* Pico draws a magnifier background-image on type=search — clear it. */
+.page input[type=search]{padding-inline-start:2.4rem}
 .page button,.page input[type=submit]{min-height:44px;background:var(--sf-green-3);color:var(--sf-pale);border:0;border-radius:99px;padding:.6rem 1.2rem;font-weight:800;font-size:12px;cursor:pointer}
 .page button:hover,.page input[type=submit]:hover{background:var(--sf-green-0)}
 .badge{display:inline-block;padding:.25rem .6rem;border-radius:99px;background:var(--sf-cream-3);font-size:11px;font-weight:700;color:var(--sf-ink-3)}
@@ -289,6 +295,7 @@ body>footer{min-height:150px;padding:45px clamp(24px,6vw,90px);display:grid;grid
 .page .card h3{font-family:var(--sf-serif);font-weight:400;font-size:22px;margin:.2rem 0 .6rem;color:var(--sf-ink-2)}
 .page .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
 .page .val input{padding:.5rem .7rem;flex:1;min-width:8rem}
+.page .val input[type=search]{padding-inline-start:2.4rem}
 .page .val select{padding:.5rem}
 .page details{margin:.4rem 0}
 .page summary{cursor:pointer;font-weight:700;font-size:13px;padding:.8rem 0}

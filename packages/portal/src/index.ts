@@ -18,3 +18,9 @@ export { renderTourPage } from './tour.ts';
 export { renderAllPage } from './all.ts';
 export { renderWhitepaper } from './whitepaper.ts';
 export { FAVICON_SVG } from './theme.ts';
+export {
+  renderLedgerPage, renderLedgerVerifyPage, renderCommitmentsPage,
+  renderResourcesPage, renderTrustPage, renderMetricsPage, renderRetroPage,
+  renderAgentPage, renderActorsPage, renderClaimsPage, renderAttestationsPage,
+  renderPledgesPage,
+} from './inspect.ts';

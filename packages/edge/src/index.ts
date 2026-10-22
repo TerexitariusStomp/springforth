@@ -30,6 +30,10 @@ import {
   renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
   renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, renderAllPage, langFrom,
   renderWhitepaper,
+  renderLedgerPage, renderLedgerVerifyPage, renderCommitmentsPage,
+  renderResourcesPage, renderTrustPage, renderMetricsPage, renderRetroPage,
+  renderAgentPage, renderActorsPage, renderClaimsPage, renderAttestationsPage,
+  renderPledgesPage,
   tickerLines, tickerHtml, pageShell, FAVICON_SVG,
 } from '@springforth/portal';
 import { PICO_CSS, HTMX_JS } from './vendor.js';
@@ -315,6 +319,9 @@ async function runOracleSources(env: Env, node: PlanNode) {
 const json = (x: unknown, status = 200) =>
   new Response(JSON.stringify(x, null, 2), { status, headers: { 'content-type': 'application/json' } });
 const err = (m: string, status = 400) => json({ error: m }, status);
+const wantsHtml = (req: Request) => (req.headers.get('accept') ?? '').includes('text/html');
+const html = (s: string, status = 200) =>
+  new Response(s, { status, headers: { 'content-type': 'text/html' } });
 const authed = (req: Request, env: Env) =>
   !!env.ADMIN_TOKEN && req.headers.get('authorization') === `Bearer ${env.ADMIN_TOKEN}`;
 
@@ -1122,6 +1129,8 @@ ${yieldStreams.map((s) => `<tr><td>${s.id} (yield)</td><td>${s.roundId}</td>
       // Attestations list — EAS payloads stored for claims/donations.
       if (seg[0] === 'attestations' && req.method === 'GET' && seg.length === 1) {
         const atts = await list<Attestation>(env.DB, 'attestation');
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderAttestationsPage(atts));
         return json({ attestations: atts });
       }
       if (seg[0] === 'datasets') {
@@ -1421,6 +1430,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         // "money becomes one stream among eight", made visible.
         const byCapital: Record<string, number> = {};
         for (const n of rows) if (n.capital) byCapital[n.capital] = (byCapital[n.capital] ?? 0) + 1;
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderCommitmentsPage(rows, byCapital));
         return json({ commitments: rows, byCapital });
       }
       // Coordination page — public overlap report + validation forms
@@ -1453,7 +1464,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         const q = req.method === 'POST'
           ? String(((await req.json().catch(() => ({}))) as { q?: unknown }).q ?? '')
           : url.searchParams.get('q') ?? '';
-        if (!q) return err('q required');
+        if (!q) return wantsHtml(req) ? html(renderAgentPage('')) : err('q required');
         const nodes = await list<PlanNode>(env.DB, 'plannode');
         const recs = await list<OverlapRecord>(env.DB, 'overlap');
         const [poss, parts, apps, credits] = await Promise.all([
@@ -1486,6 +1497,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           })),
         });
         await ledgerAppend(env.DB, 'agent', 'agent.query', { q: q.slice(0, 200), intent: out.intent });
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderAgentPage(q, out));
         return json(out);
       }
       // Signals — public intent: a named actor signs support/interest/
@@ -1913,8 +1926,11 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           ...Object.keys(earned), ...edges.flatMap((e) => [e.from, e.to]),
           ...credits.map((c) => c.actor),
         ]);
+        const RULE = 'mutual recognition = min(a→b, b→a); recognition ∝ √earned (Bloom √-norm); propagation: EigenTrust';
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderTrustPage(edges, RULE));
         return json({
-          rule: 'mutual recognition = min(a→b, b→a); recognition ∝ √earned (Bloom √-norm); propagation: EigenTrust',
+          rule: RULE,
           edges, mutual: edges.filter((e) => e.mutual > 0),
           actors: [...actorIds].map((id) => ({
             id, earned: earned[id] ?? 0,
@@ -1970,6 +1986,21 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             donations: donations.filter((d) => d.donor === id),
           }), { headers: { 'content-type': 'text/html' } });
         }
+        if (!id && wantsHtml(req)) {
+          const earnedMap = earnedRecognition(edges, credits);
+          const actorIds = new Set<string>([
+            ...poss.map((p) => p.declarerId), ...parts.map((x) => x.actor),
+            ...apps.flatMap((a) => [a.fromActor, a.toActor]),
+            ...credits.map((c) => c.actor),
+          ]);
+          return html(renderActorsPage([...actorIds].map((aid) => ({
+            id: aid,
+            created: poss.filter((p) => p.declarerId === aid).length,
+            joined: parts.filter((x) => x.actor === aid).length,
+            earned: earnedMap[aid] ?? 0,
+            trustScore: mean > 0 ? +((vec[aid] ?? 0) / mean).toFixed(4) : 0,
+          }))));
+        }
         return json({
           id,
           created: poss.filter((p) => p.declarerId === id).length,
@@ -1990,13 +2021,14 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         for (const r of recs)
           if (r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated'))
             times.set(r.nodeIds[1]!, (times.get(r.nodeIds[1]!) ?? 0) + 1);
-        return json({
-          resources: nodes.filter((n) => n.kind === 'offer').map((o) => ({
-            id: o.id, label: o.label, owner: o.orgIds[0] ?? 'unknown',
-            terms: o.terms, capacity: o.capacity, capital: inferCapital(o),
-            timesContributed: times.get(o.id) ?? 0, source: o.source,
-          })),
-        });
+        const resourceRows = nodes.filter((n) => n.kind === 'offer').map((o) => ({
+          id: o.id, label: o.label, owner: o.orgIds[0] ?? 'unknown',
+          terms: o.terms, capacity: o.capacity, capital: inferCapital(o),
+          timesContributed: times.get(o.id) ?? 0, source: o.source,
+        }));
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderResourcesPage(resourceRows));
+        return json({ resources: resourceRows });
       }
       // Network health — north-star + funnel metrics.
       if (req.method === 'GET' && seg[0] === 'metrics') {
@@ -2017,7 +2049,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         const expiringSoon = statuses.filter((x) =>
           (x.s === 'active' || x.s === 'draft') && x.p.deadline
           && Date.parse(x.p.deadline) - now < 3 * 86_400_000).length;
-        return json({
+        const payload: Record<string, unknown> = {
           possibilities: statuses.length, activated, expired: statuses.filter((x) => x.s === 'expired').length,
           quorumRate: statuses.length ? +(activated / statuses.length).toFixed(3) : 0,
           appreciationRatio: completedParts ? +(completedApps / completedParts).toFixed(3) : 0,
@@ -2068,7 +2100,10 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
               for (const k of Object.keys(a) as (keyof typeof a)[]) a[k] = Math.round(a[k] * 100) / 100;
             return { valueByCurrency: acc, declaredHoursTotal: Math.round(hoursTotal * 100) / 100 };
           })(),
-        });
+        };
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderMetricsPage(payload));
+        return json(payload);
       }
       // ── Funding layer — public mechanisms only ──────────────────────
       // Quadratic rounds (LR/Gitcoin), assurance pledges (Tabarrok),
@@ -2406,6 +2441,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           const claims = await list<ImpactClaim>(env.DB, 'claim');
           if (url.searchParams.get('format') === 'lexicon')
             return json({ claims: claims.map(toHypercertLexicon) });
+          if (wantsHtml(req)) return html(renderClaimsPage(claims));
           return json({ claims });
         }
         const claim = await get<ImpactClaim>(env.DB, 'claim', seg[1] ?? '');
@@ -2524,11 +2560,11 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         if (req.method === 'GET' && seg.length === 1) {
           const rounds = await list<RetroRound>(env.DB, 'retroround');
           const apps = await list<Appreciation>(env.DB, 'appreciation');
-          return json({
-            rounds,
-            badgeholders: badgeholders(apps, 8),
-            rule: 'badgeholders = top EigenTrust on the appreciation graph; quadratic ballot on attested claims',
-          });
+          const bh = badgeholders(apps, 8);
+          const rule = 'badgeholders = top EigenTrust on the appreciation graph; quadratic ballot on attested claims';
+          if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+            return html(renderRetroPage(rounds, bh, rule));
+          return json({ rounds, badgeholders: bh, rule });
         }
         const rr = await get<RetroRound>(env.DB, 'retroround', seg[1] ?? '');
         if (!rr) return err('retro round not found', 404);
@@ -2585,7 +2621,10 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         return json(pledge, 201);
       }
       if (req.method === 'GET' && seg[0] === 'pledges') {
-        return json({ pledges: await list<Pledge>(env.DB, 'pledge') });
+        const pledges = await list<Pledge>(env.DB, 'pledge');
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderPledgesPage(pledges));
+        return json({ pledges });
       }
       // ── Chain lane — status + tx recording + confirmation mirror ────
       if (seg[0] === 'chain') {
@@ -2684,8 +2723,14 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         });
       }
       if (req.method === 'GET' && seg[0] === 'ledger') {
-        if (seg[1] === 'verify') return json(await ledgerVerify(env.DB));
-        return json({ events: await ledgerEvents(env.DB) });
+        if (seg[1] === 'verify') {
+          const v = await ledgerVerify(env.DB);
+          return wantsHtml(req) ? html(renderLedgerVerifyPage(v)) : json(v);
+        }
+        const events = await ledgerEvents(env.DB);
+        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
+          return html(renderLedgerPage(events, await ledgerVerify(env.DB)));
+        return json({ events });
       }
       if ((req.headers.get('accept') ?? '').includes('text/html')) {
         return new Response(pageShell({ title: 'Not found — Springforth', htmx: false }, `<div class="page">

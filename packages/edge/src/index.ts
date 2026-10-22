@@ -2657,6 +2657,13 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         if (seg[1] === 'verify') return json(await ledgerVerify(env.DB));
         return json({ events: await ledgerEvents(env.DB) });
       }
+      if ((req.headers.get('accept') ?? '').includes('text/html')) {
+        return new Response(pageShell({ title: 'Not found — Springforth', htmx: false }, `<div class="page">
+<h1>Nothing here</h1>
+<p class="lede">That page doesn't exist — it may have moved, or the link is old.</p>
+<p><a href="/possibilities">Explore the deck</a> · <a href="/">back home</a></p>
+</div>`), { status: 404, headers: { 'content-type': 'text/html' } });
+      }
       return err('not found', 404);
     } catch (e) {
       return err(e instanceof Error ? e.message : 'internal error', e instanceof Error && 'issues' in e ? 422 : 500);

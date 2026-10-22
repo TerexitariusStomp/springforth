@@ -61,7 +61,7 @@ Gitcoin Grants / Allo Protocol.</p>
 ${totals ? `<p class="muted">Committed on record: <strong>${totals}</strong> —
 each round denominates in its country's unit; totals are never converted.</p>` : ''}
 <table><tr><th>Round</th><th>Matching fund</th><th>Eligible needs</th><th>State</th><th>Closes</th></tr>
-${rows || '<tr><td colspan="5"><em>No rounds yet — POST /rounds (admin) opens one.</em></td></tr>'}</table>
+${rows || '<tr><td colspan="5"><em>No rounds are open yet — an admin opens one with POST /rounds.</em></td></tr>'}</table>
 ${endowCard}`);
 }
 

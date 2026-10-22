@@ -45,7 +45,7 @@ weight is √points, so broad conviction beats deep pockets.
 ${i.voterCount} eligible voter(s) today.</p>
 <h2>Proposals</h2>
 <table><tr><th>Proposal</th><th>State</th><th>For / Against (√pts)</th><th>Closes</th><th>Vote</th></tr>
-${propRows || '<tr><td colspan="5"><em>No proposals.</em></td></tr>'}</table>
+${propRows || '<tr><td colspan="5"><em>No proposals on the floor yet.</em></td></tr>'}</table>
 <h3>Propose a change</h3>
 <form method="post" action="/governance/proposals">
 <select name="param">${Object.keys(i.governable).map((k) => `<option>${esc(k)}</option>`).join('')}</select>

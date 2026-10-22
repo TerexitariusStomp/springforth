@@ -34,7 +34,7 @@ export function renderActorProfile(i: ActorProfileInput): string {
 <tr><td>Trust score (EigenTrust, relative to mean)</td><td>${i.trustScore}</td></tr></table>
 <h2>Bound wallets</h2>
 <table><tr><th>Address</th><th>Bound</th></tr>
-${wallets || '<tr><td colspan="2"><em>None — POST /actors/:id/bind-wallet with an EIP-191 signature.</em></td></tr>'}</table>
+${wallets || '<tr><td colspan="2"><em>No wallets bound yet — bind one with POST /actors/:id/bind-wallet (EIP-191 signature).</em></td></tr>'}</table>
 <h2>Donations</h2>
 <table><tr><th>Round</th><th>Need</th><th>Amount</th><th>Settlement</th></tr>
 ${donations || '<tr><td colspan="4"><em>No donations recorded.</em></td></tr>'}</table>

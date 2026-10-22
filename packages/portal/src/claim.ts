@@ -33,7 +33,7 @@ ${claim.contributors.length} contributor(s) · ${claim.oracleCheckIds.length} ev
 ${claim.artifactRefs.length ? `<p>Artifacts: ${claim.artifactRefs.map((u) => `<a href="${esc(u)}">${esc(u)}</a>`).join(' · ')}</p>` : ''}
 <h2>Attestations</h2>
 <table><tr><th>ID</th><th>Attester</th><th>Schema</th><th>Anchored</th><th></th></tr>
-${atts || '<tr><td colspan="5"><em>No attestations yet — POST /claims/:id/attest.</em></td></tr>'}</table>
+${atts || '<tr><td colspan="5"><em>No attestations yet — attest with POST /claims/:id/attest.</em></td></tr>'}</table>
 ${opts.chainReady
   ? `<p class="muted">Publishing is signer-facing: your wallet signs the EAS
 attest transaction; the worker only builds calldata and watches the receipt.</p>`

@@ -92,6 +92,6 @@ ${planRows || '<tr><td colspan="5"><em>No plans imported yet.</em></td></tr>'}</
 <h2>Overlap clusters</h2>
 <p>Groups of nodes the resolver flagged as related — each cluster is a
 coordination opportunity or a deduplication decision awaiting review.</p>
-${clusterCards || '<p><em>No clusters yet — run <code>POST /overlaps/detect</code>.</em></p>'}
+${clusterCards || '<p><em>No clusters yet — run overlap detection (POST /overlaps/detect).</em></p>'}
 </div>`);
 }

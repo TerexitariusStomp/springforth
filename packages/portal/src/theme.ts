@@ -422,6 +422,7 @@ export const siteFooter = (gen = new Date().toISOString()): string => `
     <a href="/possibilities">Deck</a><a href="/rounds">Rounds</a>
     <a href="/outcomes">Outcomes</a><a href="/coordination">Coordination</a>
     <a href="/ledger">Ledger</a><a href="/docs">API</a>
+    <a href="https://t.me/springforth_bot" rel="noopener">Telegram</a>
   </div>
   <span>generated ${esc(gen)} · <a href="/ledger/verify" style="color:rgba(255,255,255,.7)">verify the ledger</a></span>
 </footer>`;

@@ -207,7 +207,9 @@ export function renderPossibilitiesPage(
     <a href="/possibilities?format=json">JSON</a> ·
     <a href="/coordination">coordination</a> · <a href="/commitments">commitments</a> ·
     <a href="/outcomes">outcomes</a> · Cards sort by
-    <code>score = 0.5·trust + 0.3·urgency + 0.2·cover</code></p>
+    <code>score = 0.5·trust + 0.3·urgency + 0.2·cover</code><br>
+    Also on Telegram — <a href="https://t.me/springforth_bot" rel="noopener">@springforth_bot</a>
+    mirrors the deck: <code>/cards</code> <code>/new</code> <code>/join</code> <code>/appreciate</code></p>
 </section>
 
 ${overlays}

@@ -1565,6 +1565,12 @@ export default {
             .map((n) => [n.id, n.possibilityId]));
           const edges = trustEdges(apps);
           const viewer = url.searchParams.get('actor') ?? undefined;
+          // ?for=<actor> — interest feed: only possibilities the actor has
+          // joined, so post-interest progress/quorum is one tap away.
+          const forActor = url.searchParams.get('for') ?? undefined;
+          const scoped = forActor
+            ? poss.filter((p) => parts.some((x) => x.possibilityId === p.id && x.actor === forActor))
+            : poss;
           const now = Date.now();
           const coordinated = new Set(recs
             .filter((o) => o.kind === 'complement' && (o.status === 'confirmed' || o.status === 'coordinated'))
@@ -1572,7 +1578,7 @@ export default {
           const live = ['active', 'quorum', 'draft'];
           // Identity gradation: participant names hidden until critical mass
           // (cover ≥0.5 or quorum) — counts always public, per the GDD deck.
-          const cards = viewerDeck(poss, passes, viewer).map((p) => {
+          const cards = viewerDeck(scoped, passes, viewer).map((p) => {
             const status = effectiveStatus(p, now);
             const myParts = parts.filter((x) => x.possibilityId === p.id);
             const q = quorumMet(p, nodes, recs, myParts.length);
@@ -1607,10 +1613,11 @@ export default {
             || b.score - a.score);
           if (url.searchParams.get('format') === 'json') return json({ possibilities: cards });
           const connections = await loadCardConnections(env, cards);
-          return new Response(renderPossibilitiesPage(cards, edges, viewer, {
+          return new Response(renderPossibilitiesPage(cards, edges, viewer ?? forActor, {
             status: url.searchParams.get('status') ?? '',
             lang: langFrom(url, req.headers.get('cookie')),
             connections,
+            mine: !!forActor,
           }), { headers: { 'content-type': 'text/html' } });
         }
         const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');

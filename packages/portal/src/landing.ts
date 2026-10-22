@@ -109,14 +109,14 @@ export interface DeckCardData {
   deadline?: string; needs?: string[];
 }
 
-export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string) => string } = {}): string {
+export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string) => string; feed?: { nextId?: string } } = {}): string {
   const tt = opts.tt ?? ((k: string) => t('en', k));
   const pct = d.min ? Math.min(100, Math.round((d.participants / d.min) * 100)) : 0;
   const more = Math.max(0, d.min - d.participants);
   const base = opts.base ?? '/possibilities';
   const needs = d.needs?.slice(0, 3) ?? [];
   const tone = toneFor(d.status, pct);
-  return `<article class="possibility-card${tone ? ` ${tone}` : ''}" data-status="${esc(d.status)}" data-search="${esc(`${d.title} ${d.place ?? ''}`.toLowerCase())}">
+  return `<article class="possibility-card${tone ? ` ${tone}` : ''}" id="card-${esc(d.id)}" data-status="${esc(d.status)}" data-search="${esc(`${d.title} ${d.place ?? ''}`.toLowerCase())}">
 <div class="card-top"><span class="category">${esc(d.status)}</span>
 <span class="card-status"><i></i>${pct}% ${tt('card.toQuorum')}</span></div>
 <h3><a href="${base}#${esc(d.id)}" style="color:inherit;text-decoration:none">${esc(d.title)}</a></h3>
@@ -127,6 +127,10 @@ export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string
 <div class="card-progress"><span style="width:${pct}%"></span></div>
 ${needs.length ? `<p class="needs"><span>${tt('card.needs')}</span>${needs.map((n) => `<b>${esc(n)}</b>`).join('')}</p>` : ''}
 <a class="join-button" href="${base}#${esc(d.id)}"><span>${more > 0 ? `${more} ${tt('card.more')}` : d.status === 'quorum' ? tt('card.atQuorum') : tt('card.see')}</span><span>→</span></a>
+${opts.feed ? `<div class="feed-actions">
+  <a class="feed-skip" href="${base}#${opts.feed.nextId ? `card-${esc(opts.feed.nextId)}` : 'deck'}">${tt('feed.skip')}</a>
+  <a class="feed-yes" href="${base}#${esc(d.id)}">${tt('feed.interested')}</a>
+</div>` : ''}
 </article>`;
 }
 
@@ -144,18 +148,16 @@ export function renderLandingPage(i: LandingInput): string {
 
   const attn: string[] = [];
   const pl = (n: number, base: string) => tt(`${base}.${n === 1 ? 'one' : 'many'}`);
-  if (i.proposedOverlaps) attn.push(
-    `<div class="att"><strong>${i.proposedOverlaps} ${pl(i.proposedOverlaps, 'att.overlap')}</strong><br>
-${tt('att.overlaps.body')}
-<a href="/collaborate#overlaps">${tt('att.overlaps.cta')} →</a></div>`);
+  // Feedback: surface what's closest to popping off FIRST; unmet-needs
+  // counts are noise to a first-time visitor, so the strip drops them.
   for (const c of near.slice(0, 3)) attn.push(
     `<div class="att"><strong>${esc(c.possibility.title)}</strong><br>
 ${c.participants}/${c.possibility.minParticipants} ${tt('card.committed')} — ${c.possibility.minParticipants - c.participants} ${tt('card.more')}.
 <a href="/possibilities#${esc(c.possibility.id)}">${tt('att.card.cta')} →</a></div>`);
-  if (i.unmetNeeds) attn.push(
-    `<div class="att"><strong>${i.unmetNeeds} ${pl(i.unmetNeeds, 'att.unmet')}</strong><br>
-${tt('att.unmet.body')}
-<a href="/collaborate#needs">${tt('att.unmet.cta')} →</a></div>`);
+  if (i.proposedOverlaps) attn.push(
+    `<div class="att"><strong>${i.proposedOverlaps} ${pl(i.proposedOverlaps, 'att.overlap')}</strong><br>
+${tt('att.overlaps.body')}
+<a href="/collaborate#overlaps">${tt('att.overlaps.cta')} →</a></div>`);
   if (i.actionNodes.length) attn.push(
     `<div class="att"><strong>${i.actionNodes.length} ${pl(i.actionNodes.length, 'att.actions')}</strong><br>
 ${tt('att.actions.body')}
@@ -197,6 +199,21 @@ ${tt('att.actions.body')}
     <span><strong>${i.cards.length}</strong>${tt('hero.badge.open')}</span></a>
 </section>
 
+<section class="section how" id="how">
+  <div class="how-intro">
+    <span class="kicker light">${tt('how.kicker')}</span>
+    <h2>${tt('how.h2')} <em>${tt('how.h2.em')}</em></h2>
+    <p>${tt('how.copy')}</p>
+    <a href="/how-it-works">${tt('how.walkthrough')} →</a>
+  </div>
+  <div class="steps">
+    <div class="step"><span>01</span><div><h3>${tt('step.declare')}</h3><p>${tt('step.declare.body')}</p></div></div>
+    <div class="step"><span>02</span><div><h3>${tt('step.commit')}</h3><p>${tt('step.commit.body')}</p></div></div>
+    <div class="step"><span>03</span><div><h3>${tt('step.activate')}</h3><p>${tt('step.activate.body')}</p></div></div>
+    <div class="step"><span>04</span><div><h3>${tt('step.verify')}</h3><p>${tt('step.verify.body')}</p></div></div>
+  </div>
+</section>
+
 <div class="ticker" role="status" aria-label="${esc(tt('a11y.liveTicker'))}">
   <span class="ticker-label">${tt('ticker.label')}</span>
   <div class="ticker-track" id="ticker-track"
@@ -228,21 +245,6 @@ ${attn.length ? `<section class="attention"><h2>${tt('attention.title')}</h2>${a
       status: effectiveStatus(c.possibility), participants: c.participants,
       min: c.possibility.minParticipants || 0, deadline: c.possibility.deadline,
     }, { tt })).join('') || `<div class="empty-state">${tt('attention.none')}</div>`}
-  </div>
-</section>
-
-<section class="section how" id="how">
-  <div class="how-intro">
-    <span class="kicker light">${tt('how.kicker')}</span>
-    <h2>${tt('how.h2')} <em>${tt('how.h2.em')}</em></h2>
-    <p>${tt('how.copy')}</p>
-    <a href="/how-it-works">${tt('how.walkthrough')} →</a>
-  </div>
-  <div class="steps">
-    <div class="step"><span>01</span><div><h3>${tt('step.declare')}</h3><p>${tt('step.declare.body')}</p></div></div>
-    <div class="step"><span>02</span><div><h3>${tt('step.commit')}</h3><p>${tt('step.commit.body')}</p></div></div>
-    <div class="step"><span>03</span><div><h3>${tt('step.activate')}</h3><p>${tt('step.activate.body')}</p></div></div>
-    <div class="step"><span>04</span><div><h3>${tt('step.verify')}</h3><p>${tt('step.verify.body')}</p></div></div>
   </div>
 </section>
 

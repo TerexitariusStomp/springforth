@@ -204,23 +204,38 @@ const DECK_CSS = `
 .mutual-panel{max-width:78.125rem;margin:3rem auto 0;background:var(--sf-card);border:1px solid var(--sf-line-2);border-radius:12px;padding:1.625rem}
 .mutual-panel h3{font-family:var(--sf-serif);font-weight:400;font-size:24px;margin:0 0 .375rem}
 .mutual-panel ul{list-style:none;padding:0;font-size:13px}
+.feed-actions{display:none}
+@media(max-width:40rem){
+  .feed-mode .possibility-card .join-button{display:none}
+  .feed-mode .possibility-card .needs{display:none}
+  .deck-controls .search-field{display:none}
+  .feed-actions{display:flex;gap:.625rem;margin-top:.875rem}
+  .feed-actions a{flex:1;min-height:2.75rem;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:99px;font-size:13px;font-weight:800;text-decoration:none}
+  .feed-actions .feed-skip{color:var(--sf-muted);border:1px solid var(--sf-line)}
+  .feed-actions .feed-yes{background:var(--sf-coral);color:var(--sf-ink-fixed)}
+  .feed-actions .feed-yes:focus-visible,.feed-actions .feed-skip:focus-visible{outline:2px solid var(--sf-green-2);outline-offset:2px}
+}
 @media(max-width:45rem){.detail-panel{padding:1.625rem 1.125rem}}
 `;
 
 export function renderPossibilitiesPage(
   cards: PossibilityCard[], edges: TrustEdge[] = [], viewer?: string,
-  opts: { status?: string; lang?: Lang; connections?: Record<string, CardConnections> } = {},
+  opts: { status?: string; lang?: Lang; connections?: Record<string, CardConnections>; mine?: boolean } = {},
 ): string {
   const status = opts.status ?? '';
   const lang = opts.lang ?? 'en';
+  const mine = !!opts.mine;
   const tt = (k: string) => t(lang, k);
   const filtered = status ? cards.filter((c) => c.status === status) : cards;
-  const grid = filtered.map((c) => deckCard({
+  const keep = `${viewer ? `actor=${encodeURIComponent(viewer)}` : ''}${mine ? `${viewer ? '&' : ''}for=${encodeURIComponent(viewer ?? '')}` : ''}`;
+  const qp = (extra: string) => `?${[extra, keep].filter(Boolean).join('&')}`;
+  const grid = filtered.map((c, idx) => deckCard({
     id: c.id, title: c.title, place: c.place,
     status: c.status, participants: c.participantCount,
     min: c.minParticipants || 0, deadline: c.deadline,
     needs: c.needs.filter((n) => !n.met).slice(0, 3).map((n) => n.label),
-  }, { base: '', tt })).join('\n');
+  }, { base: '', tt, feed: { nextId: filtered[idx + 1]?.id } })).join('\n');
   const overlays = cards.map((c) => cardDetail(c, opts.connections?.[c.id], lang)).join('\n');
   const mutual = edges.filter((e) => e.mutual > 0).slice(0, 10)
     .map((e) => `<li>${displayName(e.from)} &harr; ${displayName(e.to)} — ${e.mutual} × ${esc(t(lang, 'deck.mutual.times'))}</li>`).join('');
@@ -231,20 +246,23 @@ export function renderPossibilitiesPage(
     <div><span class="kicker">${esc(tt('deck.kicker'))}</span>
       <h1>${esc(tt('deck.h1'))} <em>${esc(tt('deck.h1.em'))}</em></h1></div>
     <p>${esc(tt('deck.lede'))}
-    ${viewer ? `<br><em>${esc(tt('deck.sortingFor'))} ${esc(viewer)}</em>` : ''}</p>
+    ${viewer ? `<br><em>${esc(tt('deck.sortingFor'))} ${esc(viewer)}</em>` : ''}
+    ${mine && viewer ? `<br><strong>${esc(tt('deck.mine.banner'))}</strong> ${esc(tt('deck.mine.body'))}` : ''}</p>
   </div>
   <div class="deck-controls">
     <nav class="filters" aria-label="${esc(tt('a11y.deckFilter'))}">
       ${STATUS_FILTERS.map(([v, l]) =>
-        `<a href="/possibilities${v ? `?status=${v}` : ''}" class="${status === v ? 'active' : ''}"
+        `<a href="/possibilities${v ? qp(`status=${v}`) : (keep ? `?${keep}` : '')}" class="${status === v ? 'active' : ''}"
           ${status === v ? 'aria-current="true"' : ''}>${esc(tt(l))}</a>`).join('')}
+      ${viewer ? `<a href="/possibilities?actor=${encodeURIComponent(viewer)}${mine ? '' : `&for=${encodeURIComponent(viewer)}`}"
+        class="${mine ? 'active' : ''}" ${mine ? 'aria-current="true"' : ''}>${esc(tt(mine ? 'deck.mine.all' : 'deck.mine.show'))}</a>` : ''}
     </nav>
     <label class="search-field">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input id="deck-search" type="search" placeholder="${esc(tt('deck.search'))}" aria-label="${esc(tt('a11y.deckSearch'))}">
     </label>
   </div>
-  <div class="card-grid" id="card-grid">
+  <div class="card-grid feed-mode" id="card-grid">
     ${grid || `<div class="empty-state">${esc(tt('deck.empty'))} <a href="#declare">${esc(tt('deck.empty.cta'))}</a>.</div>`}
   </div>
   ${mutual ? `<div class="mutual-panel"><h3>${esc(t(lang, 'deck.mutual'))}</h3>

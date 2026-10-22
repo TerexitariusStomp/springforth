@@ -774,7 +774,8 @@ export default {
   },
   async handle(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
-    const seg = url.pathname.split('/').filter(Boolean);
+    const seg = url.pathname.split('/').filter(Boolean)
+      .map((s) => { try { return decodeURIComponent(s); } catch { return s; } });
     // Rate limit: 120 reads/min or 30 writes/min per (actor-ish key, route
     // family). Key = auth token tail, wallet header, or cf-connecting-ip.
     // /tg is exempt — bot webhook traffic isn't user spam.

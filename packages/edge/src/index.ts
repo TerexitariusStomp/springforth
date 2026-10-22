@@ -72,6 +72,7 @@ import { get, list, put, ledgerAppend, ledgerEvents, ledgerVerify } from './stor
 
 interface Env {
   DB: D1Database;
+  SELF?: Fetcher;               // service binding to this worker — /all inlining
   ADMIN_TOKEN?: string;
   OPENAQ_API_KEY?: string;     // free registration — explore.openaq.org
   TITILER_URL?: string;
@@ -1057,7 +1058,8 @@ export default {
         return new Response(renderTourPage(), { headers: { 'content-type': 'text/html' } });
       // Every surface on one scrollable page — review mode.
       if (seg[0] === 'all' && req.method === 'GET')
-        return new Response(renderAllPage(), { headers: { 'content-type': 'text/html' } });
+        return new Response(await renderAllPage(env.SELF ?? { fetch }, url.origin),
+          { headers: { 'content-type': 'text/html' } });
       // Recurring support streams — top-level list; round-scoped view
       // also exists at /rounds/:id/stream.
       if (seg[0] === 'streams' && req.method === 'GET') {

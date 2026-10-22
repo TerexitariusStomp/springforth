@@ -10,6 +10,13 @@ database_name = "springforth-coord"
 database_id = "bddc2d20-4ebf-4bae-a7d2-12315badfb6d"
 migrations_dir = "migrations"
 
+# Self service-binding — lets /all inline every surface via env.SELF.fetch
+# (plain fetch() to our own URL fails with CF error 1042).
+[[services]]
+binding = "SELF"
+service = "springforth"
+environment = "production"
+
 [vars]
 ENVIRONMENT = "production"
 # Chain lane: read-side + unsigned-calldata only — the worker never signs.

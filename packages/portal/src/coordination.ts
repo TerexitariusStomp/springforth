@@ -94,7 +94,7 @@ function card(rec: OverlapRecord, byId: Map<string, PlanNode>, signals: Signal[]
     : '';
   return `<div class="card">
 <h3>${heading}</h3>
-<p><span class="badge" style="background:${KIND_COLOR[rec.kind] ?? 'var(--sf-line)'};color:var(--sf-ink)">${esc(rec.kind)}</span> <span class="badge">${esc(rec.status)}</span>
+<p><span class="badge" style="background:${KIND_COLOR[rec.kind] ?? 'var(--sf-line)'};color:var(--sf-ink-fixed)">${esc(rec.kind)}</span> <span class="badge">${esc(rec.status)}</span>
 <span class="badge">strength ${pct(tri.strength)}</span>
 <span class="badge">materiality ${tri.materiality !== undefined ? pct(tri.materiality) : '—'}</span>
 <span class="badge">readiness ${pct(tri.readiness)}</span>

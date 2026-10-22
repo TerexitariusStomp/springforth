@@ -1,7 +1,7 @@
 // Minimal i18n — a flat strings table keyed by (lang, key). English is
 // the fallback: any missing key renders English, so adding a locale is
 // incremental. Swahili (sw) ships first — Kenya field deployment.
-export type Lang = 'en' | 'sw';
+export type Lang = 'en' | 'sw' | 'fr';
 
 const STRINGS: Record<Lang, Record<string, string>> = {
   en: {
@@ -194,14 +194,109 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'deck.count.open': 'wazi',
     'deck.count.quorum': 'zimefika kiwango',
   },
+  fr: {
+    tagline: 'Coordonner d\u2019abord.',
+    hero: 'Chacun d\u00e9clare ce qu\u2019il veut faire advenir ; la communaut\u00e9 offre ce qu\u2019elle a d\u00e9j\u00e0 — outils, heures, comp\u00e9tences, espaces. Quand assez de monde s\u2019engage, la coordination s\u2019active. Et avant que quiconque ne duplique le travail, la couche de recoupement montre qui poursuit d\u00e9j\u00e0 le m\u00eame r\u00e9sultat.',
+    'step.declare': 'D\u00e9clarer',
+    'step.declare.body': '\u00ab Je veux\u2026 \u00bb avec ce que vous apportez, ce dont vous avez besoin, un quorum et une date limite.',
+    'step.commit': 'S\u2019engager',
+    'step.commit.body': 'D\u2019autres adh\u00e8rent et promettent des ressources. La couche de coordination fait d\u2019abord correspondre les besoins aux offres existantes.',
+    'step.activate': 'Activer',
+    'step.activate.body': 'Au quorum, l\u2019engagement devient contraignant — tandis que les r\u00e9sultats r\u00e9v\u00e8lent qui travaille d\u00e9j\u00e0 sur la m\u00eame chose.',
+    'step.verify': 'V\u00e9rifier',
+    'step.verify.body': 'Les lectures d\u2019\u00e9vidence ouverte et la gratitude post-\u00e9v\u00e9nement bouclent la boucle — la confiance se cumule vers la prochaine d\u00e9claration.',
+    'attention.title': 'Ce qui demande attention',
+    'attention.none': 'Rien en attente — d\u00e9clarez une possibilit\u00e9 pour lancer la boucle.',
+    'cards.title': 'Cartes de possibilit\u00e9',
+    'explore.title': 'Explorer le graphe',
+    'nav.portfolio': 'Portefeuille', 'nav.outcomes': 'R\u00e9sultats',
+    'nav.coordination': 'Coordination', 'nav.commitments': 'Engagements',
+    'nav.verify': 'V\u00e9rifier', 'nav.rounds': 'Cycles de financement',
+    'nav.governance': 'Gouvernance', 'nav.datasets': 'Jeux de donn\u00e9es',
+    'nav.possibilities': 'Cartes', 'nav.ledger': 'registre d\u2019audit',
+    'eyebrow': 'En direct · la communaut\u00e9 de coordination',
+    'hero.h1.pre': 'De belles choses arrivent quand on',
+    'hero.h1.em': 'avance ensemble.',
+    'hero.copy': 'D\u00e9clarez ce que vous voulez faire advenir. Trouvez les personnes et les ressources d\u00e9j\u00e0 autour de vous. Quand nous sommes assez \u00e0 nous engager, nous passons \u00e0 l\u2019action.',
+    'hero.cta.deck': 'Explorer les cartes',
+    'hero.cta.how': 'Comment \u00e7a marche',
+    'hero.trust': 'personnes coordonn\u00e9es dans',
+    'hero.trust.places': 'lieux',
+    'hero.orbit.closes': 'cl\u00f4ture dans',
+    'hero.orbit.more': '\u00e0 rallier',
+    'hero.orbit.join': 'Les rejoindre',
+    'hero.orbit.nearest': 'Au plus pr\u00e8s du quorum',
+    'hero.orbit.building': 'En cours',
+    'hero.badge.actions': 'actions accomplies',
+    'hero.badge.open': 'cartes de possibilit\u00e9 actives',
+    'ticker.label': 'Activit\u00e9 en direct',
+    'deck.kicker': 'Possibilit\u00e9s',
+    'deck.h2': 'Ce qui se d\u00e9clare',
+    'deck.h2.em': 'en ce moment',
+    'deck.copy': 'Chaque carte est une vraie fen\u00eatre d\u2019engagement — rejoignez-en une qui se construit, ou d\u00e9clarez la chose que vous seul pouvez lancer.',
+    'deck.all': 'Toutes',
+    'deck.building': 'En cours',
+    'deck.quorum': 'Quorum atteint',
+    'deck.completed': 'Accomplies',
+    'how.kicker': 'Comment \u00e7a marche',
+    'how.h2': 'D\u00e9clarer. Rassembler. Activer.',
+    'how.h2.em': 'V\u00e9rifier.',
+    'how.copy': 'Une possibilit\u00e9 est une promesse avec un quorum. Les engagements deviennent contraignants quand assez de monde adh\u00e8re — et l\u2019\u00e9vidence ouverte boucle la boucle.',
+    'how.api': 'Lire la doc API',
+    'impact.kicker': 'Jusqu\u2019ici',
+    'impact.h2': 'La coordination,',
+    'impact.h2.em': 'mesur\u00e9e.',
+    'impact.copy': 'Chaque chiffre ici provient du registre en direct — d\u00e9clar\u00e9, jamais invent\u00e9. Heures, accomplissements et taux de quorum se mettent \u00e0 jour au fil des engagements.',
+    'impact.point.1': 'Chaque d\u00e9cision publique sur le registre d\u2019audit',
+    'impact.point.2': 'Le quorum lie de vrais engagements, pas des intentions',
+    'impact.point.3': 'Comptabilit\u00e9 de valeur : d\u00e9clar\u00e9 vs estim\u00e9, toujours \u00e9tiquet\u00e9',
+    'impact.panel': 'Coordonn\u00e9 jusqu\u2019ici',
+    'impact.hours': 'heures promises d\u00e9clar\u00e9es',
+    'impact.actions': 'actions accomplies',
+    'impact.cards': 'cartes de possibilit\u00e9',
+    'impact.quorum': 'ont atteint le quorum',
+    'cta.kicker': '\u00c0 vous',
+    'cta.h2.pre': 'Que pourrait-il se passer si vous la',
+    'cta.h2.em': 'd\u00e9clariez\u00a0?',
+    'cta.copy': 'La prochaine carte de cette page pourrait \u00eatre la v\u00f4tre.',
+    'cta.button': 'Lancer une possibilit\u00e9',
+    'card.toQuorum': 'du quorum',
+    'card.committed': 'engag\u00e9s',
+    'card.goal': 'objectif',
+    'card.left': 'restant',
+    'card.needs': 'Besoins',
+    'card.more': '\u00e0 rallier pour activer',
+    'card.atQuorum': 'Quorum atteint',
+    'card.see': 'Voir la carte',
+    'card.anywhere': 'partout',
+    'card.overdue': 'en retard',
+    'orbit.in': 'dedans',
+    'ticker.empty': 'Le registre est calme — d\u00e9clarez une possibilit\u00e9 pour commencer.',
+    'att.overlap.one': 'recoupement \u00e0 examiner',
+    'att.overlap.many': 'recoupements \u00e0 examiner',
+    'att.overlaps.body': 'Signal\u00e9 par la machine sur les plans import\u00e9s — les humains d\u00e9cident.',
+    'att.overlaps.cta': 'examiner l\u2019\u00e9vidence',
+    'att.card.cta': 'rejoindre cette carte',
+    'att.unmet.one': 'besoin non couvert',
+    'att.unmet.many': 'besoins non couverts',
+    'att.unmet.body': 'Rien dans la communaut\u00e9 ne les couvre encore.',
+    'att.unmet.cta': 'voir la file',
+    'att.actions.one': 'action d\u00e9j\u00e0 en cours',
+    'att.actions.many': 'actions d\u00e9j\u00e0 en cours',
+    'att.actions.body': 'Du travail r\u00e9el issu des plans import\u00e9s et des relev\u00e9s de terrain.',
+    'att.actions.cta': 'voir qui poursuit quoi',
+    'deck.count.cards': 'cartes',
+    'deck.count.open': 'ouvertes',
+    'deck.count.quorum': 'au quorum',
+  },
 };
 
 export const LANGS: Lang[] = ['en', 'sw'];
 
 export const langFrom = (url: URL, cookie?: string | null): Lang => {
   const q = url.searchParams.get('lang');
-  if (q === 'sw' || q === 'en') return q;
-  const c = cookie?.match(/(?:^|;\s*)lang=(sw|en)/)?.[1];
+  if (q === 'sw' || q === 'en' || q === 'fr') return q;
+  const c = cookie?.match(/(?:^|;\s*)lang=(sw|en|fr)/)?.[1];
   return (c as Lang) ?? 'en';
 };
 

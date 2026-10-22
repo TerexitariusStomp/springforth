@@ -1945,6 +1945,23 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
         const vec = eigenTrust(edges);
         const mean = Object.values(vec).length
           ? Object.values(vec).reduce((a, b) => a + b, 0) / Object.values(vec).length : 0;
+        if (id && (req.headers.get('accept') ?? '').includes('text/html')) {
+          const [wallets, donations] = await Promise.all([
+            list<ActorWallet>(env.DB, 'actor-wallet'), list<Donation>(env.DB, 'donation'),
+          ]);
+          return new Response(renderActorProfile({
+            actor: id,
+            created: poss.filter((p) => p.declarerId === id).length,
+            joined: parts.filter((x) => x.actor === id).length,
+            appreciatedBy: apps.filter((a) => a.toActor === id).length,
+            appreciated: apps.filter((a) => a.fromActor === id).length,
+            earned: earnedRecognition(edges, credits)[id] ?? 0,
+            assuranceCredits: credits.filter((c) => c.actor === id).length,
+            trustScore: mean > 0 ? +((vec[id] ?? 0) / mean).toFixed(4) : 0,
+            wallets: wallets.filter((w) => w.actor === id),
+            donations: donations.filter((d) => d.donor === id),
+          }), { headers: { 'content-type': 'text/html' } });
+        }
         return json({
           id,
           created: poss.filter((p) => p.declarerId === id).length,

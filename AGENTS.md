@@ -36,6 +36,7 @@ Slop-detect (`slop <url> --json`, globally installed) is a supplementary anti-ge
 - All pages share `pageShell()` + `SF_CSS` from `packages/portal/src/theme.ts` — change tokens/shared classes there, not per-page styles.
 - HTMX vendored at `/vendor/htmx.js`; every interactive feature must degrade to plain links/forms without JS.
 - Landing/deck data is always live — never hardcode stats.
+- Dark mode follows `prefers-color-scheme` via token remap in theme.ts — components must consume `--sf-*` vars so both modes work; `--sf-ink-fixed`/`--sf-pale` are the never-flip tokens for text on always-light (lime/coral/pale) or always-dark accents.
 - `POST /possibilities` accepts form-encoded bodies and 303-redirects to the new card's deep link.
 - `/all` splices page bodies server-side via a `SELF` service binding (Cloudflare blocks plain self-fetch, error 1042).
 

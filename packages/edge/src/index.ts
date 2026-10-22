@@ -29,7 +29,7 @@ import {
   renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
   renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
   renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, renderAllPage, langFrom,
-  tickerLines, tickerHtml,
+  tickerLines, tickerHtml, pageShell,
 } from '@springforth/portal';
 import { PICO_CSS, HTMX_JS } from './vendor.js';
 import {
@@ -599,21 +599,16 @@ function renderVerifyPage(checks: (OracleCheck & { nodeId?: string })[], nodes: 
       + `<td>${esc(c.source)}</td><td>${esc(target)}</td><td>${esc(c.detail)}</td>`
       + `<td class="muted">${esc(c.at.slice(0, 16).replace('T', ' '))}</td></tr>`;
   }).join('\n');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Verify — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-.badge{padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
-.muted{color:#666}</style></head><body>
+  return pageShell({ title: 'Verify — Springforth', htmx: false }, `<div class="page">
 <h1>Open-evidence readings</h1>
-<p>Independent public sources scored per reading — remote sensing, sensors,
+<p class="lede">Independent public sources scored per reading — remote sensing, sensors,
 field evidence, biodiversity records. A reading is evidence for review,
-not proof: human validation stays authoritative. <a href="/">home</a> ·
+not proof: human validation stays authoritative.
 <a href="/sources">source registry (JSON)</a></p>
 <table><tr><th>Result</th><th>Source</th><th>Target</th><th>Detail</th><th>At</th></tr>
 ${rows || '<tr><td colspan="5"><em>No readings yet — POST /oracle/run after seeding geo-located nodes.</em></td></tr>'}</table>
-<footer><small>Springforth — generated ${new Date().toISOString()}</small></footer>
-</body></html>`;
+<p class="muted">generated ${new Date().toISOString()}</p>
+</div>`);
 }
 
 // ── Phase H: CORS allowlist + sliding-window rate limit ────────────
@@ -774,11 +769,11 @@ export default {
         }));
         if ((req.headers.get('accept') ?? '').includes('text/html')) {
           const tr = rows.map((s) => `<tr><td><code>${s.key}</code></td><td>${s.name}</td><td>${s.license}</td><td>${s.configured ? '✅ live' : `key-gated (<code>${s.needs}</code>)`}</td><td>${s.lastFetch ?? '—'}</td></tr>`).join('');
-          return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data sources — Springforth</title><style>body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:.45rem .6rem;text-align:left;font-size:.92rem}th{background:#f4f6f4}code{background:#eef;padding:.1em .35em;border-radius:.25em}</style></head><body>
+          return new Response(pageShell({ title: 'Data sources — Springforth', htmx: false }, `<div class="page">
 <h1>Evidence + context sources</h1>
-<p>Oracle readers run hourly per h3-located action node; context connectors attach as "Verified context" on possibility cards. Selection follows the hackathon-endorsed ranking — full matrix in <a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/DATA-SOURCES.md">DATA-SOURCES.md</a>. Key-gated lanes activate when their env secret lands.</p>
+<p class="lede">Oracle readers run hourly per h3-located action node; context connectors attach as "Verified context" on possibility cards. Selection follows the hackathon-endorsed ranking — full matrix in <a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/DATA-SOURCES.md">DATA-SOURCES.md</a>. Key-gated lanes activate when their env secret lands.</p>
 <table><tr><th>key</th><th>source</th><th>license</th><th>state</th><th>last fetch</th></tr>${tr}</table>
-<p><a href="/">home</a> · <a href="/tour">judge tour</a></p></body></html>`, { headers: { 'content-type': 'text/html' } });
+<p class="muted"><a href="/tour">judge tour</a></p></div>`), { headers: { 'content-type': 'text/html' } });
         }
         return json({ sources: rows });
       }
@@ -1094,14 +1089,9 @@ export default {
         const streams = await list<RecurringSupport>(env.DB, 'recurring-support');
         const yieldStreams = await list<YieldStream>(env.DB, 'yieldstream');
         if ((req.headers.get('accept') ?? '').includes('text/html'))
-          return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Streams — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
-.muted{color:#666}.badge{padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem;background:#dfe}</style></head><body>
+          return new Response(pageShell({ title: 'Streams — Springforth', htmx: false }, `<div class="page">
 <h1>Recurring support</h1>
-<p>Superfluid CFA streams on Celo — continuous backing that accrues into
+<p class="lede">Superfluid CFA streams on Celo — continuous backing that accrues into
 donation records hourly (need-targeted) or into the round's matching fund
 (untargeted). Sponsors sign the flow in their own wallet; nothing custodies.</p>
 <table><tr><th>Stream</th><th>Round</th><th>Accrued</th><th>Status</th></tr>
@@ -1110,7 +1100,7 @@ ${streams.map((s) => `<tr><td>${s.id}</td><td>${s.roundId}</td>
   || '<tr><td colspan="4"><em>No streams yet — POST /rounds/:id/stream returns unsigned createFlow calldata for a wallet to sign.</em></td></tr>'}
 ${yieldStreams.map((s) => `<tr><td>${s.id} (yield)</td><td>${s.roundId}</td>
 <td>sponsor aToken position</td><td><span class="badge">${s.state}</span></td></tr>`).join('')}
-</table><footer><small>Springforth — <a href="/">home</a></small></footer></body></html>`,
+</table></div>`),
             { headers: { 'content-type': 'text/html' } });
         return json({ streams, yieldStreams });
       }
@@ -1125,14 +1115,9 @@ ${yieldStreams.map((s) => `<tr><td>${s.id} (yield)</td><td>${s.roundId}</td>
           const available = Object.fromEntries(
             Object.entries(DATASET_SOURCES).map(([k, v]) => [k, v.describe]));
           if ((req.headers.get('accept') ?? '').includes('text/html'))
-            return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Datasets — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
-.muted{color:#666}code{background:#f4f4f4;padding:.1rem .3rem;border-radius:.2rem}</style></head><body>
+            return new Response(pageShell({ title: 'Datasets — Springforth', htmx: false }, `<div class="page">
 <h1>Signed dataset releases</h1>
-<p>Frozen graph slices — sha256-manifested, OpenTimestamps-anchored, IPFS-
+<p class="lede">Frozen graph slices — sha256-manifested, OpenTimestamps-anchored, IPFS-
 pinnable. Aggregates are public; premium raw feeds move through
 payment-referenced access grants. This is the data-revenue lane.</p>
 <h2>Releases</h2>
@@ -1146,8 +1131,7 @@ ${releases.map((r) => `<tr><td>${r.name}</td><td>${r.records}</td>
 <h2>Available slices</h2>
 <table><tr><th>Name</th><th>Contents</th></tr>
 ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>${v}</td></tr>`).join('')}
-</table>
-<footer><small>Springforth — <a href="/">home</a></small></footer></body></html>`,
+</table></div>`),
               { headers: { 'content-type': 'text/html' } });
           return json({ releases, available });
         }

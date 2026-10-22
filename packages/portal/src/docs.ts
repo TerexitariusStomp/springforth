@@ -1,5 +1,7 @@
 // Rendered API docs — a readable route table grouped by family so a
 // judge sees documentation, not a JSON wall. Raw spec stays at /docs.json.
+import { pageShell } from './theme.ts';
+
 interface PathEntry { summary?: string }
 
 const esc = (s: string) =>
@@ -35,20 +37,16 @@ export function renderDocsPage(paths: Record<string, Record<string, PathEntry>>)
 <table>${rows.sort((a, b) => a[1].localeCompare(b[1])).map(([m, p, s]) =>
     `<tr><td><code class="m">${m}</code></td><td><code>${esc(p)}</code></td>
 <td class="muted">${esc(s)}</td></tr>`).join('')}</table>`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>API — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;overflow-x:auto}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.4rem;text-align:left;font-size:.88rem;vertical-align:top}
-.muted{color:#555}code{background:#f4f4f4;padding:.1rem .3rem;border-radius:.2rem;font-size:.82rem}
-.m{background:#e6f4ea;font-weight:600}h2{margin-top:1.8rem}</style></head><body>
+  return pageShell({ title: 'API — Springforth', htmx: false,
+    extraCss: `.m{background:rgba(200,243,109,.35);font-weight:700;border-radius:.25em}
+.page td{vertical-align:top}` }, `<div class="page">
 <h1>Springforth API</h1>
-<p>Every surface below is live. Non-custodial: chain endpoints return
+<p class="lede">Every surface below is live. Non-custodial: chain endpoints return
 unsigned calldata — wallets sign. Admin routes take
 <code>authorization: Bearer &lt;token&gt;</code>. Raw OpenAPI 3.1:
 <a href="/docs.json">/docs.json</a> · typed client:
 <code>@springforth/client</code>.</p>
 ${[...groups.entries()].map(([g, rows]) => section(g, rows)).join('')}
 ${misc.length ? section('Other', misc) : ''}
-<footer><small>Springforth — <a href="/">home</a></small></footer></body></html>`;
+</div>`);
 }

@@ -1,21 +1,14 @@
 import type { Attestation, ImpactClaim } from '@springforth/core';
 import { walletScript } from './wallet.ts';
-import { footer } from './nav.ts';
+import { pageShell } from './theme.ts';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const shell = (title: string, body: string) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:56rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.45rem;text-align:left;font-size:.92rem}
-.muted{color:#666}code{background:#f4f4f4;padding:.1rem .3rem;word-break:break-all}
-button{font:inherit;padding:.4rem .8rem;cursor:pointer}button.done{background:#cfe9cf}
-.badge{padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem;background:#dfe}</style></head><body>
-${body}
-${footer()}
-</body></html>`;
+const shell = (title: string, body: string) =>
+  pageShell({ title: `${title} — Springforth`, htmx: false,
+    extraCss: `.page code{word-break:break-all}.page button.done{background:#cfe9cf}` },
+    `<div class="page">${body}</div>`);
 
 // Claim page — the claim, its attestations, and signer-facing publish
 // buttons. Each button carries data-tx-build pointing at the calldata

@@ -228,6 +228,24 @@ footer>span{text-align:right;line-height:1.7}
 .badge.gold{background:rgba(228,179,77,.22);color:#6e5414}
 .badge.blue{background:rgba(121,174,187,.22);color:#2f5c67}
 .muted{color:#7c877f;font-size:12px}
+.page .card{background:#fff;border:1px solid var(--sf-line-2);border-radius:12px;padding:1.2rem;margin:1rem 0;box-shadow:0 8px 25px rgba(34,53,42,.04)}
+.page .card h3{font-family:var(--sf-serif);font-weight:400;font-size:22px;margin:.2rem 0 .6rem;color:#18382b}
+.page .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+.page .val input{padding:.5rem .7rem;flex:1;min-width:8rem}
+.page .val select{padding:.5rem}
+.page details{margin:.4rem 0}
+.page summary{cursor:pointer;font-weight:700;font-size:13px}
+.page .res{background:rgba(200,243,109,.25);padding:.55rem .75rem;border-radius:.5rem;font-size:13px}
+.page .dir{color:#4a7a4a;font-size:.85rem;font-style:italic}
+.page .meta{font-size:.8rem;color:#777}
+.page .req{color:#a33;font-size:.8rem}
+.page .nice{color:#888;font-size:.8rem}
+.page .met{color:#4a7a4a;font-size:.8rem}
+.page .bar{background:#edf0ea;border-radius:99px;min-height:6px;margin:.4rem 0;overflow:hidden;padding:.15rem .5rem;display:inline-block}
+.page .fill{background:var(--sf-lime);height:100%}
+.page tr.con td{background:#fdecea;color:#7a2828}
+.page blockquote{border-left:3px solid var(--sf-line);margin:.5rem 0;padding:.2rem 1rem;color:#555}
+.page code{background:var(--sf-cream-3);padding:.1em .35em;border-radius:.25em;font-size:.9em}
 .stat-row{display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0}
 .stat-chip{background:#fff;border:1px solid var(--sf-line-2);border-radius:10px;padding:.8rem 1.1rem;font-size:12px;min-width:9rem}
 .stat-chip strong{display:block;font-size:20px;font-family:var(--sf-serif);font-weight:400;color:#18382b}

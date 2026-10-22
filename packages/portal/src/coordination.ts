@@ -1,6 +1,6 @@
 import { isNeed, triScore, type OverlapRecord, type PlanNode } from '@springforth/coordination';
 import type { Signal } from '@springforth/core';
-import { footer } from './nav.ts';
+import { pageShell } from './theme.ts';
 
 // /coordination — public overlap report page. Same constraints as the rest
 // of the portal: one self-contained HTML file, no JS framework, no tracker.
@@ -157,20 +157,7 @@ export function renderCoordinationPage(
 <td>${esc(n.label)}</td><td>${esc(n.orgIds.join(', ') || '—')}</td>
 <td>${esc(n.timeframe.from ?? '—')}${n.timeframe.to ? ` → ${esc(n.timeframe.to)}` : ''}</td>
 <td>${esc(n.source)}${n.kind === 'action' ? ' (inferred)' : ''}</td></tr>`).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coordination — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-table{border-collapse:collapse;width:100%;margin:.5rem 0}td,th{border:1px solid #ddd;padding:.4rem;text-align:left;font-size:.85rem}
-.badge{background:#e6f4ea;padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem}
-.card{border:1px solid #ddd;border-radius:.5rem;padding:1rem;margin:1rem 0}
-.val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
-.val input{padding:.3rem;flex:1;min-width:8rem}.val button{padding:.35rem .8rem;cursor:pointer}
-.val select{padding:.3rem}
-tr.con td{background:#fdecea;color:#7a2828}
-.res{background:#e6f4ea;padding:.4rem;border-radius:.25rem}
-.dir{color:#4a7a4a;font-size:.8rem;font-style:italic}
-details{margin:.4rem 0}summary{cursor:pointer}</style></head><body>
+  return pageShell({ title: 'Coordination — Springforth', htmx: false }, `<div class="page">
 <h1>Coordination layer</h1>
 <p>Overlaps detected across ${new Set(nodes.map((n) => n.source)).size} plan sources —
 ${nodes.length} nodes scanned. Machine flags, humans decide: no merge happens
@@ -197,6 +184,5 @@ ${unmetRows ? `<table><tr><th>Need</th><th>Owner</th><th>Deadline</th><th>Source
   : '<p><em>Every declared need has a confirmed offer.</em></p>'}
 ${unmet.some((n) => n.capital === 'living')
   ? `<p class="dir">External lane: verified plantings can be sponsored directly on <a href="https://world.treegens.app">Treegens Earth</a> — filmed, AI-counted records.</p>` : ''}
-${footer()}
-</body></html>`;
+</div>`);
 }

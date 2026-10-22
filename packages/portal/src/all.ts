@@ -1,8 +1,9 @@
-import { footer } from './nav.ts';
+import { pageShell } from './theme.ts';
 
 // /all — every surface inlined on one scrollable page (review mode).
 // Server-side fetches each real route and splices its body content into a
 // section — no duplicated render logic, always current, one scroll.
+// Sections render without their own topbar/footer so nothing nests chrome.
 
 const SECTIONS: [string, string][] = [
   ['Home — landing', '/'],
@@ -14,7 +15,7 @@ const SECTIONS: [string, string][] = [
   ['Governance', '/governance'],
   ['Datasets', '/datasets'],
   ['Streams', '/streams'],
-  ['Trust graph', '/trust'],
+  ['Trust graph (JSON)', '/trust'],
   ['Tour — judge self-serve', '/tour'],
   ['API docs', '/docs'],
   ['Verify — open-evidence readings', '/verify'],
@@ -25,20 +26,27 @@ const SECTIONS: [string, string][] = [
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-// Extract a route's styles + body inner HTML, minus its own nav footer —
-// keeps each page's table/badge styling inside its section.
-function splice(html: string): string {
+// Extract a route's styles + body inner HTML, minus its chrome — topbar,
+// skip link, main wrapper, footer, scripts. Page-specific <style> blocks
+// ride along; the shared SF_CSS is deduped at the page level (the /all
+// shell already includes it once).
+function splice(html: string): { styles: string[]; inner: string } {
   const styles = html.match(/<style[^>]*>[\s\S]*?<\/style>/g) ?? [];
   const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? html;
   const inner = body
+    .replace(/<a class="skip-link"[\s\S]*?<\/a>/gi, '')
+    .replace(/<header class="topbar">[\s\S]*?<\/header>/gi, '')
     .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '');
-  return styles.join('\n') + inner;
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<main[^>]*>/gi, '')
+    .replace(/<\/main>/gi, '');
+  return { styles, inner };
 }
 
 export async function renderAllPage(
   fetcher: { fetch: typeof fetch }, origin: string,
 ): Promise<string> {
+  const seenCss = new Set<string>();
   const parts = await Promise.all(SECTIONS.map(async ([title, path]) => {
     try {
       const r = await fetcher.fetch(origin + path);
@@ -47,7 +55,12 @@ export async function renderAllPage(
         const pretty = esc(JSON.stringify(await r.json(), null, 2));
         return { title, path, html: `<pre>${pretty}</pre>` };
       }
-      return { title, path, html: splice(await r.text()) };
+      const { styles, inner } = splice(await r.text());
+      // First copy of each unique stylesheet wins — the shared SF_CSS lands
+      // once; page-specific extras (deck overlays, tour stops) still ship.
+      const fresh = styles.filter((s) => !seenCss.has(s));
+      for (const s of fresh) seenCss.add(s);
+      return { title, path, html: fresh.join('\n') + inner };
     } catch (e) {
       return { title, path, html: `<p><em>failed to load: ${esc(String(e))}</em></p>` };
     }
@@ -58,21 +71,21 @@ export async function renderAllPage(
 <h2>${i + 1}. ${p.title} <small><a href="${p.path}" target="_blank">open ${p.path} ↗</a></small></h2>
 <div class="sec-body">${p.html}</div>
 </section>`).join('\n');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>All surfaces — Springforth</title>
-<style>
+  return pageShell({
+    title: 'All surfaces — Springforth', htmx: false,
+    extraCss: `
 html,body{overflow-x:hidden}
-body{font-family:system-ui,sans-serif;max-width:80rem;margin:1.5rem auto;padding:0 1rem;color:#1a1a1a}
-h1{margin-bottom:.2rem}h2{font-size:1rem;margin:2rem 0 .4rem}
-section{border-top:2px solid #ddd;padding-top:.5rem}
+.allwrap{max-width:80rem;margin:0 auto;padding:1.5rem 1rem}
+.allwrap h1{font-family:var(--sf-serif);font-weight:400;font-size:44px;margin-bottom:.2rem}
+.allwrap h2{font-size:15px;margin:2rem 0 .4rem;font-family:var(--sf-sans)}
+.allwrap section{border-top:2px solid var(--sf-line);padding-top:.5rem}
+.allwrap .toc{font-size:12px;line-height:2}
 .sec-body{overflow-x:auto}   /* wide tables scroll inside their section only */
 .sec-body pre{white-space:pre-wrap}
-small{font-weight:normal;font-size:.8rem}
-</style></head><body>
+.allwrap small{font-weight:normal;font-size:.8rem}`,
+  }, `<div class="allwrap">
 <h1>All surfaces</h1>
 <p class="toc">${toc}</p>
 ${secs}
-${footer()}
-</body></html>`;
+</div>`);
 }

@@ -1,6 +1,8 @@
 // Judge tour — the self-serve demo path. Numbered stops, each with what
 // to notice and which judging criterion it proves. Doubles as presenter
 // checklist for the live pitch.
+import { pageShell } from './theme.ts';
+
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -53,18 +55,18 @@ export function renderTourPage(): string {
 <div><a href="${s.href}">${esc(s.title)}</a>
 <p>${esc(s.notice)}</p>
 <small class="muted">proves: ${esc(s.proves)}</small></div></div>`).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Judge tour — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-.stop{display:flex;gap:1rem;border:1px solid #ddd;border-left:5px solid #4a7a4a;border-radius:.4rem;padding:.8rem;margin:.7rem 0}
-.n{font-size:1.6rem;font-weight:700;color:#4a7a4a;min-width:1.8rem}
-p{margin:.3rem 0}.muted{color:#555}a{color:#2d6a2d}</style></head><body>
+  return pageShell({ title: 'Judge tour — Springforth', htmx: false,
+    extraCss: `.page{max-width:48rem}
+.stop{display:flex;gap:1rem;border:1px solid var(--sf-line-2);border-left:5px solid var(--sf-sage);border-radius:.6rem;padding:.9rem;margin:.7rem 0;background:#fff}
+.n{font-size:1.6rem;font-weight:700;color:var(--sf-sage);min-width:1.8rem;font-family:var(--sf-serif)}
+.stop p{margin:.3rem 0;font-size:13px;color:#5a6a60}
+.stop a{color:var(--sf-ink-2);font-weight:700;text-decoration:none}
+.stop a:hover{color:var(--sf-coral-a11y)}` }, `<div class="page">
 <h1>The tour — ~5 minutes</h1>
-<p>Springforth answers PS1: overlapping plans in different systems get
+<p class="lede">Springforth answers PS1: overlapping plans in different systems get
 deduplicated into coordinated, funded action. Each stop is live — click
 through in order.</p>
 ${rows}
-<footer><small>Springforth — PS1 Collaboration Reverse · Team Two ·
-<a href="/">home</a></small></footer></body></html>`;
+<p class="muted">Springforth — PS1 Collaboration Reverse · Team Two</p>
+</div>`);
 }

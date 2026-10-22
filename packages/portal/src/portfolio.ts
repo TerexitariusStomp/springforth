@@ -1,5 +1,5 @@
 import { isNeed, triScore, type ExternalPlan, type OverlapRecord, type PlanNode } from '@springforth/coordination';
-import { footer } from './nav.ts';
+import { pageShell } from './theme.ts';
 
 // /portfolio — the plan portfolio made navigable (overlap-report spec):
 // plans as comparable objects — themes, geographies, funding asks, data
@@ -81,16 +81,9 @@ export function renderPortfolioPage(
 
   const needs = nodes.filter(isNeed);
   const offers = nodes.filter((n) => n.kind === 'offer');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Portfolio — Springforth</title>
-<style>body{font-family:system-ui,sans-serif;overflow-x:auto;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}
-table{border-collapse:collapse;width:100%;margin:.5rem 0}td,th{border:1px solid #ddd;padding:.4rem;text-align:left;font-size:.85rem}
-.badge{background:#e6f4ea;padding:.2rem .5rem;border-radius:.25rem;font-size:.85rem}
-.card{border:1px solid #ddd;border-radius:.5rem;padding:1rem;margin:1rem 0}
-h2{margin-top:2rem}</style></head><body>
+  return pageShell({ title: 'Portfolio — Springforth', htmx: false }, `<div class="page">
 <h1>Plan portfolio</h1>
-<p>${plans.length} plans · ${nodes.length} nodes · ${recs.length} overlap records ·
+<p class="lede">${plans.length} plans · ${nodes.length} nodes · ${recs.length} overlap records ·
 ${needs.length} needs · ${offers.length} offers.
 <a href="/">home</a> · <a href="/coordination">coordination</a> · <a href="/outcomes">outcomes</a></p>
 <h2>Plans</h2>
@@ -100,6 +93,5 @@ ${planRows || '<tr><td colspan="5"><em>No plans imported yet.</em></td></tr>'}</
 <p>Groups of nodes the resolver flagged as related — each cluster is a
 coordination opportunity or a deduplication decision awaiting review.</p>
 ${clusterCards || '<p><em>No clusters yet — run <code>POST /overlaps/detect</code>.</em></p>'}
-${footer()}
-</body></html>`;
+</div>`);
 }

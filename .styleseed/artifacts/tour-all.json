@@ -3,7 +3,7 @@
   "id": "tour-all",
   "target": {
     "kind": "route",
-    "locator": "/tour"
+    "locator": "/how-it-works"
   },
   "selection": {
     "grammar": "sequential-story",
@@ -16,8 +16,9 @@
   },
   "implementation": {
     "sourceRoots": [
-      "packages/portal/src/tour.ts",
+      "packages/portal/src/howitworks.ts",
       "packages/portal/src/all.ts",
+      "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
       "packages/portal/src/i18n.ts"
     ],

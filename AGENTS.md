@@ -40,6 +40,16 @@ Slop-detect (`slop <url> --json`, globally installed) is a supplementary anti-ge
 - `POST /possibilities` accepts form-encoded bodies and 303-redirects to the new card's deep link.
 - `/all` splices page bodies server-side via a `SELF` service binding (Cloudflare blocks plain self-fetch, error 1042).
 
+## Information architecture
+
+- The site is organized as five plain-language hubs plus a Learn menu: `/possibilities`, `/collaborate`, `/fund`, `/impact`, `/community`, with Learn holding `/how-it-works`, `/whitepaper`, `/docs`, the Telegram bot, and `/all`.
+- Retired top-level surfaces 302-redirect to their hub section (e.g. `/coordination` → `/collaborate#overlaps`, `/rounds` → `/fund#rounds`, `/verify` → `/impact#evidence`, `/governance` → `/community#decisions`). The full map lives in `RETIRED` in `packages/edge/src/index.ts`.
+- Redirects apply to browser HTML requests only — JSON API routes answer exactly as before, forever. Never reuse a retired slug for new UI.
+- Every visible string goes through `t(lang, key)` with `en`/`sw`/`fr` dictionaries in `packages/portal/src/strings/`; tests enforce key parity across all three locales — add a key to all three or the suite fails.
+- People and actors render through `displayName()` — a humanized visible name with the raw id kept only in `title`/link hrefs.
+- Hub sections are `hubSection()` wrappers: `<details open>` with a one-based `data-hub-index`; the inline `hubScript` collapses sections at index ≥ 3 on narrow viewports. Indexing is one-based — keep `index: i + 1` when adding sections.
+- `pnpm a11y:check` runs axe-core through Playwright at 1440×900 and 390×844 against every hub, landing, Learn pages, and `/docs`; zero serious/critical violations is the gate.
+
 ## Testing
 
 - `pnpm -r --if-present run test` — `packages/client` has no test files (pre-existing; exits nonzero in a recursive run, ignore it).

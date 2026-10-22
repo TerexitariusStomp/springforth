@@ -3,7 +3,7 @@
   "id": "console",
   "target": {
     "kind": "route",
-    "locator": "/rounds"
+    "locator": "/fund"
   },
   "selection": {
     "grammar": "operations-console",
@@ -16,11 +16,11 @@
   },
   "implementation": {
     "sourceRoots": [
+      "packages/portal/src/fund.ts",
+      "packages/portal/src/collaborate.ts",
+      "packages/portal/src/community.ts",
       "packages/portal/src/rounds.ts",
-      "packages/portal/src/outcomes.ts",
-      "packages/portal/src/coordination.ts",
-      "packages/portal/src/portfolio.ts",
-      "packages/portal/src/governance.ts",
+      "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
       "packages/portal/src/i18n.ts"
     ],

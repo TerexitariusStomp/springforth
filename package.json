@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Springforth \u2014 custom-code layer for community coordination infrastructure \u2014 possibility cards, resource matching, explainable overlap detection, open-evidence verification.",
+  "description": "Springforth — custom-code layer for community coordination infrastructure — possibility cards, resource matching, explainable overlap detection, open-evidence verification.",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.13.1",
   "scripts": {
@@ -12,9 +12,12 @@
     "seed": "node --experimental-strip-types scripts/seed-d1.mjs",
     "design:check": "node scripts/design-check.mjs",
     "design:scan": "for a in landing deck console instrument reference tour-all; do node .devin/skills/ss-score/scripts/styleseed-check.mjs scan --project-root . --artifact $a --format json; done",
+    "a11y:check": "node scripts/a11y-check.mjs",
     "deploy": "cd packages/edge && wrangler deploy"
   },
   "devDependencies": {
+    "axe-core": "4.14.0",
+    "playwright": "1.62.0",
     "typescript": "^5.9.3"
   }
 }

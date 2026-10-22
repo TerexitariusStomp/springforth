@@ -8,10 +8,9 @@ const BASE = process.argv[2] ?? 'https://springforth.widespread.workers.dev';
 const OUT = process.argv[3] ?? '.styleseed/evidence';
 
 const ROUTES = [
-  ['landing', '/'], ['deck', '/possibilities'], ['console', '/rounds'],
-  ['console', '/outcomes'], ['console', '/coordination'], ['console', '/portfolio'],
-  ['console', '/governance'], ['instrument', '/verify'], ['instrument', '/datasets'],
-  ['instrument', '/streams'], ['reference', '/docs'], ['tour-all', '/tour'],
+  ['landing', '/'], ['deck', '/possibilities'], ['console', '/collaborate'],
+  ['console', '/fund'], ['instrument', '/impact'], ['console', '/community'],
+  ['tour-all', '/how-it-works'], ['reference', '/whitepaper'], ['reference', '/docs'],
   ['tour-all', '/all'],
 ];
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } };

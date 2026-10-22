@@ -17,34 +17,34 @@ systems. Springforth deduplicates them into coordinated, funded action.
 This is the live deployment — the landing page opens with what needs
 attention right now." [scroll the attention cards]
 
-**(0:20–1:00) Coordination** (/coordination) — "Across imported plans —
+**(0:20–1:00) Coordination** (/collaborate#overlaps) — "Across imported plans —
 OnePlanet, a county CSV, Treegens field records, Silvi — the overlap layer
 flags where strategies collide or complement. Each record carries
 confidence, evidence, counter-evidence, and humans validate: separate,
 coordinate, or combine." [open one record, show the validation form]
 
-**(1:00–1:50) Funding, the moat** (/rounds) — "Two rounds, same three
+**(1:00–1:50) Funding, the moat** (/fund#rounds) — "Two rounds, same three
 needs. Standard quadratic on the left. Pairwise on the right — the three
 donors who appreciated each other get discounted: $232.84 versus ~$263.
 The appreciation graph is the sybil signal — no external passport, no
 staking token. Collusion costs you; diversity pays." [scroll allocation
 tables side by side]
 
-**(1:50–2:30) Evidence** (/verify) — "Every delivery action gets scored by
+**(1:50–2:30) Evidence** (/impact#evidence) — "Every delivery action gets scored by
 independent public sources — Sentinel-2 scene coverage, GBIF biodiversity
 records, NASA weather, Treegens filmed trees. A field report corroborated
 by satellite earns the reporter an assurance credit — measure-to-earn."
-[/verify, then /actors/demo-brian credit line]
+[/impact#evidence, then /actors/demo-brian credit line]
 
-**(2:30–3:00) Claim + attestation** (/claims) — "The outcome becomes a
+**(2:30–3:00) Claim + attestation** (/impact#claims) — "The outcome becomes a
 hypercert-shaped impact claim with an EAS attestation. Every chain route
 returns unsigned calldata — wallets sign, nothing custodies."
 
-**(3:00–3:30) Governance** (/governance) — "Protocol parameters are tuned
-by ballot, gated by EigenTrust standing — the social graph is the
-franchise, not a token. This proposal already passed and rewrote the
-matching coefficient." [/datasets briefly: "signed data releases anchored
-to Bitcoin — the data-revenue lane"]
+**(3:00–3:30) Governance** (/community#decisions) — "Protocol parameters
+are tuned by ballot, gated by earned-trust standing — the social graph is
+the franchise, not a token. This proposal already passed and rewrote the
+matching coefficient." [/impact#data briefly: "signed data releases
+anchored to Bitcoin — the data-revenue lane"]
 
 **(3:30–3:45) Value in money terms** (/possibilities — Severn card) —
 "For the treasurers: every environmental unit carries a cited money
@@ -64,7 +64,7 @@ build on."
 
 **(4:40–5:00) Close** — "Overlapping plans to coordinated, funded action
 — with collusion resistance grown from the coordination itself.
-Springforth, PS1, Team Two."
+Springforth — coordinate first."
 
 ## Fallback notes
 

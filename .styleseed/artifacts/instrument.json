@@ -3,20 +3,23 @@
   "id": "instrument",
   "target": {
     "kind": "route",
-    "locator": "/verify"
+    "locator": "/impact"
   },
   "selection": {
     "grammar": "technical-instrument",
     "page": "detail"
   },
   "decisions": {
-    "primaryDecision": "verify ledger integrity and inspect evidence state",
-    "primaryAction": "run/inspect a verification",
-    "signatureMove": "hash-chain ledger verification surfaced as readable state"
+    "primaryDecision": "prove outcomes: inspect results, evidence state, and ledger integrity",
+    "primaryAction": "run/inspect a verification or browse evidence and releases",
+    "signatureMove": "hash-chain ledger verification surfaced as readable state inside the Impact hub"
   },
   "implementation": {
     "sourceRoots": [
-      "packages/edge/src/index.ts",
+      "packages/edge/src/views.ts",
+      "packages/portal/src/impact.ts",
+      "packages/portal/src/ledger.ts",
+      "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
       "packages/portal/src/i18n.ts"
     ],

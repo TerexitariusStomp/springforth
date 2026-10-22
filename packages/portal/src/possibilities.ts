@@ -2,7 +2,8 @@ import type { PlanNode, TrustEdge } from '@springforth/coordination';
 import type { PossibilityStatus, Valuation } from '@springforth/core';
 import { deckCard } from './landing.ts';
 import { pageShell } from './theme.ts';
-import type { Lang } from './i18n.ts';
+import { t, type Lang } from './i18n.ts';
+import { displayName } from './ui.ts';
 
 // /possibilities — the card deck. Compact Figma cards in a filterable grid;
 // each card opens a full detail overlay (pure CSS :target — no JS needed)
@@ -33,6 +34,50 @@ export interface PossibilityCard {
   value?: Valuation;
 }
 
+// Card ↔ hub links — computed edge-side by loadCardConnections; the
+// portal only renders. Mirrors the views.ts shape, kept local to avoid
+// importing the edge package.
+export interface CardConnections {
+  overlapCount: number;
+  focusNodeId?: string;
+  rounds: { id: string; title: string }[];
+  committed: Record<string, number>;
+  pledges: number;
+  claimId?: string;
+  hasReport: boolean;
+}
+
+const money0 = (amount: number, currency: string) =>
+  `${currency} ${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(amount)}`;
+
+// "Connected" — the card's links into the hub sections. Renders nothing
+// unless at least one connection exists.
+function connectedBlock(c: PossibilityCard, conn: CardConnections | undefined, lang: Lang): string {
+  if (!conn) return '';
+  const bits: string[] = [];
+  if (conn.overlapCount > 0 && conn.focusNodeId)
+    bits.push(`<a href="/collaborate?node=${esc(conn.focusNodeId)}#overlaps">${conn.overlapCount} ${esc(t(lang, 'conn.overlaps'))} →</a>`);
+  else if (conn.overlapCount > 0)
+    bits.push(`<a href="/collaborate#overlaps">${conn.overlapCount} ${esc(t(lang, 'conn.overlaps'))} →</a>`);
+  for (const r of conn.rounds)
+    bits.push(`<a href="/rounds/${esc(r.id)}">${esc(t(lang, 'conn.eligible'))} <strong>${esc(r.title)}</strong> →</a>`);
+  const committed = Object.entries(conn.committed).filter(([, v]) => v > 0)
+    .map(([cur, v]) => money0(v, cur)).join(' · ');
+  if (committed || conn.pledges > 0) {
+    const parts = [
+      committed ? `${committed} ${esc(t(lang, 'conn.committed'))}` : '',
+      conn.pledges > 0 ? `${conn.pledges} ${esc(t(lang, 'conn.pledges'))}` : '',
+    ].filter(Boolean).join(' · ');
+    bits.push(`<a href="/fund#pledges">${parts} →</a>`);
+  }
+  if (conn.claimId)
+    bits.push(`<a href="/claims/${esc(conn.claimId)}">${esc(t(lang, 'conn.proof'))} →</a>`);
+  if (conn.hasReport)
+    bits.push(`<a href="/possibilities/${esc(c.id)}/report">${esc(t(lang, 'conn.report'))} →</a>`);
+  if (!bits.length) return '';
+  return `<p class="ctx"><strong>${esc(t(lang, 'conn.title'))}:</strong> ${bits.join(' · ')}</p>`;
+}
+
 const money = (amount: number, currency: string) =>
   new Intl.NumberFormat('en-GB', { style: 'currency', currency, maximumFractionDigits: 2 })
     .format(amount);
@@ -40,102 +85,104 @@ const money = (amount: number, currency: string) =>
 // "Coordinated value (est.)" — derived at render from ledger donations/match,
 // participant-declared hours and offer budgets, and cited benchmark rates.
 // Per-currency rows, never converted; every component carries its provenance.
-function valueBlock(v: Valuation): string {
+function valueBlock(v: Valuation, tt: (k: string) => string): string {
   const rows = Object.entries(v.byCurrency).filter(([, c]) => c.total > 0 || c.asked > 0 || c.riskAvoided > 0)
     .map(([cur, c]) => {
       const parts: string[] = [];
-      if (c.committed > 0) parts.push(`${money(c.committed, cur)} committed`);
-      if (c.matched > 0) parts.push(`${money(c.matched, cur)} matched`);
-      if (c.inKind > 0) parts.push(`${money(c.inKind, cur)} in-kind (declared)`);
-      if (c.volunteerTime > 0) parts.push(`${money(c.volunteerTime, cur)} volunteer time (est.)`);
-      if (c.asked > 0) parts.push(`${money(c.asked, cur)} declared cost of open needs`);
+      if (c.committed > 0) parts.push(`${money(c.committed, cur)} ${tt('valb.committed')}`);
+      if (c.matched > 0) parts.push(`${money(c.matched, cur)} ${tt('valb.matched')}`);
+      if (c.inKind > 0) parts.push(`${money(c.inKind, cur)} ${tt('valb.inKind')}`);
+      if (c.volunteerTime > 0) parts.push(`${money(c.volunteerTime, cur)} ${tt('valb.volunteer')}`);
+      if (c.asked > 0) parts.push(`${money(c.asked, cur)} ${tt('valb.asked')}`);
       const risk = c.riskAvoided > 0
-        ? ` <em>+ est. ${money(c.riskAvoided, cur)} damage risk mitigated` +
-          (c.riskPerUnit > 0 ? ` (est. ${money(Math.round(c.riskPerUnit), cur)} per ${money(1, cur)})` : '') +
+        ? ` <em>+ ${tt('valb.est')} ${money(c.riskAvoided, cur)} ${tt('valb.risk')}` +
+          (c.riskPerUnit > 0 ? ` (${tt('valb.est')} ${money(Math.round(c.riskPerUnit), cur)} ${tt('valb.per')} ${money(1, cur)})` : '') +
           `</em>` : '';
-      const lev = c.leverage > 0 ? ` <small>(×${c.leverage} mobilization)</small>` : '';
+      const lev = c.leverage > 0 ? ` <small>(×${c.leverage} ${tt('valb.lev')})</small>` : '';
       return `<li>${esc(cur)} <strong>${money(c.total, cur)}</strong>${lev} — ${parts.join(' · ')}${risk}</li>`;
     }).join('');
   if (!rows && !(v.hoursTotal > 0)) return '';
-  return `<p class="meta"><strong>Coordinated value (est.)</strong> —
-environmental units in money, for treasurers:
+  return `<p class="meta"><strong>${esc(tt('valb.title'))}</strong> —
+${esc(tt('valb.lede'))}
 <ul class="needs">${rows}</ul>
 ${v.method.length ? `<small>${v.method.map(esc).join(' · ')}</small>` : ''}
-<small><a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/VALUATION.md">methodology</a></small></p>`;
+<small><a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/VALUATION.md">${esc(tt('valb.methodology'))}</a></small></p>`;
 }
 
-function countdown(deadline: string | undefined): string {
-  if (!deadline) return 'open-ended';
+function countdown(deadline: string | undefined, tt: (k: string) => string): string {
+  if (!deadline) return tt('card.openEnded');
   const d = Math.ceil((Date.parse(deadline) - Date.now()) / 86_400_000);
-  return d < 0 ? 'deadline passed' : d === 0 ? 'today' : `${d} day${d === 1 ? '' : 's'} left`;
+  return d < 0 ? tt('card.deadlinePassed') : d === 0 ? tt('card.today') : `${d} ${tt('card.daysLeft')}`;
 }
 
 // Full card detail — lives inside the :target overlay panel.
-function cardDetail(c: PossibilityCard): string {
+function cardDetail(c: PossibilityCard, conn: CardConnections | undefined, lang: Lang): string {
+  const tt = (k: string) => t(lang, k);
   const live = c.status === 'active' || c.status === 'draft';
   const cover = c.scoring.cover;
   const needRows = c.needs.map((n) => `<li>
     ${n.met ? '✓' : '•'} ${esc(n.label)}
     ${n.category ? `<span class="nice">[${esc(n.category)}]</span>` : ''}
-    ${n.required ? '<span class="req">required</span>' : '<span class="nice">nice-to-have</span>'}
-    ${n.flaggedBy ? `<span class="nice">flagged by ${esc(n.flaggedBy)}</span>` : ''}
-    ${n.met ? '<span class="met">met</span>' : ''}</li>`).join('');
+    ${n.required ? `<span class="req">${esc(tt('need.required'))}</span>` : `<span class="nice">${esc(tt('need.nice'))}</span>`}
+    ${n.flaggedBy ? `<span class="nice">${esc(tt('need.flaggedBy'))} ${esc(n.flaggedBy)}</span>` : ''}
+    ${n.met ? `<span class="met">${esc(tt('need.met'))}</span>` : ''}</li>`).join('');
   const bringing = c.bringing.map((n) => `<li>${esc(n.label)} — ${esc(n.orgIds[0] ?? '')}</li>`).join('');
-  const joined = (c.participants ?? []).map((x) => `<li>${esc(x.actor)}${x.bringingNodeId ? ' + bringing' : ''}</li>`).join('');
+  const joined = (c.participants ?? []).map((x) => `<li>${esc(x.actor)}${x.bringingNodeId ? ` + ${esc(tt('card.bringingPlus'))}` : ''}</li>`).join('');
   const partCap = c.maxParticipants ? `/${c.maxParticipants} cap` : '';
   return `<div class="card-overlay" id="${esc(c.id)}">
 <div class="detail-panel" role="dialog" aria-modal="true" aria-label="${esc(c.title)}" tabindex="-1">
-<a class="modal-close" href="#deck" aria-label="Close">✕</a>
+<a class="modal-close" href="#deck" aria-label="${esc(tt('a11y.close'))}">✕</a>
 <h3>“${esc(c.title)}”</h3>
 <p><span class="badge lime">${esc(c.status)}</span>
-${c.tipping ? '<span class="badge gold">tipping — 30% reached, momentum building</span>' : ''}
-<span class="badge">${esc(countdown(c.deadline))}</span>
-<span class="badge">${c.participantCount}/${c.minParticipants} in${partCap}</span>
-<span class="badge">needs ${c.quorum.requiredMet}/${c.quorum.required}</span>
-<span class="badge">score ${c.score.toFixed(2)}</span></p>
+${c.tipping ? `<span class="badge gold">${esc(tt('card.tipping'))}</span>` : ''}
+<span class="badge">${esc(countdown(c.deadline, tt))}</span>
+<span class="badge">${c.participantCount}/${c.minParticipants} ${esc(tt('card.in'))}${partCap}</span>
+<span class="badge">${esc(tt('card.needs').toLowerCase())} ${c.quorum.requiredMet}/${c.quorum.required}</span>
+<span class="badge">${esc(tt('card.score'))} ${c.score.toFixed(2)}</span></p>
 <div class="bar"><div class="fill" style="width:${Math.round(cover * 100)}%"></div></div>
-<p class="meta">needs:resources cover ${(cover * 100).toFixed(0)}% ·
-trust ${c.scoring.trust.toFixed(2)} · urgency ${c.scoring.urgency.toFixed(2)}</p>
-${c.value ? valueBlock(c.value) : ''}
-<p>Declared by <strong>${esc(c.declarerId)}</strong>${c.place ? ` · ${esc(c.place)}` : ''}
+<p class="meta">${esc(tt('card.cover'))} ${(cover * 100).toFixed(0)}% ·
+${esc(tt('card.trust'))} ${c.scoring.trust.toFixed(2)} · ${esc(tt('card.urgency'))} ${c.scoring.urgency.toFixed(2)}</p>
+${c.value ? valueBlock(c.value, tt) : ''}
+<p>${esc(tt('card.declaredBy'))} <strong>${displayName(c.declarerId)}</strong>${c.place ? ` · ${esc(c.place)}` : ''}
 ${c.timeStart ? ` · ${esc(c.timeStart.slice(0, 10))}${c.timeEnd ? ` → ${esc(c.timeEnd.slice(0, 10))}` : ''}` : ''}
-· <a href="/possibilities/${esc(c.id)}/ics">add to calendar (.ics)</a></p>
+· <a href="/possibilities/${esc(c.id)}/ics">${esc(tt('card.ics'))}</a></p>
 ${c.description ? `<p>${esc(c.description)}</p>` : ''}
-${c.context?.datasets?.length ? `<p class="ctx"><strong>Verified context</strong></p><ul class="needs">${c.context.datasets.map((d) => `<li>◆ ${esc(d.name)}: ${esc(d.value)}${d.source ? ` <span class="nice">(${esc(d.source)})</span>` : ''}</li>`).join('')}</ul>` : ''}
-${needRows ? `<p><strong>Needs</strong></p><ul class="needs">${needRows}</ul>` : ''}
-${bringing ? `<p><strong>Being brought</strong></p><ul class="needs">${bringing}</ul>` : ''}
+${c.context?.datasets?.length ? `<p class="ctx"><strong>${esc(tt('card.verified'))}</strong></p><ul class="needs">${c.context.datasets.map((d) => `<li>◆ ${esc(d.name)}: ${esc(d.value)}${d.source ? ` <span class="nice">(${esc(d.source)})</span>` : ''}</li>`).join('')}</ul>` : ''}
+${needRows ? `<p><strong>${esc(tt('card.needs'))}</strong></p><ul class="needs">${needRows}</ul>` : ''}
+${bringing ? `<p><strong>${esc(tt('card.bringing'))}</strong></p><ul class="needs">${bringing}</ul>` : ''}
 ${c.participants === undefined
-  ? `<p><strong>In:</strong> ${c.participantCount} — <em>names reveal as quorum nears</em></p>`
-  : joined ? `<p><strong>In (${c.participantCount})</strong></p><ul class="needs">${joined}</ul>` : ''}
+  ? `<p><strong>${esc(tt('card.inH'))}:</strong> ${c.participantCount} — <em>${esc(tt('card.namesReveal'))}</em></p>`
+  : joined ? `<p><strong>${esc(tt('card.inH'))} (${c.participantCount})</strong></p><ul class="needs">${joined}</ul>` : ''}
 ${live ? `<form method="post" action="/possibilities/${esc(c.id)}/join" class="val">
-  <input name="actor" placeholder="your name" required>
-  <input name="bringing" placeholder="what you'll bring (optional)">
-  <input name="hours" type="number" min="0" step="0.5" placeholder="hours (optional)" style="max-width:7rem">
-  <button>I'm coming</button>
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="bringing" placeholder="${esc(tt('form.bringing'))}" aria-label="${esc(tt('form.bringing'))}">
+  <input name="hours" type="number" min="0" step="0.5" placeholder="${esc(tt('form.hours'))}" aria-label="${esc(tt('form.hours'))}" style="max-width:7rem">
+  <button>${esc(tt('form.coming'))}</button>
 </form>
 <form method="post" action="/possibilities/${esc(c.id)}/need" class="val">
-  <input name="actor" placeholder="your name" required>
-  <input name="title" placeholder="a need this card is missing" required>
-  <input name="category" placeholder="equipment|venue|skill|person|consumable">
-  <button>Flag a need</button>
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="title" placeholder="${esc(tt('form.needMissing'))}" aria-label="${esc(tt('form.needMissing'))}" required>
+  <input name="category" placeholder="${esc(tt('form.category'))}" aria-label="${esc(tt('form.category'))}">
+  <button>${esc(tt('form.flagNeed'))}</button>
 </form>
 <form method="post" action="/possibilities/${esc(c.id)}/pass" class="val">
-  <input name="actor" placeholder="your name" required>
-  <button>Not for me (logged, private)</button>
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <button>${esc(tt('form.pass'))}</button>
 </form>` : ''}
 ${c.status === 'completed' || c.status === 'quorum' ? `<form method="post" action="/possibilities/${esc(c.id)}/appreciate" class="val">
-  <input name="from" placeholder="your name" required>
-  <input name="to" placeholder="who showed up" required>
-  <input name="note" placeholder="brought X and it was clutch">
-  <button>Appreciate</button>
+  <input name="from" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="to" placeholder="${esc(tt('form.whoShowed'))}" aria-label="${esc(tt('form.whoShowed'))}" required>
+  <input name="note" placeholder="${esc(tt('form.noteClutch'))}" aria-label="${esc(tt('form.noteClutch'))}">
+  <button>${esc(tt('form.appreciate'))}</button>
 </form>` : ''}
-${c.report ? `<p class="res"><strong>Report:</strong> ${esc(c.report.summary)}${c.report.learnings ? ` — <em>${esc(c.report.learnings)}</em>` : ''}</p>` : ''}
+${c.report ? `<p class="res"><strong>${esc(tt('card.report'))}</strong> ${esc(c.report.summary)}${c.report.learnings ? ` — <em>${esc(c.report.learnings)}</em>` : ''}</p>` : ''}
+${connectedBlock(c, conn, lang)}
 </div></div>`;
 }
 
 const STATUS_FILTERS: Array<[string, string]> = [
-  ['', 'All'], ['active', 'Building'], ['quorum', 'At quorum'],
-  ['completed', 'Completed'], ['draft', 'Draft'], ['expired', 'Expired'],
+  ['', 'deck.all'], ['active', 'deck.building'], ['quorum', 'deck.quorum'],
+  ['completed', 'deck.completed'], ['draft', 'deck.f.draft'], ['expired', 'deck.f.expired'],
 ];
 
 const DECK_CSS = `
@@ -146,8 +193,8 @@ const DECK_CSS = `
 .needs{list-style:none;padding-left:.25rem;margin:.2rem 0;font-size:13px}
 .detail-panel .needs li{padding:.15rem 0}
 .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
-.val input{padding:.5rem .7rem;flex:1;min-width:8rem;border:1px solid var(--sf-line);border-radius:8px;font:inherit;font-size:13px}
-.val button{padding:.5rem 1.1rem;cursor:pointer;background:var(--sf-green-3);color:var(--sf-cream);border:0;border-radius:99px;font-weight:800;font-size:12px}
+.val input{min-height:2.75rem;padding:.5rem .7rem;flex:1;min-width:8rem;border:1px solid var(--sf-line);border-radius:8px;font:inherit;font-size:13px}
+.val button{min-height:2.75rem;padding:.5rem 1.1rem;cursor:pointer;background:var(--sf-green-3);color:var(--sf-cream);border:0;border-radius:99px;font-weight:800;font-size:12px}
 .res{background:rgba(200,243,109,.25);padding:.6rem .8rem;border-radius:.5rem;font-size:13px}
 .req{color:var(--sf-danger-ink);font-size:.8rem}.nice{color:var(--sf-muted);font-size:.8rem}.met{color:var(--sf-ok);font-size:.8rem}
 .tip{background:var(--sf-gold-soft);color:var(--sf-gold)}.meta{font-size:.8rem;color:var(--sf-muted)}
@@ -162,54 +209,55 @@ const DECK_CSS = `
 
 export function renderPossibilitiesPage(
   cards: PossibilityCard[], edges: TrustEdge[] = [], viewer?: string,
-  opts: { status?: string; lang?: Lang } = {},
+  opts: { status?: string; lang?: Lang; connections?: Record<string, CardConnections> } = {},
 ): string {
   const status = opts.status ?? '';
+  const lang = opts.lang ?? 'en';
+  const tt = (k: string) => t(lang, k);
   const filtered = status ? cards.filter((c) => c.status === status) : cards;
   const grid = filtered.map((c) => deckCard({
     id: c.id, title: c.title, place: c.place,
     status: c.status, participants: c.participantCount,
     min: c.minParticipants || 0, deadline: c.deadline,
     needs: c.needs.filter((n) => !n.met).slice(0, 3).map((n) => n.label),
-  }, { base: '' })).join('\n');
-  const overlays = cards.map(cardDetail).join('\n');
+  }, { base: '', tt })).join('\n');
+  const overlays = cards.map((c) => cardDetail(c, opts.connections?.[c.id], lang)).join('\n');
   const mutual = edges.filter((e) => e.mutual > 0).slice(0, 10)
-    .map((e) => `<li>${esc(e.from)} &harr; ${esc(e.to)} — mutual ${e.mutual}</li>`).join('');
+    .map((e) => `<li>${displayName(e.from)} &harr; ${displayName(e.to)} — ${e.mutual} × ${esc(t(lang, 'deck.mutual.times'))}</li>`).join('');
 
   const body = `
 <section class="section" id="deck" style="padding-top:60px">
   <div class="section-heading">
-    <div><span class="kicker">Possibilities</span>
-      <h2>The <em>deck</em></h2></div>
-    <p>Every card is a real commitment window. When every required need is met
-    and the participant threshold is reached, quorum binds the commitment —
-    and appreciation afterward feeds the trust graph.
-    ${viewer ? `<br><em>Sorting for ${esc(viewer)}</em>` : ''}</p>
+    <div><span class="kicker">${esc(tt('deck.kicker'))}</span>
+      <h1>${esc(tt('deck.h1'))} <em>${esc(tt('deck.h1.em'))}</em></h1></div>
+    <p>${esc(tt('deck.lede'))}
+    ${viewer ? `<br><em>${esc(tt('deck.sortingFor'))} ${esc(viewer)}</em>` : ''}</p>
   </div>
   <div class="deck-controls">
-    <nav class="filters" aria-label="Filter by status">
+    <nav class="filters" aria-label="${esc(tt('a11y.deckFilter'))}">
       ${STATUS_FILTERS.map(([v, l]) =>
         `<a href="/possibilities${v ? `?status=${v}` : ''}" class="${status === v ? 'active' : ''}"
-          ${status === v ? 'aria-pressed="true"' : ''}>${l}</a>`).join('')}
+          ${status === v ? 'aria-current="true"' : ''}>${esc(tt(l))}</a>`).join('')}
     </nav>
     <label class="search-field">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-      <input id="deck-search" type="search" placeholder="Search title or place…" aria-label="Search cards">
+      <input id="deck-search" type="search" placeholder="${esc(tt('deck.search'))}" aria-label="${esc(tt('a11y.deckSearch'))}">
     </label>
   </div>
   <div class="card-grid" id="card-grid">
-    ${grid || `<div class="empty-state">No cards here yet — <a href="#declare">declare one</a>.</div>`}
+    ${grid || `<div class="empty-state">${esc(tt('deck.empty'))} <a href="#declare">${esc(tt('deck.empty.cta'))}</a>.</div>`}
   </div>
-  ${mutual ? `<div class="mutual-panel"><h3>Mutual recognition</h3>
-    <p class="muted">Pairwise appreciation made visible — mutual recognition steers which cards surface to whom.</p>
+  ${mutual ? `<div class="mutual-panel"><h3>${esc(t(lang, 'deck.mutual'))}</h3>
+    <p class="muted">${esc(t(lang, 'deck.mutual.body'))}</p>
     <ul>${mutual}</ul></div>` : ''}
   <p class="muted" style="max-width:78.125rem;margin:2rem auto 0">
-    <a href="/possibilities?format=json">JSON</a> ·
-    <a href="/coordination">coordination</a> · <a href="/commitments">commitments</a> ·
-    <a href="/outcomes">outcomes</a> · Cards sort by
-    <code>score = 0.5·trust + 0.3·urgency + 0.2·cover</code><br>
-    Also on Telegram — <a href="https://t.me/springforth_bot" rel="noopener">@springforth_bot</a>
-    mirrors the deck: <code>/cards</code> <code>/new</code> <code>/join</code> <code>/appreciate</code></p>
+    <a href="/collaborate">${esc(t(lang, 'nav.collaborate'))}</a> ·
+    <a href="/fund">${esc(t(lang, 'nav.fund'))}</a> ·
+    <a href="/impact">${esc(t(lang, 'nav.impact'))}</a><br>
+    <span title="${esc(t(lang, 'deck.ordering.body'))}">${esc(t(lang, 'deck.ordering'))}</span><br>
+    ${esc(t(lang, 'deck.telegram.pre'))} <a href="https://t.me/springforth_bot" rel="noopener">@springforth_bot</a> ${esc(t(lang, 'deck.telegram'))}</p>
+  <details class="how-note" style="max-width:78.125rem;margin:0 auto"><summary>${esc(tt('detail.data'))}</summary>
+  <div class="hn-body"><a href="/possibilities?format=json">JSON</a></div></details>
 </section>
 
 ${overlays}
@@ -217,28 +265,27 @@ ${overlays}
 <div class="modal-anchor" id="declare">
   <div class="modal-backdrop">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="declare-h">
-      <a class="modal-close" href="#deck" aria-label="Close">✕</a>
-      <span class="kicker">New card</span>
-      <h2 id="declare-h">Declare a possibility</h2>
-      <p>"I want to…" — what you'll make happen, where, by when, and how many
-      people it takes to activate. Needs and offers come next on the card.</p>
+      <a class="modal-close" href="#deck" aria-label="${esc(tt('a11y.close'))}">✕</a>
+      <span class="kicker">${esc(tt('declare.kicker'))}</span>
+      <h2 id="declare-h">${esc(tt('declare.h2'))}</h2>
+      <p>${esc(tt('declare.lede'))}</p>
       <form method="post" action="/possibilities">
         <input type="text" name="website" tabindex="-1" autocomplete="off"
           style="position:absolute;left:-9999px" aria-hidden="true">
-        <label>Possibility
-          <textarea name="title" required placeholder="I want to…"></textarea></label>
-        <label>Your name
-          <input name="declarerId" required placeholder="who's declaring"></label>
+        <label>${esc(tt('declare.possibility'))}
+          <textarea name="title" required placeholder="${esc(tt('declare.ph'))}"></textarea></label>
+        <label>${esc(tt('declare.name'))}
+          <input name="declarerId" required placeholder="${esc(tt('declare.namePh'))}"></label>
         <div class="modal-row">
-          <label>Where <input name="place" placeholder="town, venue, or 'anywhere'"></label>
-          <label>Deadline <input name="deadline" type="date"></label>
+          <label>${esc(tt('declare.where'))} <input name="place" placeholder="${esc(tt('declare.wherePh'))}"></label>
+          <label>${esc(tt('declare.deadline'))} <input name="deadline" type="date"></label>
         </div>
         <div class="modal-row">
-          <label>Min participants
+          <label>${esc(tt('declare.min'))}
             <input name="minParticipants" type="number" min="1" value="3"></label>
-          <label>Description <input name="description" placeholder="one line (optional)"></label>
+          <label>${esc(tt('declare.desc'))} <input name="description" placeholder="${esc(tt('declare.descPh'))}"></label>
         </div>
-        <button class="modal-submit" type="submit">Declare it</button>
+        <button class="modal-submit" type="submit">${esc(tt('declare.submit'))}</button>
       </form>
     </div>
   </div>
@@ -261,8 +308,8 @@ if (openOverlay()) focusPanel();
 </script>`;
 
   return pageShell({
-    title: 'The deck — Springforth',
-    desc: 'Real commitment windows: join a card that is building, or declare the thing only you can start.',
-    lang: opts.lang ?? 'en', extraCss: DECK_CSS,
+    title: `${tt('deck.pageTitle')} — Springforth`,
+    desc: tt('deck.desc'),
+    lang, extraCss: DECK_CSS,
   }, body);
 }

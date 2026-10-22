@@ -147,7 +147,7 @@ export function renderLandingPage(i: LandingInput): string {
   if (i.proposedOverlaps) attn.push(
     `<div class="att"><strong>${i.proposedOverlaps} ${pl(i.proposedOverlaps, 'att.overlap')}</strong><br>
 ${tt('att.overlaps.body')}
-<a href="/coordination">${tt('att.overlaps.cta')} →</a></div>`);
+<a href="/collaborate#overlaps">${tt('att.overlaps.cta')} →</a></div>`);
   for (const c of near.slice(0, 3)) attn.push(
     `<div class="att"><strong>${esc(c.possibility.title)}</strong><br>
 ${c.participants}/${c.possibility.minParticipants} ${tt('card.committed')} — ${c.possibility.minParticipants - c.participants} ${tt('card.more')}.
@@ -155,11 +155,11 @@ ${c.participants}/${c.possibility.minParticipants} ${tt('card.committed')} — $
   if (i.unmetNeeds) attn.push(
     `<div class="att"><strong>${i.unmetNeeds} ${pl(i.unmetNeeds, 'att.unmet')}</strong><br>
 ${tt('att.unmet.body')}
-<a href="/coordination">${tt('att.unmet.cta')} →</a></div>`);
+<a href="/collaborate#needs">${tt('att.unmet.cta')} →</a></div>`);
   if (i.actionNodes.length) attn.push(
     `<div class="att"><strong>${i.actionNodes.length} ${pl(i.actionNodes.length, 'att.actions')}</strong><br>
 ${tt('att.actions.body')}
-<a href="/outcomes">${tt('att.actions.cta')} →</a></div>`);
+<a href="/collaborate#outcomes">${tt('att.actions.cta')} →</a></div>`);
 
   const pct = orbit?.possibility.minParticipants
     ? Math.min(100, Math.round((orbit.participants / orbit.possibility.minParticipants) * 100)) : 0;
@@ -189,7 +189,7 @@ ${tt('att.actions.body')}
     <div class="orbit-footer"><span class="mini-avatars"><i></i><i></i><i></i></span>
       <a href="/possibilities#${esc(orbit.possibility.id)}">${tt('hero.orbit.join')} →</a></div>
   </aside>` : ''}
-  <a class="float-badge badge-one" href="/outcomes">
+  <a class="float-badge badge-one" href="/collaborate#outcomes">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--sf-sage)"><path d="M20 6L9 17l-5-5"/></svg>
     <span><strong>${i.completedCount}</strong>${tt('hero.badge.actions')}</span></a>
   <a class="float-badge badge-two" href="/possibilities">
@@ -197,7 +197,7 @@ ${tt('att.actions.body')}
     <span><strong>${i.cards.length}</strong>${tt('hero.badge.open')}</span></a>
 </section>
 
-<div class="ticker" role="status" aria-label="Live activity">
+<div class="ticker" role="status" aria-label="${esc(tt('a11y.liveTicker'))}">
   <span class="ticker-label">${tt('ticker.label')}</span>
   <div class="ticker-track" id="ticker-track"
     hx-get="/partials/ticker" hx-trigger="every 30s" hx-swap="innerHTML">
@@ -214,13 +214,13 @@ ${attn.length ? `<section class="attention"><h2>${tt('attention.title')}</h2>${a
     <p>${tt('deck.copy')}</p>
   </div>
   <div class="deck-controls">
-    <nav class="filters" aria-label="Filter cards">
-      <a class="active" href="/possibilities">${tt('deck.all')}</a>
+    <nav class="filters" aria-label="${esc(tt('a11y.filters'))}">
+      <a class="active" href="/possibilities" aria-current="true">${tt('deck.all')}</a>
       <a href="/possibilities?status=active">${tt('deck.building')}</a>
       <a href="/possibilities?status=quorum">${tt('deck.quorum')}</a>
       <a href="/possibilities?status=completed">${tt('deck.completed')}</a>
     </nav>
-    <a class="muted" href="/possibilities" style="text-decoration:none">${i.cards.length} ${tt('deck.count.cards')} · ${live.length} ${tt('deck.count.open')} · ${atQuorum.length} ${tt('deck.count.quorum')} →</a>
+    <a class="muted deck-count" href="/possibilities" style="text-decoration:none">${i.cards.length} ${tt('deck.count.cards')} · ${live.length} ${tt('deck.count.open')} · ${atQuorum.length} ${tt('deck.count.quorum')} →</a>
   </div>
   <div class="card-grid">
     ${featured.map((c) => deckCard({
@@ -236,13 +236,29 @@ ${attn.length ? `<section class="attention"><h2>${tt('attention.title')}</h2>${a
     <span class="kicker light">${tt('how.kicker')}</span>
     <h2>${tt('how.h2')} <em>${tt('how.h2.em')}</em></h2>
     <p>${tt('how.copy')}</p>
-    <a href="/docs">${tt('how.api')} →</a>
+    <a href="/how-it-works">${tt('how.walkthrough')} →</a>
   </div>
   <div class="steps">
     <div class="step"><span>01</span><div><h3>${tt('step.declare')}</h3><p>${tt('step.declare.body')}</p></div></div>
     <div class="step"><span>02</span><div><h3>${tt('step.commit')}</h3><p>${tt('step.commit.body')}</p></div></div>
     <div class="step"><span>03</span><div><h3>${tt('step.activate')}</h3><p>${tt('step.activate.body')}</p></div></div>
     <div class="step"><span>04</span><div><h3>${tt('step.verify')}</h3><p>${tt('step.verify.body')}</p></div></div>
+  </div>
+</section>
+
+<section class="section" id="doors">
+  <div class="section-heading">
+    <div><h2>${tt('doors.title')}</h2></div>
+  </div>
+  <div class="doors">
+    <a class="door" href="/possibilities">
+      <h3>${tt('doors.join')}</h3><p>${tt('doors.join.body')}</p></a>
+    <a class="door" href="/collaborate">
+      <h3>${tt('doors.work')}</h3><p>${tt('doors.work.body')}</p></a>
+    <a class="door" href="/fund">
+      <h3>${tt('doors.fund')}</h3><p>${tt('doors.fund.body')}</p></a>
+    <a class="door" href="/impact">
+      <h3>${tt('doors.impact')}</h3><p>${tt('doors.impact.body')}</p></a>
   </div>
 </section>
 
@@ -258,13 +274,14 @@ ${attn.length ? `<section class="attention"><h2>${tt('attention.title')}</h2>${a
     </div>
   </div>
   <aside class="impact-panel">
-    <div class="panel-header"><span>${tt('impact.panel')}</span><span class="live-pill">● live</span></div>
+    <div class="panel-header"><span>${tt('impact.panel')}</span><span class="live-pill">● ${tt('landing.live')}</span></div>
     <div class="big-stat"><strong>${i.hoursTotal.toLocaleString()}</strong><span>${tt('impact.hours')}</span></div>
     <div class="panel-stats">
       <div><strong>${i.completedCount}</strong><span>${tt('impact.actions')}</span></div>
       <div><strong>${i.cards.length}</strong><span>${tt('impact.cards')}</span></div>
       <div><strong>${i.quorumRate}%</strong><span>${tt('impact.quorum')}</span></div>
     </div>
+    <p style="margin-top:1rem"><a href="/impact">${tt('impact.allResults')} →</a></p>
   </aside>
 </section>
 

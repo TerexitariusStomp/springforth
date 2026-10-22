@@ -59,7 +59,7 @@ curl -s "https://springforth.widespread.workers.dev/possibilities?format=json" \
   `/possibilities` carries live verified context (EA Flood Monitoring,
   Open-Meteo, FHRS, Land Registry, ONS, CKAN, iNaturalist, Climate TRACE);
   `/rounds/round-severn-flood` shows the UK pairwise round;
-  `/sources` lists the full endorsed matrix (`DATA-SOURCES.md`).
+  `/impact#evidence` lists the full endorsed matrix (`DATA-SOURCES.md`).
 - Treasurer beat: pause on the Severn card's **"Coordinated value (est.)"**
   block — committed + matched (£, ledger) + declared hours × ONS £14.43/h
   + in-kind budgets + EA/ABI £30k/home risk benchmarks. Methodology:
@@ -67,10 +67,11 @@ curl -s "https://springforth.widespread.workers.dev/possibilities?format=json" \
 - Pairwise contrast: `/rounds/round-mida-creek` vs
   `/rounds/round-pairwise-demo` — same needs, clique discounted
   ($232.84 vs ~$263).
-- The flip: QR → judges join `poss-you-in-this-room-…` → quorum activates
-  live + Telegram pings. If the room has no signal, join twice yourself
-  from two devices — never fake it.
-- Judge self-serve: `/tour` on the landing page is the 5-minute path.
+- The flip: QR → reviewers join `poss-you-in-this-room-…` → quorum
+  activates live + Telegram pings. If the room has no signal, join twice
+  yourself from two devices — never fake it.
+- Self-serve: `/how-it-works` (linked from the landing page's Learn menu)
+  is the 5-minute walkthrough.
 
 ## Submission pack — Shared tab, Oct 27 2–3 PM
 
@@ -81,7 +82,7 @@ tab**; criteria + suggested elements are in Resources/Notes. Stage:
 - [ ] `docs/hackathon/PITCH.md` — pitch notes (rubric-mapped)
 - [ ] `docs/hackathon/ARCHITECTURE.md` + `architecture.png` — logical architecture
 - [ ] `docs/hackathon/VALUATION.md` — valuation methodology
-- [ ] Live demo URL: `https://springforth.widespread.workers.dev` (+ `/tour`)
+- [ ] Live demo URL: `https://springforth.widespread.workers.dev` (+ `/how-it-works`)
 - [ ] `demo-assets/walkthrough.mp4` — 2:30 captioned fallback video
 - [ ] Repo link: github.com/TerexitariusStomp/springforth
 - [ ] `DATA-SOURCES.md` — endorsed-source matrix
@@ -98,8 +99,9 @@ post is expected "today").
 > needs matched to offers first, pooled funding second, human approval
 > before anything moves, every step on a hash-chained audit ledger.
 >
-> - **Live demo**: https://springforth.widespread.workers.dev — `/tour`
->   is the 5-minute self-serve path; `/docs` is the API reference
+> - **Live demo**: https://springforth.widespread.workers.dev —
+>   `/how-it-works` is the 5-minute self-serve walkthrough; `/docs` is
+>   the API reference
 > - **Code + docs**: https://github.com/TerexitariusStomp/springforth
 >   (MIT-clean; BMC, pitch, architecture, valuation methodology under
 >   `docs/hackathon/`)
@@ -110,7 +112,7 @@ post is expected "today").
 >   every card carries treasurer-grade value accounting (committed +
 >   matched + in-kind + volunteer time, per-currency, never converted).
 >
-> Happy to walk any judge through the ledger-verify or the valuation
+> Happy to walk any reviewer through the ledger-verify or the valuation
 > methodology live.
 
 ## After

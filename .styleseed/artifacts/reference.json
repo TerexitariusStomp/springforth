@@ -20,6 +20,8 @@
       "packages/portal/src/actor.ts",
       "packages/portal/src/claim.ts",
       "packages/portal/src/report.ts",
+      "packages/portal/src/whitepaper.ts",
+      "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
       "packages/portal/src/i18n.ts"
     ],

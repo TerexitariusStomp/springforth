@@ -6,12 +6,12 @@ import {
   ActorWallet, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
   DatasetRelease, DataAccessGrant, Subscription,
-  valueCoordinated, roundDemand, endowmentAccrual,
+  valueCoordinated,
 } from '@springforth/core';
 import {
   allocateMatching, pairwiseAllocate, refreshPledge, badgeholders, tallyRound,
   buildClaim, toHypercertLexicon,
-  eligibleVoters, tallyProposal, paramValue, GOVERNABLE,
+  eligibleVoters, tallyProposal, GOVERNABLE,
 } from '@springforth/funding';
 import { to360Giving } from '@springforth/export-360giving';
 import { toIati } from '@springforth/export-iati';
@@ -25,26 +25,25 @@ import {
   CFA_FORWARDER, type ChainConfig,
 } from '@springforth/chain-celo';
 import {
-  renderCoordinationPage, renderPossibilitiesPage, renderLandingPage,
-  renderPortfolioPage, renderOutcomesPage, renderRoundsPage, renderRoundPage,
-  renderReportPage, renderRoundAdmin, renderActorProfile, renderDonorPage,
-  renderClaimPage, renderGovernancePage, renderDocsPage, renderTourPage, renderAllPage, langFrom,
+  renderPossibilitiesPage, renderLandingPage,
+  renderRoundPage, renderReportPage, renderRoundAdmin,
+  renderActorProfile, renderDonorPage,
+  renderClaimPage, renderDocsPage, renderAllPage,
   renderWhitepaper,
-  renderLedgerPage, renderLedgerVerifyPage, renderCommitmentsPage,
-  renderResourcesPage, renderTrustPage, renderMetricsPage, renderRetroPage,
-  renderAgentPage, renderActorsPage, renderClaimsPage, renderAttestationsPage,
-  renderPledgesPage,
-  tickerLines, tickerHtml, pageShell, FAVICON_SVG,
+  renderLedgerPage, renderLedgerVerifyPage,
+  renderCollaboratePage, renderFundPage, renderImpactPage,
+  renderCommunityPage, renderHowItWorksPage,
+  t, langFrom, LANGS, type Lang,
+  tickerLines, tickerHtml, pageShell, pageHeader, FAVICON_SVG,
 } from '@springforth/portal';
 import { PICO_CSS, HTMX_JS } from './vendor.js';
 import { ogPng } from './og.js';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
   detectOverlaps, detectComplements, validateOverlap, mergeProposal, isNeed,
-  inferCapital, canonicalize,
+  canonicalize,
   effectiveStatus, quorumMet, trustEdges, scoreCard,
   earnedRecognition, eigenTrust, viewerDeck, identitiesRevealed,
-  successfulCoordinationsPerWeek,
 } from '@springforth/coordination';
 import { normalizePlan, fromCsv, fromMarkdown } from '@springforth/oneplanet-adapter';
 import { fromJson as fromClcJson } from '@springforth/clc-adapter';
@@ -60,7 +59,7 @@ import { answer as agentAnswer } from '@springforth/agent';
 import { buildManifest } from '@springforth/evidence-anchor';
 import { OPENAPI } from './openapi.ts';
 import {
-  checkFromReading, EXPECTED_DIRECTION, SOURCES,
+  checkFromReading, EXPECTED_DIRECTION,
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
   treegensPlantings, atlasHazard, trajectory,
   silviVerifiedTrees, silviLeafAptness, evidenceBoost,
@@ -73,12 +72,20 @@ import { liveAtlas } from '@springforth/atlas-adapter';
 import { handleTelegramUpdate, sendTelegram } from './telegram.js';
 import { cellToLatLng, isValidCell } from 'h3-js';
 import { get, list, put, ledgerAppend, ledgerEvents, ledgerVerify } from './store.js';
+import {
+  VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
+  loadMetrics, loadCommitments, loadResources, loadTrust,
+  loadActorsDirectory, loadRoundsView, loadRetro, loadGovernance,
+  loadStreams, loadDatasets, loadSources, loadEvidence, loadLedgerSummary,
+  loadCardConnections,
+  type Snapshot,
+} from './views.js';
 
 // Springforth edge API — the coordination layer. Public reads;
 // ADMIN_TOKEN-gated writes. All state in D1; all semantics in
 // @springforth/* packages; no wallet anywhere.
 
-interface Env {
+export interface Env {
   DB: D1Database;
   SELF?: Fetcher;               // service binding to this worker — /all inlining
   ADMIN_TOKEN?: string;
@@ -119,77 +126,6 @@ function locFor(node: PlanNode): GeoLoc | null {
 }
 
 
-// Volunteer-time benchmark (treasury lane): ONS Household Satellite
-// Accounts 2017 rate, as cited by NCVO and the DCMS volunteering-value
-// methodology (replacement-cost method). Applied only to GB-placed
-// cards — no cited Kenya rate is carried yet, an honest gap.
-const VOLUNTEER_GB = {
-  key: 'GB', hourRate: 14.43, currency: 'GBP',
-  source: 'ONS Household Satellite Accounts (2017)',
-  riskPerHome: 30_000, riskSource: 'Environment Agency / ABI (2025)',
-};
-const GB_PLACE = /shrewsbury|severn|london|england|britain|uk\b|manchester|bristol|oxford|cardiff|edinburgh|birmingham|leeds|glasgow/i;
-
-// Donations + derived match per need node (match is computed per round,
-// mapped back by needNodeId). Shared by the deck and /metrics.
-async function fundingMaps(env: Env) {
-  const [dons, rnds] = await Promise.all([
-    list<Donation>(env.DB, 'donation'), list<FundingRound>(env.DB, 'round'),
-  ]);
-  const matchByNeed = new Map<string, { needNodeId: string; amount: number; currency: string }>();
-  const [pledges, nodes] = await Promise.all([
-    list<Pledge>(env.DB, 'pledge'), list<PlanNode>(env.DB, 'plannode'),
-  ]);
-  const needPoss = new Map(nodes.filter((n) => n.possibilityId != null)
-    .map((n) => [n.id, n.possibilityId!]));
-  for (const r of rnds) {
-    // Demand gate + endowment: locked rounds contribute no match — proven
-    // demand before treasury flows (Commons mechanic); endowment never
-    // allocates its locked principal.
-    if (r.endowment || !roundDemand(r, pledges, needPoss).active) continue;
-    const alloc = await allocFor(env, r, dons.filter((d) => d.roundId === r.id));
-    for (const a of alloc) {
-      // Two rounds can fund the same need — matches accumulate per currency.
-      const key = `${a.needNodeId}|${r.matchingFund.currency}`;
-      const prev = matchByNeed.get(key);
-      matchByNeed.set(key, { needNodeId: a.needNodeId,
-        amount: (prev?.amount ?? 0) + a.match, currency: r.matchingFund.currency });
-    }
-  }
-  return { dons, rnds, matchByNeed };
-}
-
-// Round allocation dispatcher — 'lr' is classic quadratic; 'pairwise'
-// discounts coordinated donor pairs via the appreciation trust graph +
-// bound-wallet clusters (Phase A moat). Conviction adds time-weight.
-async function allocFor(env: Env, round: FundingRound, donations: Donation[]) {
-  // Evidence→allocation coupling: oracle trajectory per need becomes a
-  // 0.8–1.2 weight multiplier (Phase E). Governance can disable it.
-  const checks = await list<OracleCheck>(env.DB, 'oracle-check');
-  const govParams = await list<GovernanceParam>(env.DB, 'gov-param');
-  const evidenceOn = paramValue(govParams, 'evidence.boost') !== '0';
-  const boost = (needNodeId: string) =>
-    evidenceOn ? evidenceBoost(needNodeId, checks) : 1;
-  if (round.matchingMode !== 'pairwise' && !round.conviction)
-    return allocateMatching(round, donations, { weightMultiplier: boost });
-  const [apps, wallets] = await Promise.all([
-    list<Appreciation>(env.DB, 'appreciation'),
-    list<ActorWallet>(env.DB, 'actor-wallet'),
-  ]);
-  const walletToActor = new Map(wallets.map((w) => [w.address.toLowerCase(), w.actor]));
-  return pairwiseAllocate(round, donations, trustEdges(apps), {
-    alpha: Number(paramValue(govParams, 'pairwise.alpha')) || 4,
-    beta: Number(paramValue(govParams, 'pairwise.beta')) || 2,
-    gamma: round.conviction ? Number(paramValue(govParams, 'conviction.gamma')) || 0.5 : 0,
-    weightMultiplier: boost,
-    walletFor: (donor) => {
-      const lower = donor.toLowerCase();
-      return walletToActor.get(lower) ?? donor;
-    },
-  });
-}
-
-
 // Measure-to-earn (GainForest-style, non-token): field-report signals
 // on a node that an oracle check later corroborates earn the reporter
 // an AssuranceCredit — verified evidence has value. Idempotent via the
@@ -218,16 +154,6 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 }
 const enc = (s: string) => new TextEncoder().encode(s);
 
-// Which store slices are exportable as datasets.
-const DATASET_SOURCES: Record<string, { kind: string; describe: string }> = {
-  plannodes:    { kind: 'plannode',    describe: 'plan graph nodes — actions, needs, offers, outcomes' },
-  signals:      { kind: 'signal',      describe: 'support/interest/field-report signals' },
-  donations:    { kind: 'donation',    describe: 'donation records incl. settlement refs' },
-  'oracle-checks': { kind: 'oracle-check', describe: 'evidence scores per node per source' },
-  overlaps:     { kind: 'overlap',     describe: 'detected overlap/complement records' },
-  appreciations:{ kind: 'appreciation',describe: 'pairwise appreciation edges' },
-};
-
 // Pin to IPFS if an endpoint is configured (IPFS_API env — a Kubo RPC
 // URL like http://localhost:5001 or a pinning service). Best-effort.
 async function pinToIpfs(env: Env, name: string, bytes: Uint8Array): Promise<string | undefined> {
@@ -242,8 +168,6 @@ async function pinToIpfs(env: Env, name: string, bytes: Uint8Array): Promise<str
     return j.Hash;
   } catch { return undefined; }
 }
-
-interface Snapshot { nodeId: string; key?: string; source: string; value: number; unit: string; at: string }
 
 async function applyOracleCheck(env: Env, nodeId: string, check: OracleCheck, actor: string) {
   await put(env.DB, 'oracle-check', check.id, { ...check, nodeId });
@@ -597,29 +521,6 @@ async function syncYield(env: Env): Promise<number> {
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-// /verify — open-evidence readings grouped by target node. Confidence is
-// reported per-source; nothing here promotes a reading to truth.
-function renderVerifyPage(checks: (OracleCheck & { nodeId?: string })[], nodes: PlanNode[]): string {
-  const label = new Map(nodes.map((n) => [n.id, n.label]));
-  const rows = checks.slice().reverse().slice(0, 200).map((c) => {
-    const target = c.nodeId ? (label.get(c.nodeId) ?? c.nodeId) : '—';
-    const cls = c.result === 'match' ? 'var(--sf-ok-bright)' : c.result === 'mismatch' ? 'var(--sf-danger)' : 'var(--sf-warn-soft)';
-    return `<tr><td><span class="badge" style="background:${cls}">${esc(c.result)}</span></td>`
-      + `<td>${esc(c.source)}</td><td>${esc(target)}</td><td>${esc(c.detail)}</td>`
-      + `<td class="muted">${esc(c.at.slice(0, 16).replace('T', ' '))}</td></tr>`;
-  }).join('\n');
-  return pageShell({ title: 'Verify — Springforth', htmx: false }, `<div class="page">
-<h1>Open-evidence readings</h1>
-<p class="lede">Independent public sources scored per reading — remote sensing, sensors,
-field evidence, biodiversity records. A reading is evidence for review,
-not proof: human validation stays authoritative.
-<a href="/sources">source registry (JSON)</a></p>
-<table><tr><th>Result</th><th>Source</th><th>Target</th><th>Detail</th><th>At</th></tr>
-${rows || '<tr><td colspan="5"><em>No readings yet — POST /oracle/run after seeding geo-located nodes.</em></td></tr>'}</table>
-<p class="muted">generated ${new Date().toISOString()}</p>
-</div>`);
-}
-
 // ── Phase H: CORS allowlist + sliding-window rate limit ────────────
 // CORS: browsers get cross-origin reads only from allowlisted origins
 // (CORS_ORIGINS env, comma-separated; '*' default since the API is
@@ -660,6 +561,33 @@ async function rateLimitOk(env: Env, key: string, limit: number): Promise<boolea
   return true;
 }
 
+// Retired top-level surfaces → their hub section. `always` routes had no
+// JSON form so every GET redirects; the rest only redirect browsers —
+// API clients keep receiving the same JSON byte-for-byte.
+const RETIRED: Record<string, { to: string; always?: boolean; keep: string[] }> = {
+  coordination: { to: '/collaborate#overlaps', always: true, keep: ['node'] },
+  outcomes:     { to: '/collaborate#outcomes', always: true, keep: [] },
+  portfolio:    { to: '/collaborate#plans',    always: true, keep: [] },
+  tour:         { to: '/how-it-works',         always: true, keep: [] },
+  commitments:  { to: '/collaborate#needs',    keep: [] },
+  resources:    { to: '/collaborate#commons',  keep: [] },
+  agent:        { to: '/collaborate#ask',      keep: ['q'] },
+  rounds:       { to: '/fund#rounds',          keep: [] },
+  pledges:      { to: '/fund#pledges',         keep: [] },
+  retro:        { to: '/fund#retro',           keep: [] },
+  streams:      { to: '/fund#streams',         keep: [] },
+  metrics:      { to: '/impact#results',       keep: [] },
+  claims:       { to: '/impact#claims',        keep: [] },
+  attestations: { to: '/impact#claims',        keep: [] },
+  verify:       { to: '/impact#evidence',      keep: [] },
+  sources:      { to: '/impact#evidence',      keep: [] },
+  datasets:     { to: '/impact#data',          keep: [] },
+  actors:       { to: '/community#people',     keep: [] },
+  trust:        { to: '/community#trust',      keep: [] },
+  governance:   { to: '/community#decisions',  keep: [] },
+};
+const HUB_SEGS = new Set(['collaborate', 'fund', 'impact', 'community', 'how-it-works']);
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     // CORS preflight short-circuit.
@@ -669,8 +597,14 @@ export default {
       json({ error: 'internal', detail: String(e) }, 500));
     // HTML pages embed live state (footer timestamp, ticker, counts) — never
     // let the browser heuristically cache them; assets carry their own TTLs.
-    if (res.headers.get('content-type')?.includes('text/html'))
+    if (res.headers.get('content-type')?.includes('text/html')) {
       res.headers.set('cache-control', 'no-cache');
+      // Remember the chosen locale — switcher links carry ?lang=.
+      const lang = new URL(req.url).searchParams.get('lang') as Lang | null;
+      if (lang && (LANGS as Lang[]).includes(lang))
+        res.headers.append('set-cookie',
+          `lang=${lang}; Path=/; Max-Age=31536000; SameSite=Lax`);
+    }
     return withCors(res, env, req);
   },
   async handle(req: Request, env: Env): Promise<Response> {
@@ -693,6 +627,20 @@ export default {
       if (!ok) return err('rate limit exceeded — retry shortly', 429);
     }
     try {
+      // Retired surfaces → hub sections. "always" routes had no JSON form;
+      // the rest redirect only for browsers (JSON stays byte-identical).
+      if (req.method === 'GET' && seg.length === 1) {
+        const r = RETIRED[seg[0]!];
+        if (r && (r.always || (wantsHtml(req) && url.searchParams.get('format') !== 'json'))) {
+          const [to, hash] = r.to.split('#') as [string, string];
+          const qs = [...r.keep, 'lang']
+            .map((k) => [k, url.searchParams.get(k)] as const)
+            .filter((x): x is readonly [string, string] => x[1] != null)
+            .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+          return new Response(null, { status: 302,
+            headers: { location: `${to}${qs ? `?${qs}` : ''}${hash ? `#${hash}` : ''}` } });
+        }
+      }
       // Vendored MIT assets — same-origin, no CDN at runtime.
       if (req.method === 'GET' && seg[0] === 'vendor' && seg.length === 2) {
         const cache = { 'content-type': '', 'cache-control': 'public, max-age=86400' };
@@ -716,7 +664,8 @@ export default {
           list<Possibility>(env.DB, 'possibility'), ledgerEvents(env.DB),
         ]);
         const possById = new Map(poss.map((p) => [p.id, p]));
-        return new Response(tickerHtml(tickerLines(events, possById)),
+        return new Response(tickerHtml(tickerLines(events, possById),
+          langFrom(url, req.headers.get('cookie'))),
           { headers: { 'content-type': 'text/html' } });
       }
       // GET / → the triage landing: how it works + what needs attention
@@ -753,6 +702,123 @@ export default {
           lang: langFrom(url, req.headers.get('cookie')),
         }), { headers: { 'content-type': 'text/html' } });
       }
+      // ── Hubs — the five plain-language surfaces + the walkthrough.
+      // Old top-level routes redirect here (RETIRED); their JSON forms
+      // are untouched and keep serving the same payloads.
+      if (req.method === 'GET' && seg.length === 1 && HUB_SEGS.has(seg[0]!)) {
+        const lang = langFrom(url, req.headers.get('cookie'));
+        switch (seg[0]) {
+          case 'collaborate': {
+            const [commits, res, recs, plans, signals, nodes] = await Promise.all([
+              loadCommitments(env, url.searchParams), loadResources(env),
+              list<OverlapRecord>(env.DB, 'overlap'),
+              list<ExternalPlan>(env.DB, 'plan'), list<Signal>(env.DB, 'signal'),
+              list<PlanNode>(env.DB, 'plannode'),
+            ]);
+            // /collaborate?q=… — the cited agent reader folded into #ask.
+            // Mirrors the /agent JSON handler's computation exactly; that
+            // route keeps answering JSON unchanged.
+            let ask: { q: string; out?: import('@springforth/portal').AgentOut } | undefined;
+            const q = url.searchParams.get('q');
+            if (q) {
+              const [poss, parts, apps, credits] = await Promise.all([
+                list<Possibility>(env.DB, 'possibility'), list<Participation>(env.DB, 'participation'),
+                list<Appreciation>(env.DB, 'appreciation'),
+                list<AssuranceCredit>(env.DB, 'assurance-credit'),
+              ]);
+              const edges = trustEdges(apps);
+              const vec = eigenTrust(edges);
+              const vecMean = Object.values(vec).length
+                ? Object.values(vec).reduce((a, b) => a + b, 0) / Object.values(vec).length : 0;
+              const earnedMap = earnedRecognition(edges, credits);
+              const out = agentAnswer(q, {
+                nodes, overlaps: recs,
+                signals,
+                possibilities: poss.map((p) => {
+                  const mine = parts.filter((x) => x.possibilityId === p.id);
+                  const qu = quorumMet(p, nodes, recs, mine.length);
+                  return { id: p.id, title: p.title, status: effectiveStatus(p),
+                    deadline: p.deadline, participants: mine.length,
+                    minParticipants: p.minParticipants, requiredMet: qu.requiredMet,
+                    required: qu.required, report: p.report };
+                }),
+                trust: edges,
+                standing: [...new Set([...Object.keys(earnedMap),
+                  ...edges.flatMap((e) => [e.from, e.to])])].map((id) => ({
+                  id, earned: earnedMap[id] ?? 0,
+                  trustScore: vecMean > 0 ? +((vec[id] ?? 0) / vecMean).toFixed(4) : 0,
+                  assuranceCredits: credits.filter((c) => c.actor === id).length,
+                })),
+              });
+              await ledgerAppend(env.DB, 'agent', 'agent.query',
+                { q: q.slice(0, 200), intent: out.intent });
+              ask = { q, out };
+            }
+            return html(renderCollaboratePage({
+              lang,
+              commitments: commits.commitments,
+              byCapital: commits.byCapital,
+              resources: res.resources,
+              overlaps: recs, nodes, plans, signals,
+              nodeFocus: url.searchParams.get('node') ?? undefined,
+              overlapsAll: url.searchParams.get('overlaps') === 'all',
+              page: Math.max(1, Number(url.searchParams.get('page')) || 1),
+              outcomesAll: url.searchParams.get('outcomes') === 'all',
+              ask,
+            }));
+          }
+          case 'fund': {
+            const [rv, pledges, retro, streams, poss] = await Promise.all([
+              loadRoundsView(env), list<Pledge>(env.DB, 'pledge'),
+              loadRetro(env), loadStreams(env),
+              list<Possibility>(env.DB, 'possibility'),
+            ]);
+            return html(renderFundPage({
+              lang,
+              rounds: rv.rounds, donations: rv.dons, gates: rv.gates,
+              endowment: rv.endow,
+              pledges,
+              retroRounds: retro.rounds, badgeholders: retro.badgeholders,
+              streams: streams.streams, yieldStreams: streams.yieldStreams,
+              possibilities: poss.map((p) => ({ id: p.id, title: p.title })),
+            }));
+          }
+          case 'impact': {
+            const [metrics, evidence, ledger, datasets, claims, attestations, poss]
+              = await Promise.all([
+                loadMetrics(env), loadEvidence(env), loadLedgerSummary(env),
+                loadDatasets(env),
+                list<ImpactClaim>(env.DB, 'claim'),
+                list<Attestation>(env.DB, 'attestation'),
+                list<Possibility>(env.DB, 'possibility'),
+              ]);
+            return html(renderImpactPage({
+              lang, metrics,
+              checks: evidence.checks, nodes: evidence.nodes,
+              sources: evidence.sources,
+              claims, attestations,
+              releases: datasets.releases, slices: datasets.available,
+              verify: ledger.verify, events: ledger.events,
+              possibilities: poss,
+            }));
+          }
+          case 'community': {
+            const [people, trust, gov] = await Promise.all([
+              loadActorsDirectory(env), loadTrust(env), loadGovernance(env),
+            ]);
+            return html(renderCommunityPage({
+              lang,
+              people, mutual: trust.mutual,
+              proposals: gov.proposals, ballots: gov.ballots,
+              params: gov.params, governable: gov.governable,
+              voters: gov.eligibleVoters.length,
+              peopleAll: url.searchParams.get('people') === 'all',
+            }));
+          }
+          case 'how-it-works':
+            return html(renderHowItWorksPage(lang));
+        }
+      }
       // Telegram bot webhook — secret-token verified, unauthenticated otherwise.
       // Commands mirror the possibility lifecycle; actors are tg:<username>.
       if (req.method === 'POST' && seg[0] === 'tg' && seg.length === 1) {
@@ -783,32 +849,14 @@ export default {
         for (const n of nodes) out[n.id] = (await runOracleSources(env, n)).length;
         return json({ ran: out });
       }
-      // Data sources registry — provenance surface.
-      if (req.method === 'GET' && seg[0] === 'sources') {
-        const snapshots = await list<Snapshot & { latest?: { at: string } }>(env.DB, 'oracle-snapshot');
-        const rows = SOURCES.map((s) => ({
-          ...s,
-          configured: s.needs ? !!env[s.needs as 'OPENAQ_API_KEY'] : true,
-          lastFetch: snapshots.filter((x) => x.source === s.source).at(-1)?.latest?.at ?? null,
-        }));
-        if ((req.headers.get('accept') ?? '').includes('text/html')) {
-          const tr = rows.map((s) => `<tr><td><code>${s.key}</code></td><td>${s.name}</td><td>${s.license}</td><td>${s.configured ? '✅ live' : `key-gated (<code>${s.needs}</code>)`}</td><td>${s.lastFetch ?? '—'}</td></tr>`).join('');
-          return new Response(pageShell({ title: 'Data sources — Springforth', htmx: false }, `<div class="page">
-<h1>Evidence + context sources</h1>
-<p class="lede">Oracle readers run hourly per h3-located action node; context connectors attach as "Verified context" on possibility cards. Selection follows the hackathon-endorsed ranking — full matrix in <a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/DATA-SOURCES.md">DATA-SOURCES.md</a>. Key-gated lanes activate when their env secret lands.</p>
-<table><tr><th>key</th><th>source</th><th>license</th><th>state</th><th>last fetch</th></tr>${tr}</table>
-<p class="muted"><a href="/tour">judge tour</a></p></div>`), { headers: { 'content-type': 'text/html' } });
-        }
-        return json({ sources: rows });
-      }
+      // Data sources registry — provenance surface. Browsers redirect
+      // to /impact#evidence (RETIRED); JSON is unchanged.
+      if (req.method === 'GET' && seg[0] === 'sources')
+        return json({ sources: await loadSources(env) });
       // Verify — open-evidence readings rendered for review.
       if (req.method === 'GET' && seg[0] === 'verify') {
-        const [checks, nodes] = await Promise.all([
-          list<OracleCheck & { nodeId?: string }>(env.DB, 'oracle-check'),
-          list<PlanNode>(env.DB, 'plannode'),
-        ]);
-        if (url.searchParams.get('format') === 'json') return json({ checks });
-        return new Response(renderVerifyPage(checks, nodes), { headers: { 'content-type': 'text/html' } });
+        const { checks } = await loadEvidence(env);
+        return json({ checks });
       }
       if (seg[0] === 'plans') {
         if (req.method === 'POST' && seg.length === 1) {
@@ -924,7 +972,7 @@ export default {
             { id: corrected.id, diff, note: b.note ?? '' });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
-            ? new Response(null, { status: 303, headers: { location: '/coordination' } })
+            ? new Response(null, { status: 303, headers: { location: '/collaborate#overlaps' } })
             : json({ node: corrected, diff });
         }
       }
@@ -1015,15 +1063,9 @@ export default {
         const params = await list<GovernanceParam>(env.DB, 'gov-param');
         const govApps = await list<Appreciation>(env.DB, 'appreciation');
         const voters = eligibleVoters(govApps);
-        if (req.method === 'GET' && seg.length === 1) {
-          if ((req.headers.get('accept') ?? '').includes('text/html'))
-            return new Response(renderGovernancePage({
-              proposals, ballots, params, governable: GOVERNABLE,
-              voterCount: voters.length,
-            }), { headers: { 'content-type': 'text/html' } });
+        if (req.method === 'GET' && seg.length === 1)
           return json({ proposals, ballots, params,
             governable: GOVERNABLE, eligibleVoters: voters });
-        }
         if (req.method === 'POST' && seg[1] === 'proposals') {
           const ct = req.headers.get('content-type') ?? '';
           const b = ct.includes('form')
@@ -1046,7 +1088,7 @@ export default {
           await put(env.DB, 'gov-proposal', prop.id, prop);
           await ledgerAppend(env.DB, proposer, 'governance.proposed', { id: prop.id, param });
           return ct.includes('form')
-            ? new Response(null, { status: 303, headers: { location: '/governance' } })
+            ? new Response(null, { status: 303, headers: { location: '/community#decisions' } })
             : json(prop, 201);
         }
         const prop = await get<GovernanceProposal>(env.DB, 'gov-proposal', seg[1] ?? '');
@@ -1072,7 +1114,7 @@ export default {
           await ledgerAppend(env.DB, voter, 'governance.voted',
             { proposalId: prop.id, points, support: bal.support });
           return ct.includes('form')
-            ? new Response(null, { status: 303, headers: { location: '/governance' } })
+            ? new Response(null, { status: 303, headers: { location: '/community#decisions' } })
             : json(bal, 201);
         }
         if (req.method === 'POST' && seg[2] === 'tally') {
@@ -1098,71 +1140,28 @@ export default {
           return json(OPENAPI);
         if ((req.headers.get('accept') ?? '').includes('text/html')
             || !(req.headers.get('accept') ?? '').includes('application/json'))
-          return new Response(renderDocsPage(OPENAPI.paths), { headers: { 'content-type': 'text/html' } });
+          return new Response(renderDocsPage(OPENAPI.paths, langFrom(url, req.headers.get('cookie'))), { headers: { 'content-type': 'text/html' } });
         return json(OPENAPI);
       }
-      if (seg[0] === 'tour' && req.method === 'GET')
-        return new Response(renderTourPage(), { headers: { 'content-type': 'text/html' } });
       if (seg[0] === 'whitepaper' && req.method === 'GET')
-        return new Response(renderWhitepaper(), { headers: { 'content-type': 'text/html' } });
+        return new Response(renderWhitepaper(langFrom(url, req.headers.get('cookie'))), { headers: { 'content-type': 'text/html' } });
       // Every surface on one scrollable page — review mode.
       if (seg[0] === 'all' && req.method === 'GET')
-        return new Response(await renderAllPage(env.SELF ?? { fetch }, url.origin),
+        return new Response(await renderAllPage(env.SELF ?? { fetch }, url.origin,
+          langFrom(url, req.headers.get('cookie'))),
           { headers: { 'content-type': 'text/html' } });
       // Recurring support streams — top-level list; round-scoped view
       // also exists at /rounds/:id/stream.
-      if (seg[0] === 'streams' && req.method === 'GET') {
-        const streams = await list<RecurringSupport>(env.DB, 'recurring-support');
-        const yieldStreams = await list<YieldStream>(env.DB, 'yieldstream');
-        if ((req.headers.get('accept') ?? '').includes('text/html'))
-          return new Response(pageShell({ title: 'Streams — Springforth', htmx: false }, `<div class="page">
-<h1>Recurring support</h1>
-<p class="lede">Superfluid CFA streams on Celo — continuous backing that accrues into
-donation records hourly (need-targeted) or into the round's matching fund
-(untargeted). Sponsors sign the flow in their own wallet; nothing custodies.</p>
-<table><tr><th>Stream</th><th>Round</th><th>Accrued</th><th>Status</th></tr>
-${streams.map((s) => `<tr><td>${s.id}</td><td>${s.roundId}</td>
-<td>${s.accruedUnits} units</td><td><span class="badge">${s.state}</span></td></tr>`).join('')
-  || '<tr><td colspan="4"><em>No streams yet — POST /rounds/:id/stream returns unsigned createFlow calldata for a wallet to sign.</em></td></tr>'}
-${yieldStreams.map((s) => `<tr><td>${s.id} (yield)</td><td>${s.roundId}</td>
-<td>sponsor aToken position</td><td><span class="badge">${s.state}</span></td></tr>`).join('')}
-</table></div>`),
-            { headers: { 'content-type': 'text/html' } });
-        return json({ streams, yieldStreams });
-      }
+      if (seg[0] === 'streams' && req.method === 'GET')
+        return json(await loadStreams(env));
       // Attestations list — EAS payloads stored for claims/donations.
       if (seg[0] === 'attestations' && req.method === 'GET' && seg.length === 1) {
         const atts = await list<Attestation>(env.DB, 'attestation');
-        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderAttestationsPage(atts));
         return json({ attestations: atts });
       }
       if (seg[0] === 'datasets') {
-        if (req.method === 'GET' && seg.length === 1) {
-          const releases = await list<DatasetRelease>(env.DB, 'dataset-release');
-          const available = Object.fromEntries(
-            Object.entries(DATASET_SOURCES).map(([k, v]) => [k, v.describe]));
-          if ((req.headers.get('accept') ?? '').includes('text/html'))
-            return new Response(pageShell({ title: 'Datasets — Springforth', htmx: false }, `<div class="page">
-<h1>Signed dataset releases</h1>
-<p class="lede">Frozen graph slices — sha256-manifested, OpenTimestamps-anchored, IPFS-
-pinnable. Aggregates are public; premium raw feeds move through
-payment-referenced access grants. This is the data-revenue lane.</p>
-<h2>Releases</h2>
-<table><tr><th>Dataset</th><th>Records</th><th>sha256</th><th>CID</th><th>Released</th></tr>
-${releases.map((r) => `<tr><td>${r.name}</td><td>${r.records}</td>
-<td><code>${r.sha256.slice(0, 12)}…</code></td>
-<td>${r.cid ? `<code>${r.cid.slice(0, 12)}…</code>` : '—'}</td>
-<td class="muted">${r.createdAt.slice(0, 10)}</td></tr>`).join('')
-  || '<tr><td colspan="5"><em>No releases yet — POST /datasets/:name/release (admin) freezes a slice.</em></td></tr>'}
-</table>
-<h2>Available slices</h2>
-<table><tr><th>Name</th><th>Contents</th></tr>
-${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>${v}</td></tr>`).join('')}
-</table></div>`),
-              { headers: { 'content-type': 'text/html' } });
-          return json({ releases, available });
-        }
+        if (req.method === 'GET' && seg.length === 1)
+          return json(await loadDatasets(env));
         if (req.method === 'POST' && seg[2] === 'release') {
           if (!authed(req, env)) return err('unauthorized', 401);
           const name = seg[1] ?? '';
@@ -1332,7 +1331,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             { id: rec.id, status: next.status, scenario: scenario || undefined });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
-            ? new Response(null, { status: 303, headers: { location: '/coordination' } })
+            ? new Response(null, { status: 303, headers: { location: '/collaborate#overlaps' } })
             : json(next);
         }
         // Confirm → coordinate: materialises the merged proposal as a shared
@@ -1395,7 +1394,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           await sweepPossibilities(env, actor);  // a required need may have just tipped quorum
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
-            ? new Response(null, { status: 303, headers: { location: `/coordination?node=${encodeURIComponent(coordNodeId)}` } })
+            ? new Response(null, { status: 303, headers: { location: `/collaborate?node=${encodeURIComponent(coordNodeId)}#overlaps` } })
             : json(resolved, 201);
         }
       }
@@ -1407,68 +1406,14 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
       // community resources.
       // Filters: ?role=offer|need  ?org=<substring of orgIds>  ?unmet=1
       // (needs with zero confirmed matches).
-      if (req.method === 'GET' && seg[0] === 'commitments') {
-        const nodes = await list<PlanNode>(env.DB, 'plannode');
-        const recs = await list<OverlapRecord>(env.DB, 'overlap');
-        const matchedBy = new Map<string, number>();
-        for (const r of recs) {
-          if (r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated'))
-            matchedBy.set(r.nodeIds[0]!, (matchedBy.get(r.nodeIds[0]!) ?? 0) + 1);
-        }
-        const org = url.searchParams.get('org');
-        const rows = nodes
-          .filter((n) => n.kind === 'offer' || n.kind === 'need' || isNeed(n))
-          .map((n) => ({
-            ...n,
-            role: n.kind === 'offer' ? 'offer' : 'need',
-            inferred: n.kind === 'action',      // verb-inferred, not declared
-            offersMatched: n.kind === 'offer' ? undefined : (matchedBy.get(n.id) ?? 0),
-            capital: inferCapital(n),           // explicit field or heuristic
-          }))
-          .filter((n) => !url.searchParams.get('role')
-            || n.role === url.searchParams.get('role'))
-          .filter((n) => !org || n.orgIds.some((o) => o.includes(org)))
-          .filter((n) => url.searchParams.get('unmet') !== '1'
-            || (n.role === 'need' && !n.offersMatched));
-        // Eight-forms aggregate: how much of the flow is non-monetary —
-        // "money becomes one stream among eight", made visible.
-        const byCapital: Record<string, number> = {};
-        for (const n of rows) if (n.capital) byCapital[n.capital] = (byCapital[n.capital] ?? 0) + 1;
-        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderCommitmentsPage(rows, byCapital));
-        return json({ commitments: rows, byCapital });
-      }
-      // Coordination page — public overlap report + validation forms
-      if (req.method === 'GET' && seg[0] === 'coordination') {
-        const recs = await list<OverlapRecord>(env.DB, 'overlap');
-        const nodes = await list<PlanNode>(env.DB, 'plannode');
-        const signals = await list<Signal>(env.DB, 'signal');
-        const focus = url.searchParams.get('node') ?? undefined;
-        return new Response(renderCoordinationPage(recs, nodes, signals, focus), { headers: { 'content-type': 'text/html' } });
-      }
-      // Portfolio — plans as comparable objects + overlap clusters.
-      if (req.method === 'GET' && seg[0] === 'portfolio' && seg.length === 1) {
-        const [plans, nodes, recs] = await Promise.all([
-          list<ExternalPlan>(env.DB, 'plan'), list<PlanNode>(env.DB, 'plannode'),
-          list<OverlapRecord>(env.DB, 'overlap'),
-        ]);
-        return new Response(renderPortfolioPage(plans, nodes, recs), { headers: { 'content-type': 'text/html' } });
-      }
-      // Outcomes — the common outcome layer: who else is pursuing each
-      // outcome, which actions could strengthen it.
-      if (req.method === 'GET' && seg[0] === 'outcomes' && seg.length === 1) {
-        const nodes = await list<PlanNode>(env.DB, 'plannode');
-        const recs = await list<OverlapRecord>(env.DB, 'overlap');
-        return new Response(
-          renderOutcomesPage(nodes, recs, nodes.filter((n) => n.kind === 'indicator')),
-          { headers: { 'content-type': 'text/html' } });
-      }
+      if (req.method === 'GET' && seg[0] === 'commitments')
+        return json(await loadCommitments(env, url.searchParams));
       // Agent — NL query over the coordination graph; cited, read-only.
       if (seg[0] === 'agent') {
         const q = req.method === 'POST'
           ? String(((await req.json().catch(() => ({}))) as { q?: unknown }).q ?? '')
           : url.searchParams.get('q') ?? '';
-        if (!q) return wantsHtml(req) ? html(renderAgentPage('')) : err('q required');
+        if (!q) return err('q required');
         const nodes = await list<PlanNode>(env.DB, 'plannode');
         const recs = await list<OverlapRecord>(env.DB, 'overlap');
         const [poss, parts, apps, credits] = await Promise.all([
@@ -1501,8 +1446,6 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           })),
         });
         await ledgerAppend(env.DB, 'agent', 'agent.query', { q: q.slice(0, 200), intent: out.intent });
-        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderAgentPage(q, out));
         return json(out);
       }
       // Signals — public intent: a named actor signs support/interest/
@@ -1526,7 +1469,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             { id: signal.id, targetId: signal.targetId, intent: signal.intent });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
-            ? new Response(null, { status: 303, headers: { location: '/coordination' } })
+            ? new Response(null, { status: 303, headers: { location: '/collaborate#overlaps' } })
             : json(signal, 201);
         }
         if (req.method === 'GET') {
@@ -1666,9 +1609,11 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             (live.includes(a.status) ? 0 : 1) - (live.includes(b.status) ? 0 : 1)
             || b.score - a.score);
           if (url.searchParams.get('format') === 'json') return json({ possibilities: cards });
+          const connections = await loadCardConnections(env, cards);
           return new Response(renderPossibilitiesPage(cards, edges, viewer, {
             status: url.searchParams.get('status') ?? '',
             lang: langFrom(url, req.headers.get('cookie')),
+            connections,
           }), { headers: { 'content-type': 'text/html' } });
         }
         const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');
@@ -1880,6 +1825,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             appreciations: apps.filter((a) => a.possibilityId === p.id),
             claim,
             trajectories: myNodes.map((n) => trajectory(n.id, checks)),
+            lang: langFrom(url, req.headers.get('cookie')),
           }), { headers: { 'content-type': 'text/html' } });
         }
         // ICS export — the Mobilizon interop lane: possibility → calendar
@@ -1911,12 +1857,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
       // ?format=attestations emits EAS-shaped records — composable
       // reputation export.
       if (req.method === 'GET' && seg[0] === 'trust') {
-        const [apps, credits] = await Promise.all([
-          list<Appreciation>(env.DB, 'appreciation'),
-          list<AssuranceCredit>(env.DB, 'assurance-credit'),
-        ]);
-        const edges = trustEdges(apps);
-        if (url.searchParams.get('format') === 'attestations')
+        if (url.searchParams.get('format') === 'attestations') {
+          const edges = trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
           return json({
             attestations: edges.filter((e) => e.mutual > 0).map((e) => ({
               schema: 'mutual-recognition', from: e.from, to: e.to,
@@ -1924,24 +1866,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
               ledgerEvent: 'possibility.appreciated',
             })),
           });
-        const earned = earnedRecognition(edges, credits);
-        const vec = eigenTrust(edges);   // uniform seed — global scores
-        const actorIds = new Set<string>([
-          ...Object.keys(earned), ...edges.flatMap((e) => [e.from, e.to]),
-          ...credits.map((c) => c.actor),
-        ]);
-        const RULE = 'mutual recognition = min(a→b, b→a); recognition ∝ √earned (Bloom √-norm); propagation: EigenTrust';
-        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderTrustPage(edges, RULE));
-        return json({
-          rule: RULE,
-          edges, mutual: edges.filter((e) => e.mutual > 0),
-          actors: [...actorIds].map((id) => ({
-            id, earned: earned[id] ?? 0,
-            trustScore: +((vec[id] ?? 0) / Math.max(...Object.values(vec), 1e-9)).toFixed(4),
-            assuranceCredits: credits.filter((c) => c.actor === id).length,
-          })).sort((a, b) => b.trustScore - a.trustScore || b.earned - a.earned),
-        });
+        }
+        return json(await loadTrust(env));
       }
       // Actor standing — the "Community Standing" profile: created/joined
       // counts, earned recognition, transitive trust score.
@@ -1988,22 +1914,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             trustScore: mean > 0 ? +((vec[id] ?? 0) / mean).toFixed(4) : 0,
             wallets: wallets.filter((w) => w.actor === id),
             donations: donations.filter((d) => d.donor === id),
-          }), { headers: { 'content-type': 'text/html' } });
-        }
-        if (!id && wantsHtml(req)) {
-          const earnedMap = earnedRecognition(edges, credits);
-          const actorIds = new Set<string>([
-            ...poss.map((p) => p.declarerId), ...parts.map((x) => x.actor),
-            ...apps.flatMap((a) => [a.fromActor, a.toActor]),
-            ...credits.map((c) => c.actor),
-          ]);
-          return html(renderActorsPage([...actorIds].map((aid) => ({
-            id: aid,
-            created: poss.filter((p) => p.declarerId === aid).length,
-            joined: parts.filter((x) => x.actor === aid).length,
-            earned: earnedMap[aid] ?? 0,
-            trustScore: mean > 0 ? +((vec[aid] ?? 0) / mean).toFixed(4) : 0,
-          }))));
+          }, langFrom(url, req.headers.get('cookie'))),
+            { headers: { 'content-type': 'text/html' } });
         }
         return json({
           id,
@@ -2018,97 +1930,11 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
       }
       // Resource commons — every published offer, who brings it, and how
       // many times it has been contributed (coordinated complements).
-      if (req.method === 'GET' && seg[0] === 'resources') {
-        const nodes = await list<PlanNode>(env.DB, 'plannode');
-        const recs = await list<OverlapRecord>(env.DB, 'overlap');
-        const times = new Map<string, number>();
-        for (const r of recs)
-          if (r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated'))
-            times.set(r.nodeIds[1]!, (times.get(r.nodeIds[1]!) ?? 0) + 1);
-        const resourceRows = nodes.filter((n) => n.kind === 'offer').map((o) => ({
-          id: o.id, label: o.label, owner: o.orgIds[0] ?? 'unknown',
-          terms: o.terms, capacity: o.capacity, capital: inferCapital(o),
-          timesContributed: times.get(o.id) ?? 0, source: o.source,
-        }));
-        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderResourcesPage(resourceRows));
-        return json({ resources: resourceRows });
-      }
+      if (req.method === 'GET' && seg[0] === 'resources')
+        return json(await loadResources(env));
       // Network health — north-star + funnel metrics.
-      if (req.method === 'GET' && seg[0] === 'metrics') {
-        const [poss, parts, apps, recs, { dons, matchByNeed }, nodes] = await Promise.all([
-          list<Possibility>(env.DB, 'possibility'), list<Participation>(env.DB, 'participation'),
-          list<Appreciation>(env.DB, 'appreciation'), list<OverlapRecord>(env.DB, 'overlap'),
-          fundingMaps(env), list<PlanNode>(env.DB, 'plannode'),
-        ]);
-        const now = Date.now();
-        const statuses = poss.map((p) => ({ p, s: effectiveStatus(p, now) }));
-        const activated = statuses.filter((x) => x.s === 'quorum' || x.s === 'completed').length;
-        const completedIds = new Set(statuses.filter((x) => x.s === 'completed').map((x) => x.p.id));
-        const completedParts = parts.filter((x) => completedIds.has(x.possibilityId)).length;
-        const completedApps = apps.filter((a) => a.possibilityId && completedIds.has(a.possibilityId)).length;
-        const first = Math.min(...statuses.map((x) => Date.parse(x.p.createdAt)), now);
-        const weeks = Math.max(1, (now - first) / (7 * 86_400_000));
-        const passes = await list<Pass>(env.DB, 'pass');
-        const expiringSoon = statuses.filter((x) =>
-          (x.s === 'active' || x.s === 'draft') && x.p.deadline
-          && Date.parse(x.p.deadline) - now < 3 * 86_400_000).length;
-        const payload: Record<string, unknown> = {
-          possibilities: statuses.length, activated, expired: statuses.filter((x) => x.s === 'expired').length,
-          quorumRate: statuses.length ? +(activated / statuses.length).toFixed(3) : 0,
-          appreciationRatio: completedParts ? +(completedApps / completedParts).toFixed(3) : 0,
-          coordinationsPerWeek: +(activated / weeks).toFixed(3),
-          successfulCoordinationsPerWeek: successfulCoordinationsPerWeek(poss, apps, now),
-          expiringSoon, passesLogged: passes.length,
-          complementsConfirmed: recs.filter((r) => r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated')).length,
-          // Monetary value, per currency (never converted) — committed and
-          // matched are ledger-derived; volunteer time is declared hours ×
-          // the cited ONS rate where the card places in GB. Aggregated per
-          // card so rates stay local.
-          ...(() => {
-            const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
-              .map((n) => [n.id, n.possibilityId]));
-            const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number; riskAvoided: number; leverage: number; riskPerUnit: number }> = {};
-            let hoursTotal = 0;
-            for (const p of poss) {
-              const mine = parts.filter((x) => x.possibilityId === p.id);
-              const v = valueCoordinated({
-                hours: mine.map((x) => x.hours ?? 0).filter((h) => h > 0),
-                donations: dons.filter((d) => possByNeed.get(d.needNodeId) === p.id)
-                  .map((d) => ({ amount: d.amount, currency: d.currency })),
-                matched: [...matchByNeed.values()].filter((m) => possByNeed.get(m.needNodeId) === p.id)
-                  .map((m) => ({ amount: m.amount, currency: m.currency })),
-                inKind: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'offer' && n.budget != null)
-                  .map((n) => ({ amount: n.budget!,
-                    currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
-                needsCost: nodes.filter((n) => n.possibilityId === p.id && n.kind === 'need' && n.budget != null)
-                  .map((n) => ({ amount: n.budget!,
-                    currency: n.budgetCurrency ?? (GB_PLACE.test(p.place ?? '') ? 'GBP' : 'USD') })),
-                householdsProtected: p.householdsProtected,
-                benchmark: GB_PLACE.test(p.place ?? '') ? VOLUNTEER_GB : undefined,
-              });
-              hoursTotal += v.hoursTotal;
-              for (const [cur, cv] of Object.entries(v.byCurrency)) {
-                const a = (acc[cur] ??= { committed: 0, matched: 0, inKind: 0, volunteerTime: 0, total: 0, asked: 0, riskAvoided: 0, leverage: 0, riskPerUnit: 0 });
-                a.committed += cv.committed; a.matched += cv.matched;
-                a.inKind += cv.inKind; a.volunteerTime += cv.volunteerTime; a.total += cv.total;
-                a.asked += cv.asked; a.riskAvoided += cv.riskAvoided;
-              }
-            }
-            // Ratios are derived post-sum — they must never be summed across cards.
-            for (const a of Object.values(acc)) {
-              a.leverage = a.committed > 0 ? Math.round(a.total / a.committed * 100) / 100 : 0;
-              a.riskPerUnit = a.total > 0 && a.riskAvoided > 0 ? Math.round(a.riskAvoided / a.total * 100) / 100 : 0;
-            }
-            for (const a of Object.values(acc))
-              for (const k of Object.keys(a) as (keyof typeof a)[]) a[k] = Math.round(a[k] * 100) / 100;
-            return { valueByCurrency: acc, declaredHoursTotal: Math.round(hoursTotal * 100) / 100 };
-          })(),
-        };
-        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderMetricsPage(payload));
-        return json(payload);
-      }
+      if (req.method === 'GET' && seg[0] === 'metrics')
+        return json(await loadMetrics(env));
       // ── Funding layer — public mechanisms only ──────────────────────
       // Quadratic rounds (LR/Gitcoin), assurance pledges (Tabarrok),
       // retro ballots (RetroPGF), impact claims (hypercerts lexicon),
@@ -2137,20 +1963,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           await ledgerAppend(env.DB, 'api', 'round.opened', { id: round.id });
           return json(round, 201);
         }
-        if (req.method === 'GET' && seg.length === 1) {
-          const rounds = await list<FundingRound>(env.DB, 'round');
-          if (url.searchParams.get('format') === 'json') return json({ rounds });
-          const [dons, pledges, rnodes] = await Promise.all([
-            list<Donation>(env.DB, 'donation'), list<Pledge>(env.DB, 'pledge'),
-            list<PlanNode>(env.DB, 'plannode'),
-          ]);
-          const needPoss = new Map(rnodes.filter((n) => n.possibilityId != null)
-            .map((n) => [n.id, n.possibilityId!]));
-          const gates = new Map(rounds.map((r) => [r.id, roundDemand(r, pledges, needPoss)]));
-          const endow = endowmentAccrual(rounds, dons);
-          return new Response(renderRoundsPage(rounds, dons, gates, endow),
-            { headers: { 'content-type': 'text/html' } });
-        }
+        if (req.method === 'GET' && seg.length === 1)
+          return json({ rounds: await list<FundingRound>(env.DB, 'round') });
         const round = await get<FundingRound>(env.DB, 'round', seg[1] ?? '');
         if (!round) return err('round not found', 404);
         const donations = (await list<Donation>(env.DB, 'donation'))
@@ -2181,7 +1995,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           const nodes = await list<PlanNode>(env.DB, 'plannode');
           if (url.searchParams.get('format') === 'json')
             return json({ ...round, donations, allocation });
-          return new Response(renderRoundPage(round, donations, allocation, nodes),
+          return new Response(renderRoundPage(round, donations, allocation, nodes,
+            langFrom(url, req.headers.get('cookie'))),
             { headers: { 'content-type': 'text/html' } });
         }
         if (req.method === 'GET' && seg[2] === 'donors' && seg[3]) {
@@ -2192,7 +2007,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             .filter((a) => a.schemaRef === 'springforth.donation.v1'
               && a.payload.includes(`"donor":"${donor}"`));
           return new Response(renderDonorPage({
-            roundId: round.id, donor, donations: ds, receipts }),
+            roundId: round.id, donor, donations: ds, receipts },
+            langFrom(url, req.headers.get('cookie'))),
             { headers: { 'content-type': 'text/html' } });
         }
         if (req.method === 'POST' && seg[2] === 'donate') {
@@ -2290,7 +2106,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           const applications = (await list<RoundApplication>(env.DB, 'round-application'))
             .filter((a) => a.roundId === round.id);
           const nodes = await list<PlanNode>(env.DB, 'plannode');
-          return new Response(renderRoundAdmin(round, applications, nodes),
+          return new Response(renderRoundAdmin(round, applications, nodes,
+            langFrom(url, req.headers.get('cookie'))),
             { headers: { 'content-type': 'text/html' } });
         }
         if (req.method === 'GET' && seg[2] === 'applications') {
@@ -2445,7 +2262,6 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           const claims = await list<ImpactClaim>(env.DB, 'claim');
           if (url.searchParams.get('format') === 'lexicon')
             return json({ claims: claims.map(toHypercertLexicon) });
-          if (wantsHtml(req)) return html(renderClaimsPage(claims));
           return json({ claims });
         }
         const claim = await get<ImpactClaim>(env.DB, 'claim', seg[1] ?? '');
@@ -2457,7 +2273,7 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
             return json(toHypercertLexicon(claim));
           if ((req.headers.get('accept') ?? '').includes('text/html'))
             return new Response(renderClaimPage(claim, atts,
-              { chainReady: !!chainCfg(env) }),
+              { chainReady: !!chainCfg(env) }, langFrom(url, req.headers.get('cookie'))),
               { headers: { 'content-type': 'text/html' } });
           return json({ ...claim, attestations: atts });
         }
@@ -2561,15 +2377,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           await ledgerAppend(env.DB, 'api', 'retro.opened', { id: rr.id });
           return json(rr, 201);
         }
-        if (req.method === 'GET' && seg.length === 1) {
-          const rounds = await list<RetroRound>(env.DB, 'retroround');
-          const apps = await list<Appreciation>(env.DB, 'appreciation');
-          const bh = badgeholders(apps, 8);
-          const rule = 'badgeholders = top EigenTrust on the appreciation graph; quadratic ballot on attested claims';
-          if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-            return html(renderRetroPage(rounds, bh, rule));
-          return json({ rounds, badgeholders: bh, rule });
-        }
+        if (req.method === 'GET' && seg.length === 1)
+          return json(await loadRetro(env));
         const rr = await get<RetroRound>(env.DB, 'retroround', seg[1] ?? '');
         if (!rr) return err('retro round not found', 404);
         const ballots = (await list<RetroBallot>(env.DB, 'retroballot'))
@@ -2624,12 +2433,8 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
           { id: pledge.id, possibilityId: p.id, amount, currency: pledge.currency });
         return json(pledge, 201);
       }
-      if (req.method === 'GET' && seg[0] === 'pledges') {
-        const pledges = await list<Pledge>(env.DB, 'pledge');
-        if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderPledgesPage(pledges));
-        return json({ pledges });
-      }
+      if (req.method === 'GET' && seg[0] === 'pledges')
+        return json({ pledges: await list<Pledge>(env.DB, 'pledge') });
       // ── Chain lane — status + tx recording + confirmation mirror ────
       if (seg[0] === 'chain') {
         const cfg = chainCfg(env);
@@ -2729,18 +2534,19 @@ ${Object.entries(available).map(([k, v]) => `<tr><td><code>${k}</code></td><td>$
       if (req.method === 'GET' && seg[0] === 'ledger') {
         if (seg[1] === 'verify') {
           const v = await ledgerVerify(env.DB);
-          return wantsHtml(req) ? html(renderLedgerVerifyPage(v)) : json(v);
+          return wantsHtml(req) ? html(renderLedgerVerifyPage(v, langFrom(url, req.headers.get('cookie')))) : json(v);
         }
         const events = await ledgerEvents(env.DB);
         if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderLedgerPage(events, await ledgerVerify(env.DB)));
+          return html(renderLedgerPage(events, await ledgerVerify(env.DB), langFrom(url, req.headers.get('cookie'))));
         return json({ events });
       }
       if ((req.headers.get('accept') ?? '').includes('text/html')) {
-        return new Response(pageShell({ title: 'Not found — Springforth', htmx: false }, `<div class="page">
-<h1>Nothing here</h1>
-<p class="lede">That page doesn't exist — it may have moved, or the link is old.</p>
-<p><a href="/possibilities">Explore the deck</a> · <a href="/">back home</a></p>
+        const lang = langFrom(url, req.headers.get('cookie'));
+        return new Response(pageShell({ title: `${t(lang, 'nf.title')} — Springforth`, htmx: false, lang }, `<div class="page">
+${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
+  em: t(lang, 'nf.h1.em'), lede: t(lang, 'nf.lede') })}
+<p><a href="/possibilities">${t(lang, 'nf.deck')}</a> · <a href="/">${t(lang, 'nf.home')}</a></p>
 </div>`), { status: 404, headers: { 'content-type': 'text/html' } });
       }
       return err('not found', 404);

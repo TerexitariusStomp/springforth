@@ -4,6 +4,8 @@ import type {
 import type { PlanNode } from '@springforth/coordination';
 import type { Trajectory } from '@springforth/oracle';
 import { pageShell } from './theme.ts';
+import { t, type Lang } from './i18n.ts';
+import { pageHeader, displayName } from './ui.ts';
 
 // /report/:possibilityId — the composed field report. Auto-assembled
 // from structured records (report + participants + evidence readings +
@@ -21,8 +23,10 @@ export function renderReportPage(opts: {
   appreciations: Appreciation[];
   claim?: ImpactClaim;
   trajectories: Trajectory[];
+  lang?: Lang;
 }): string {
   const { possibility: p, participants, nodes, checks, appreciations, claim, trajectories } = opts;
+  const lang = opts.lang ?? 'en';
   const label = new Map(nodes.map((n) => [n.id, n.label]));
   const checksByNode = new Map<string, OracleCheck[]>();
   for (const c of checks) {
@@ -33,32 +37,38 @@ export function renderReportPage(opts: {
   const evidenceRows = [...checksByNode.entries()].map(([nid, cs]) => {
     const tj = trajectories.find((t) => t.nodeId === nid);
     return `<tr><td>${esc(label.get(nid) ?? nid)}</td><td>${cs.length}</td>
-<td>${cs.filter((c) => c.result === 'match').length} match /
-${cs.filter((c) => c.result === 'mismatch').length} mismatch</td>
-<td>${tj ? `${tj.slopePerDay > 0 ? '+' : ''}${tj.slopePerDay}/day${tj.daysToThreshold != null ? ` · ~${tj.daysToThreshold}d to threshold` : ''}` : '—'}</td></tr>`;
+<td>${cs.filter((c) => c.result === 'match').length} ${esc(t(lang, 'misc.match'))} /
+${cs.filter((c) => c.result === 'mismatch').length} ${esc(t(lang, 'misc.mismatch'))}</td>
+<td>${tj ? `${tj.slopePerDay > 0 ? '+' : ''}${tj.slopePerDay}/day${tj.daysToThreshold != null ? ` · ~${tj.daysToThreshold}d ${esc(t(lang, 'detail.report.toThreshold'))}` : ''}` : '—'}</td></tr>`;
   }).join('\n');
   const appList = appreciations.map((a) =>
-    `<li><strong>${esc(a.fromActor)}</strong> → <strong>${esc(a.toActor)}</strong>${a.note ? ` — ${esc(a.note)}` : ''}</li>`).join('\n');
-  return pageShell({ title: `Field report — ${p.title}`, htmx: false,
+    `<li><strong>${displayName(a.fromActor)}</strong> → <strong>${displayName(a.toActor)}</strong>${a.note ? ` — ${esc(a.note)}` : ''}</li>`).join('\n');
+  return pageShell({ title: `${t(lang, 'detail.report.kicker')} — ${p.title}`,
+    htmx: false, lang,
     extraCss: `.box{background:var(--sf-card);border:1px solid var(--sf-line-2);border-radius:12px;padding:1.2rem;margin:1rem 0}` },
     `<div class="page">
-<h1>Field report — ${esc(p.title)}</h1>
-<p class="muted">${esc(p.place ?? '')} · declared by ${esc(p.declarerId)} · status ${esc(p.status)}</p>
-${p.report ? `<div class="box"><h2 style="margin-top:0">What happened</h2>
+${pageHeader({
+      kicker: t(lang, 'detail.report.kicker'),
+      title: p.title,
+      back: { href: '/possibilities', label: t(lang, 'nav.possibilities') },
+    })}
+<p class="muted">${esc(p.place ?? '')} · ${esc(t(lang, 'detail.report.declaredBy'))} ${displayName(p.declarerId)} · ${esc(t(lang, 'detail.report.status'))} ${esc(p.status)}</p>
+${p.report ? `<div class="box"><h2 style="margin-top:0">${esc(t(lang, 'detail.report.happened'))}</h2>
 <p>${esc(p.report.summary)}</p>
-<p><strong>Evidence:</strong> ${esc(p.report.evidence)}</p>
-<p><strong>Learnings:</strong> ${esc(p.report.learnings)}</p></div>` : '<p><em>No completion report filed yet.</em></p>'}
-<h2>Who participated</h2>
-<p>${participants.length} participant${participants.length === 1 ? '' : 's'}: ${participants.map((x) => esc(x.actor)).join(', ') || '—'}</p>
-<h2>Open-evidence readings</h2>
-<table><tr><th>Target</th><th>Readings</th><th>Result</th><th>Trend</th></tr>
-${evidenceRows || '<tr><td colspan="4"><em>No readings on linked nodes yet.</em></td></tr>'}</table>
-<h2>Appreciation round</h2>
-<ul>${appList || '<li><em>None recorded.</em></li>'}</ul>
-${claim ? `<h2>Impact claim</h2>
-<p>Claim <code>${esc(claim.id)}</code> — state <strong>${esc(claim.state)}</strong> —
-<a href="/claims/${esc(claim.id)}?format=lexicon">hypercerts lexicon JSON</a>.
-${claim.oracleCheckIds.length} evidence checks cited; ${claim.contributors.length} contributors.</p>` : ''}
-<p class="muted"><a href="/possibilities#${esc(p.id)}">the card</a> · generated ${new Date().toISOString()}</p>
+<p><strong>${esc(t(lang, 'detail.report.evidence'))}:</strong> ${esc(p.report.evidence)}</p>
+<p><strong>${esc(t(lang, 'detail.report.learnings'))}:</strong> ${esc(p.report.learnings)}</p></div>` : `<p><em>${esc(t(lang, 'detail.report.none'))}</em></p>`}
+<h2>${esc(t(lang, 'detail.report.who'))}</h2>
+<p>${participants.length} ${esc(t(lang, 'detail.report.people'))}: ${participants.map((x) => displayName(x.actor)).join(', ') || '—'}</p>
+<h2>${esc(t(lang, 'detail.report.readings'))}</h2>
+<table><tr><th scope="col">${esc(t(lang, 'col.target'))}</th><th scope="col">${esc(t(lang, 'col.readings'))}</th><th scope="col">${esc(t(lang, 'col.result'))}</th><th scope="col">${esc(t(lang, 'col.trend'))}</th></tr>
+${evidenceRows || `<tr><td colspan="4"><em>${esc(t(lang, 'detail.report.noReadings'))}</em></td></tr>`}</table>
+<h2>${esc(t(lang, 'detail.report.appreciations'))}</h2>
+<ul>${appList || `<li><em>${esc(t(lang, 'detail.report.noneRecorded'))}</em></li>`}</ul>
+${claim ? `<h2>${esc(t(lang, 'detail.report.claim'))}</h2>
+<p>${esc(t(lang, 'detail.report.claimWord'))} <code>${esc(claim.id)}</code> — ${esc(t(lang, 'detail.report.state'))} <strong>${esc(claim.state)}</strong> —
+${claim.oracleCheckIds.length} ${esc(t(lang, 'detail.report.checksCited'))}; ${claim.contributors.length} ${esc(t(lang, 'detail.report.contributors'))}.
+<details class="how-note"><summary>${esc(t(lang, 'detail.data'))}</summary>
+<div class="hn-body"><a href="/claims/${esc(claim.id)}?format=lexicon">${esc(t(lang, 'detail.report.lexicon'))}</a></div></details></p>` : ''}
+<p class="muted"><a href="/possibilities#${esc(p.id)}">${esc(t(lang, 'detail.report.card'))}</a> · ${esc(t(lang, 'detail.report.generated'))} ${new Date().toISOString()}</p>
 </div>`);
 }

@@ -17,6 +17,7 @@
   "implementation": {
     "sourceRoots": [
       "packages/portal/src/landing.ts",
+      "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
       "packages/portal/src/i18n.ts"
     ],

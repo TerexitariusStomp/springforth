@@ -1,11 +1,13 @@
 import type { ActorWallet, Attestation, Donation } from '@springforth/core';
 import { pageShell } from './theme.ts';
+import { t, type Lang } from './i18n.ts';
+import { pageHeader, displayName, displayNameText, howItWorks } from './ui.ts';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const shell = (title: string, body: string) =>
-  pageShell({ title: `${title} — Springforth`, htmx: false }, `<div class="page">${body}</div>`);
+const shell = (title: string, body: string, lang: Lang = 'en') =>
+  pageShell({ title: `${title} — Springforth`, htmx: false, lang }, `<div class="page">${body}</div>`);
 
 export interface ActorProfileInput {
   actor: string;
@@ -17,30 +19,35 @@ export interface ActorProfileInput {
   donations: Donation[];
 }
 
-export function renderActorProfile(i: ActorProfileInput): string {
+export function renderActorProfile(i: ActorProfileInput, lang: Lang = 'en'): string {
   const wallets = i.wallets.map((w) =>
     `<tr><td><code>${esc(w.address)}</code></td><td class="muted">${esc(w.at.slice(0, 10))}</td></tr>`).join('\n');
   const donations = i.donations.map((d) =>
     `<tr><td><a href="/rounds/${esc(d.roundId)}">${esc(d.roundId)}</a></td>
 <td>${esc(d.needNodeId)}</td><td>${d.amount} ${esc(d.currency)}</td>
 <td class="muted">${esc(d.settlement)}${d.settlementRef ? ` · <code>${esc(d.settlementRef.slice(0, 18))}…</code>` : ''}</td></tr>`).join('\n');
-  return shell(`Actor ${i.actor}`, `
-<h1>${esc(i.actor)}</h1>
-<table><tr><th>Metric</th><th>Value</th></tr>
-<tr><td>Cards declared / joined</td><td>${i.created} / ${i.joined}</td></tr>
-<tr><td>Appreciated by / gave</td><td>${i.appreciatedBy} / ${i.appreciated}</td></tr>
-<tr><td>Earned recognition</td><td>${i.earned.toFixed(2)}</td></tr>
-<tr><td>Assurance credits</td><td>${i.assuranceCredits}</td></tr>
-<tr><td>Trust score (EigenTrust, relative to mean)</td><td>${i.trustScore}</td></tr></table>
-<h2>Bound wallets</h2>
-<table><tr><th>Address</th><th>Bound</th></tr>
-${wallets || '<tr><td colspan="2"><em>No wallets bound yet — bind one with POST /actors/:id/bind-wallet (EIP-191 signature).</em></td></tr>'}</table>
-<h2>Donations</h2>
-<table><tr><th>Round</th><th>Need</th><th>Amount</th><th>Settlement</th></tr>
-${donations || '<tr><td colspan="4"><em>No donations recorded.</em></td></tr>'}</table>
-<p class="muted">Wallet binding proves address control — sign
-<code>springforth bind actor:${esc(i.actor)}</code> in your wallet, then POST
-<code>{actor, address, signature}</code>.</p>`);
+  return shell(displayNameText(i.actor), `
+${pageHeader({
+    kicker: t(lang, 'detail.actor.kicker'),
+    title: displayNameText(i.actor),
+    back: { href: '/community#people', label: t(lang, 'nav.community') },
+  })}
+<p class="muted">${esc(t(lang, 'detail.actor.id'))}: <code>${esc(i.actor)}</code></p>
+<table><tr><th scope="col">${esc(t(lang, 'col.metric'))}</th><th scope="col">${esc(t(lang, 'col.value'))}</th></tr>
+<tr><td>${esc(t(lang, 'detail.actor.cards'))}</td><td>${i.created} / ${i.joined}</td></tr>
+<tr><td>${esc(t(lang, 'detail.actor.appreciated'))}</td><td>${i.appreciatedBy} / ${i.appreciated}</td></tr>
+<tr><td>${esc(t(lang, 'detail.actor.earned'))}</td><td>${i.earned.toFixed(2)}</td></tr>
+<tr><td>${esc(t(lang, 'detail.actor.credits'))}</td><td>${i.assuranceCredits}</td></tr>
+<tr><td>${esc(t(lang, 'detail.actor.trust'))}</td><td>${i.trustScore}</td></tr></table>
+${howItWorks(lang, 'how.actor.trust', 's3')}
+<h2>${esc(t(lang, 'detail.actor.wallets'))}</h2>
+<table><tr><th scope="col">${esc(t(lang, 'col.address'))}</th><th scope="col">${esc(t(lang, 'col.bound'))}</th></tr>
+${wallets || `<tr><td colspan="2"><em>${esc(t(lang, 'detail.actor.noWallets'))}</em></td></tr>`}</table>
+<h2>${esc(t(lang, 'detail.actor.donations'))}</h2>
+<table><tr><th scope="col">${esc(t(lang, 'col.round'))}</th><th scope="col">${esc(t(lang, 'col.need'))}</th><th scope="col">${esc(t(lang, 'col.amount'))}</th><th scope="col">${esc(t(lang, 'col.settlement'))}</th></tr>
+${donations || `<tr><td colspan="4"><em>${esc(t(lang, 'detail.actor.noDonations'))}</em></td></tr>`}</table>
+<p class="muted">${esc(t(lang, 'detail.actor.bindNote'))}
+<code>springforth bind actor:${esc(i.actor)}</code></p>`, lang);
 }
 
 export interface DonorPageInput {
@@ -49,19 +56,23 @@ export interface DonorPageInput {
   receipts: Attestation[];   // springforth.donation.v1 attestations
 }
 
-export function renderDonorPage(i: DonorPageInput): string {
+export function renderDonorPage(i: DonorPageInput, lang: Lang = 'en'): string {
   const total = i.donations.reduce((a, d) => a + d.amount, 0);
   const rows = i.donations.map((d) =>
     `<tr><td>${esc(d.needNodeId)}</td><td>${d.amount} ${esc(d.currency)}</td>
 <td class="muted">${esc(d.settlement)}</td><td class="muted">${esc(d.at.slice(0, 10))}</td></tr>`).join('\n');
   const receipts = i.receipts.map((a) =>
-    `<tr><td><code>${esc(a.id)}</code></td><td class="muted">${a.uid ? `<code>${esc(a.uid.slice(0, 16))}…</code>` : 'ledger-recorded'}</td></tr>`).join('\n');
-  return shell(`Donor ${i.donor} — ${i.roundId}`, `
-<h1>${esc(i.donor)}</h1>
-<p class="muted">${i.donations.length} donation(s), ${total} total, in round
+    `<tr><td><code>${esc(a.id)}</code></td><td class="muted">${a.uid ? `<code>${esc(a.uid.slice(0, 16))}…</code>` : esc(t(lang, 'detail.donor.ledgerRecorded'))}</td></tr>`).join('\n');
+  return shell(`${displayNameText(i.donor)} — ${i.roundId}`, `
+${pageHeader({
+    kicker: t(lang, 'detail.donor.kicker'),
+    title: displayNameText(i.donor),
+    back: { href: `/rounds/${i.roundId}`, label: t(lang, 'detail.round.kicker') },
+  })}
+<p class="muted">${i.donations.length} ${esc(t(lang, 'detail.donor.donations'))}, ${total} ${esc(t(lang, 'detail.donor.total'))}, ${esc(t(lang, 'detail.donor.inRound'))}
 <a href="/rounds/${esc(i.roundId)}">${esc(i.roundId)}</a>.</p>
-<table><tr><th>Need</th><th>Amount</th><th>Settlement</th><th>Date</th></tr>${rows}</table>
-<h2>Recognition receipts</h2>
-<table><tr><th>Receipt</th><th>On-chain uid</th></tr>
-${receipts || '<tr><td colspan="2"><em>Receipts are issued when settlement confirms on-chain.</em></td></tr>'}</table>`);
+<table><tr><th scope="col">${esc(t(lang, 'col.need'))}</th><th scope="col">${esc(t(lang, 'col.amount'))}</th><th scope="col">${esc(t(lang, 'col.settlement'))}</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${rows}</table>
+<h2>${esc(t(lang, 'detail.donor.receipts'))}</h2>
+<table><tr><th scope="col">${esc(t(lang, 'col.receipt'))}</th><th scope="col">${esc(t(lang, 'col.uid'))}</th></tr>
+${receipts || `<tr><td colspan="2"><em>${esc(t(lang, 'detail.donor.noReceipts'))}</em></td></tr>`}</table>`, lang);
 }

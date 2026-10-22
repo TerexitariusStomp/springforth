@@ -1,12 +1,14 @@
 import type { Attestation, ImpactClaim } from '@springforth/core';
 import { walletScript } from './wallet.ts';
 import { pageShell } from './theme.ts';
+import { t, type Lang } from './i18n.ts';
+import { pageHeader, displayName } from './ui.ts';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const shell = (title: string, body: string) =>
-  pageShell({ title: `${title} — Springforth`, htmx: false,
+const shell = (title: string, body: string, lang: Lang = 'en') =>
+  pageShell({ title: `${title} — Springforth`, htmx: false, lang,
     extraCss: `.page code{word-break:break-all}.page button.done{background:var(--sf-ok-soft)}` },
     `<div class="page">${body}</div>`);
 
@@ -17,28 +19,33 @@ const shell = (title: string, body: string) =>
 export function renderClaimPage(
   claim: ImpactClaim, attestations: Attestation[],
   opts: { chainReady: boolean },
+  lang: Lang = 'en',
 ): string {
   const atts = attestations.map((a) => `<tr>
-<td><code>${esc(a.id)}</code></td><td>${esc(a.attester)}</td>
+<td><code>${esc(a.id)}</code></td><td>${displayName(a.attester)}</td>
 <td><code>${esc(a.schemaRef)}</code></td>
-<td class="muted">${a.uid ? `on-chain <code>${esc(a.uid.slice(0, 14))}…</code>` : 'ledger'}</td>
+<td class="muted">${a.uid ? `${esc(t(lang, 'detail.claim.onchain'))} <code>${esc(a.uid.slice(0, 14))}…</code>` : esc(t(lang, 'detail.claim.ledger'))}</td>
 <td>${!a.uid && opts.chainReady
-  ? `<button data-tx-build="/attestations/${esc(a.id)}/tx" data-tx-kind="attestation.publish" data-tx-entity="${esc(a.id)}">publish on-chain</button>`
+  ? `<button data-tx-build="/attestations/${esc(a.id)}/tx" data-tx-kind="attestation.publish" data-tx-entity="${esc(a.id)}">${esc(t(lang, 'detail.claim.publish'))}</button>`
   : ''}</td></tr>`).join('\n');
-  return shell(`Claim ${claim.id}`, `
-<h1>Impact claim</h1>
-<p class="muted">id <code>${esc(claim.id)}</code> · state <span class="badge">${esc(claim.state)}</span> ·
-scope: ${esc(claim.workScope)} ·
-${claim.contributors.length} contributor(s) · ${claim.oracleCheckIds.length} evidence check(s)</p>
-${claim.artifactRefs.length ? `<p>Artifacts: ${claim.artifactRefs.map((u) => `<a href="${esc(u)}">${esc(u)}</a>`).join(' · ')}</p>` : ''}
-<h2>Attestations</h2>
-<table><tr><th>ID</th><th>Attester</th><th>Schema</th><th>Anchored</th><th></th></tr>
-${atts || '<tr><td colspan="5"><em>No attestations yet — attest with POST /claims/:id/attest.</em></td></tr>'}</table>
+  return shell(`${t(lang, 'detail.claim.kicker')} ${claim.id}`, `
+${pageHeader({
+    kicker: t(lang, 'detail.claim.kicker'),
+    title: claim.workScope || claim.id,
+    back: { href: '/impact#claims', label: t(lang, 'nav.impact') },
+  })}
+<p class="muted">${esc(t(lang, 'detail.actor.id'))} <code>${esc(claim.id)}</code> · ${esc(t(lang, 'detail.report.state'))} <span class="badge">${esc(claim.state)}</span> ·
+${esc(t(lang, 'detail.claim.scope'))}: ${esc(claim.workScope)} ·
+${claim.contributors.length} ${esc(t(lang, 'detail.claim.contributors'))} · ${claim.oracleCheckIds.length} ${esc(t(lang, 'detail.claim.checks'))}</p>
+${claim.artifactRefs.length ? `<p>${esc(t(lang, 'detail.claim.artifacts'))}: ${claim.artifactRefs.map((u) => `<a href="${esc(u)}">${esc(u)}</a>`).join(' · ')}</p>` : ''}
+<h2>${esc(t(lang, 'detail.claim.atts'))}</h2>
+<table><tr><th scope="col">ID</th><th scope="col">${esc(t(lang, 'col.attester'))}</th><th scope="col">${esc(t(lang, 'col.schema'))}</th><th scope="col">${esc(t(lang, 'col.anchored'))}</th><th scope="col">${esc(t(lang, 'col.action'))}</th></tr>
+${atts || `<tr><td colspan="5"><em>${esc(t(lang, 'detail.claim.none'))}</em></td></tr>`}</table>
 ${opts.chainReady
-  ? `<p class="muted">Publishing is signer-facing: your wallet signs the EAS
-attest transaction; the worker only builds calldata and watches the receipt.</p>`
-  : `<p class="muted">Chain lane inactive — attestations live on the ledger.</p>`}
-<p class="muted"><a href="?format=lexicon">hypercert lexicon JSON</a> ·
-<a href="/claims/${esc(claim.id)}/metadata">metadata doc</a></p>
-${opts.chainReady ? walletScript() : ''}`);
+  ? `<p class="muted">${esc(t(lang, 'detail.claim.chainReady'))}</p>`
+  : `<p class="muted">${esc(t(lang, 'detail.claim.chainOff'))}</p>`}
+<details class="how-note"><summary>${esc(t(lang, 'detail.data'))}</summary>
+<div class="hn-body"><a href="?format=lexicon">${esc(t(lang, 'detail.claim.lexicon'))}</a> ·
+<a href="/claims/${esc(claim.id)}/metadata">${esc(t(lang, 'detail.claim.metadata'))}</a></div></details>
+${opts.chainReady ? walletScript() : ''}`, lang);
 }

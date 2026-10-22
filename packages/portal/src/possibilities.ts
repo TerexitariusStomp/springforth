@@ -143,7 +143,7 @@ const DECK_CSS = `
 .card-overlay:target{display:grid;position:fixed;inset:0;z-index:50;padding:1.25rem;place-items:center;background:rgba(8,28,20,.7);backdrop-filter:blur(8px)}
 .detail-panel{width:min(43.75rem,100%);max-height:88vh;overflow:auto;padding:2.25rem;position:relative;border-radius:18px;background:var(--sf-cream-2);box-shadow:0 30px 100px rgba(0,0,0,.3)}
 .detail-panel h3{margin:0 0 .75rem;font-family:var(--sf-serif);font-weight:400;color:var(--sf-ink-2);font-size:30px;line-height:1.16}
-.detail-panel .needs{list-style:none;padding-left:.25rem;margin:.2rem 0;font-size:13px}
+.needs{list-style:none;padding-left:.25rem;margin:.2rem 0;font-size:13px}
 .detail-panel .needs li{padding:.15rem 0}
 .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
 .val input{padding:.5rem .7rem;flex:1;min-width:8rem;border:1px solid var(--sf-line);border-radius:8px;font:inherit;font-size:13px}

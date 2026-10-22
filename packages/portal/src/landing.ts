@@ -84,15 +84,15 @@ export function tickerLines(
   return out;
 }
 
-export const tickerHtml = (lines: string[]): string =>
+export const tickerHtml = (lines: string[], lang: Lang = 'en'): string =>
   lines.length
     ? lines.map((l) => `<span><b></b>${esc(l)}</span>`).join('')
-    : '<span><b></b>The ledger is quiet — declare a possibility to start.</span>';
+    : `<span><b></b>${esc(t(lang, 'ticker.empty'))}</span>`;
 
-const daysLeft = (deadline?: string): string => {
+const daysLeft = (deadline: string | undefined, tt = (k: string) => k): string => {
   if (!deadline) return '—';
   const d = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
-  return d < 0 ? 'overdue' : `${d}d`;
+  return d < 0 ? tt('card.overdue') : `${d}d`;
 };
 
 const toneFor = (status: string, pct: number): string =>
@@ -109,7 +109,8 @@ export interface DeckCardData {
   deadline?: string; needs?: string[];
 }
 
-export function deckCard(d: DeckCardData, opts: { base?: string } = {}): string {
+export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string) => string } = {}): string {
+  const tt = opts.tt ?? ((k: string) => t('en', k));
   const pct = d.min ? Math.min(100, Math.round((d.participants / d.min) * 100)) : 0;
   const more = Math.max(0, d.min - d.participants);
   const base = opts.base ?? '/possibilities';
@@ -117,15 +118,15 @@ export function deckCard(d: DeckCardData, opts: { base?: string } = {}): string 
   const tone = toneFor(d.status, pct);
   return `<article class="possibility-card${tone ? ` ${tone}` : ''}" data-status="${esc(d.status)}" data-search="${esc(`${d.title} ${d.place ?? ''}`.toLowerCase())}">
 <div class="card-top"><span class="category">${esc(d.status)}</span>
-<span class="card-status"><i></i>${pct}% to quorum</span></div>
+<span class="card-status"><i></i>${pct}% ${tt('card.toQuorum')}</span></div>
 <h3><a href="${base}#${esc(d.id)}" style="color:inherit;text-decoration:none">${esc(d.title)}</a></h3>
-<p class="location">${esc(d.place ?? 'anywhere')}</p>
-<div class="card-metric"><div><strong>${d.participants}</strong><span>committed</span></div>
-<div><strong>${d.min || '—'}</strong><span>goal</span></div>
-<div><strong>${daysLeft(d.deadline)}</strong><span>left</span></div></div>
+<p class="location">${esc(d.place ?? tt('card.anywhere'))}</p>
+<div class="card-metric"><div><strong>${d.participants}</strong><span>${tt('card.committed')}</span></div>
+<div><strong>${d.min || '—'}</strong><span>${tt('card.goal')}</span></div>
+<div><strong>${daysLeft(d.deadline, tt)}</strong><span>${tt('card.left')}</span></div></div>
 <div class="card-progress"><span style="width:${pct}%"></span></div>
-${needs.length ? `<p class="needs"><span>Needs</span>${needs.map((n) => `<b>${esc(n)}</b>`).join('')}</p>` : ''}
-<a class="join-button" href="${base}#${esc(d.id)}"><span>${more > 0 ? `${more} more to activate` : d.status === 'quorum' ? 'At quorum' : 'See the card'}</span><span>→</span></a>
+${needs.length ? `<p class="needs"><span>${tt('card.needs')}</span>${needs.map((n) => `<b>${esc(n)}</b>`).join('')}</p>` : ''}
+<a class="join-button" href="${base}#${esc(d.id)}"><span>${more > 0 ? `${more} ${tt('card.more')}` : d.status === 'quorum' ? tt('card.atQuorum') : tt('card.see')}</span><span>→</span></a>
 </article>`;
 }
 
@@ -142,22 +143,23 @@ export function renderLandingPage(i: LandingInput): string {
   const featured = [...live, ...atQuorum].slice(0, 4);
 
   const attn: string[] = [];
+  const pl = (n: number, base: string) => tt(`${base}.${n === 1 ? 'one' : 'many'}`);
   if (i.proposedOverlaps) attn.push(
-    `<div class="att"><strong>${i.proposedOverlaps} overlap${i.proposedOverlaps === 1 ? '' : 's'} need review</strong><br>
-Machine-flagged across imported plans — humans decide.
-<a href="/coordination">review evidence →</a></div>`);
+    `<div class="att"><strong>${i.proposedOverlaps} ${pl(i.proposedOverlaps, 'att.overlap')}</strong><br>
+${tt('att.overlaps.body')}
+<a href="/coordination">${tt('att.overlaps.cta')} →</a></div>`);
   for (const c of near.slice(0, 3)) attn.push(
     `<div class="att"><strong>${esc(c.possibility.title)}</strong><br>
-${c.participants}/${c.possibility.minParticipants} committed — ${c.possibility.minParticipants - c.participants} more to activate.
-<a href="/possibilities#${esc(c.possibility.id)}">join this card →</a></div>`);
+${c.participants}/${c.possibility.minParticipants} ${tt('card.committed')} — ${c.possibility.minParticipants - c.participants} ${tt('card.more')}.
+<a href="/possibilities#${esc(c.possibility.id)}">${tt('att.card.cta')} →</a></div>`);
   if (i.unmetNeeds) attn.push(
-    `<div class="att"><strong>${i.unmetNeeds} unmet need${i.unmetNeeds === 1 ? '' : 's'}</strong><br>
-Nothing in the commons covers these yet.
-<a href="/coordination">see the queue →</a></div>`);
+    `<div class="att"><strong>${i.unmetNeeds} ${pl(i.unmetNeeds, 'att.unmet')}</strong><br>
+${tt('att.unmet.body')}
+<a href="/coordination">${tt('att.unmet.cta')} →</a></div>`);
   if (i.actionNodes.length) attn.push(
-    `<div class="att"><strong>${i.actionNodes.length} action${i.actionNodes.length === 1 ? '' : 's'} already in motion</strong><br>
-Real work from imported plans and field records.
-<a href="/outcomes">see who's pursuing what →</a></div>`);
+    `<div class="att"><strong>${i.actionNodes.length} ${pl(i.actionNodes.length, 'att.actions')}</strong><br>
+${tt('att.actions.body')}
+<a href="/outcomes">${tt('att.actions.cta')} →</a></div>`);
 
   const pct = orbit?.possibility.minParticipants
     ? Math.min(100, Math.round((orbit.participants / orbit.possibility.minParticipants) * 100)) : 0;
@@ -177,11 +179,11 @@ Real work from imported plans and field records.
     <p><strong>${i.participantsTotal}</strong> ${tt('hero.trust')} <strong>${i.placesCount}</strong> ${tt('hero.trust.places')}</p>
   </div>
   ${orbit ? `<aside class="orbit-card">
-    <div class="orbit-topline"><span>NEAREST TO QUORUM</span>
-      <span class="status-pill"><span></span>BUILDING</span></div>
+    <div class="orbit-topline"><span>${tt('hero.orbit.nearest').toUpperCase()}</span>
+      <span class="status-pill"><span></span>${tt('hero.orbit.building').toUpperCase()}</span></div>
     <h3>${esc(orbit.possibility.title)}</h3>
-    <p>${esc(orbit.possibility.place ?? 'anywhere')} · ${tt('hero.orbit.closes')} ${esc(daysLeft(orbit.possibility.deadline))}</p>
-    <div class="progress-label"><strong>${orbit.participants} in</strong>
+    <p>${esc(orbit.possibility.place ?? tt('card.anywhere'))} · ${tt('hero.orbit.closes')} ${esc(daysLeft(orbit.possibility.deadline, tt))}</p>
+    <div class="progress-label"><strong>${orbit.participants} ${tt('orbit.in')}</strong>
       <span>${Math.max(0, orbit.possibility.minParticipants - orbit.participants)} ${tt('hero.orbit.more')}</span></div>
     <div class="progress"><span style="width:${pct}%"></span></div>
     <div class="orbit-footer"><span class="mini-avatars"><i></i><i></i><i></i></span>
@@ -199,7 +201,7 @@ Real work from imported plans and field records.
   <span class="ticker-label">${tt('ticker.label')}</span>
   <div class="ticker-track" id="ticker-track"
     hx-get="/partials/ticker" hx-trigger="every 30s" hx-swap="innerHTML">
-    ${tickerHtml(i.ticker)}
+    ${tickerHtml(i.ticker, lang)}
   </div>
 </div>
 
@@ -218,14 +220,14 @@ ${attn.length ? `<section class="attention"><h2>${tt('attention.title')}</h2>${a
       <a href="/possibilities?status=quorum">${tt('deck.quorum')}</a>
       <a href="/possibilities?status=completed">${tt('deck.completed')}</a>
     </nav>
-    <a class="muted" href="/possibilities" style="text-decoration:none">${i.cards.length} cards · ${live.length} open · ${atQuorum.length} at quorum →</a>
+    <a class="muted" href="/possibilities" style="text-decoration:none">${i.cards.length} ${tt('deck.count.cards')} · ${live.length} ${tt('deck.count.open')} · ${atQuorum.length} ${tt('deck.count.quorum')} →</a>
   </div>
   <div class="card-grid">
     ${featured.map((c) => deckCard({
       id: c.possibility.id, title: c.possibility.title, place: c.possibility.place,
       status: effectiveStatus(c.possibility), participants: c.participants,
       min: c.possibility.minParticipants || 0, deadline: c.possibility.deadline,
-    })).join('') || `<div class="empty-state">${tt('attention.none')}</div>`}
+    }, { tt })).join('') || `<div class="empty-state">${tt('attention.none')}</div>`}
   </div>
 </section>
 

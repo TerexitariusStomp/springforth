@@ -125,6 +125,10 @@ council/stewardship) — use this slide's vocabulary in the pitch.
       (APPROVED + GPS, mangrove/reforestation-first near Mida Creek) seeded
       as `sarafu:field-reports` action nodes; overlap records vs the Kwale
       mangrove project + `/map` evidence pins
+- [ ] User: request a **write-scoped** OnePlanet key (ours is read-only —
+      `create_*` MCP tools 403). `scripts/push-oneplanet.mjs --apply` is
+      ready: it publishes the 9 live cards as Outcomes in the "Sustainable
+      Finance Live 2025 Event" plan + Action/Indicator for Mida Creek
 - [ ] User: email contacto@alpha-klima.com with team name for physrisk API
 - [ ] User: request EODATAHUB_KEY via Help Desk channel
 - [ ] User: confirm pitch slot (Oct 28, 10:00–12:00) in calendar

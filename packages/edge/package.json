@@ -1,7 +1,7 @@
 {
   "name": "@springforth/edge",
   "version": "0.1.0",
-  "description": "Springforth edge API \u2014 Cloudflare Worker + D1: coordination layer, plan graph, overlap detection, open-evidence oracle, audit ledger.",
+  "description": "Springforth edge API — Cloudflare Worker + D1: coordination layer, plan graph, overlap detection, open-evidence oracle, audit ledger.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -31,6 +31,7 @@
     "@springforth/silvi-adapter": "workspace:*",
     "@springforth/treegens-adapter": "workspace:*",
     "@springforth/vf-adapter": "workspace:*",
+    "devalue": "6.0.3",
     "graphology": "0.26.0",
     "graphology-layout-forceatlas2": "0.10.1",
     "graphology-types": "0.24.7",

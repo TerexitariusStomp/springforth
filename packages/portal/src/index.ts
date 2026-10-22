@@ -7,7 +7,7 @@ export { renderReportPage } from './report.ts';
 export { renderActorProfile, renderDonorPage } from './actor.ts';
 export { walletScript } from './wallet.ts';
 export { renderClaimPage } from './claim.ts';
-export { t, langFrom, LANGS, type Lang } from './i18n.ts';
+export { t, langFrom, LANGS, DICTS, type Lang } from './i18n.ts';
 export { renderDocsPage } from './docs.ts';
 export { renderWhitepaper } from './whitepaper.ts';
 export { FAVICON_SVG } from './theme.ts';

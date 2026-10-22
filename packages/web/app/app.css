@@ -1,0 +1,109 @@
+@import "tailwindcss";
+@import "@fontsource/dm-serif-display/index.css";
+@import "@fontsource-variable/figtree/index.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+	--font-sans: "Figtree Variable", Figtree, ui-sans-serif, system-ui, sans-serif;
+	--font-display: "DM Serif Display", Georgia, serif;
+
+	/* Springforth brand — tokens ported from portal theme.ts (--sf-*). */
+	--color-forest: #123b2c;
+	--color-ink: #123629;
+	--color-cream: #f4f6ef;
+	--color-pale: #f7f8f2;
+	--color-lime: #c8f36d;
+	--color-lime-deep: #9bc759;
+	--color-coral: #f17e64;
+	--color-coral-ink: #8a3c22;
+	--color-peach: #efaf7f;
+	--color-sage: #3f6f52;
+	--color-teal: #94c8c0;
+	--color-line: #d5dbd1;
+	--color-muted: #616761;
+	--color-ink-mute: #5a6a60;
+	--color-ok: #4a7a4a;
+	--color-ok-bright: #8fd18f;
+	--color-ok-soft: #cfe9cf;
+	--color-ok-ink: #3c5c1a;
+	--color-warn: #f6c344;
+	--color-gold: #7a5a00;
+	--color-gold-mid: #e4b34d;
+	--color-gold-ink: #6b5518;
+	--color-gold-line: #e8e0c8;
+	--color-danger: #e88f8f;
+	--color-danger-ink: #aa3333;
+	--color-danger-deep: #7a2828;
+	--color-info: #2f5c67;
+	--color-info-bright: #7fb3e8;
+
+	--color-background: var(--color-cream);
+	--color-foreground: var(--color-ink);
+	--color-card: #ffffff;
+	--color-card-foreground: var(--color-ink);
+	--color-primary: var(--color-forest);
+	--color-primary-foreground: var(--color-cream);
+	--color-accent: var(--color-coral);
+	--color-accent-foreground: #fff;
+	--color-border: var(--color-line);
+	--color-ring: var(--color-sage);
+
+	--radius-card: 1rem;
+
+	--animate-marquee: marquee 40s linear infinite;
+	--animate-marquee-vertical: marquee-vertical 40s linear infinite;
+	--animate-ripple: ripple 2s ease calc(var(--i, 0) * 0.2s) infinite;
+	--animate-shiny-text: shiny-text 8s infinite;
+	--animate-aurora: aurora 8s ease-in-out infinite alternate;
+	--animate-spin-slow: spin 24s linear infinite;
+	--shiny-width: 100px;
+	@keyframes marquee {
+		from { transform: translateX(0); }
+		to { transform: translateX(-100%); }
+	}
+	@keyframes marquee-vertical {
+		from { transform: translateY(0); }
+		to { transform: translateY(-100%); }
+	}
+	@keyframes ripple {
+		0%, 100% { transform: translate(-50%, -50%) scale(1); }
+		50% { transform: translate(-50%, -50%) scale(0.9); }
+	}
+	@keyframes shiny-text {
+		0%, 90%, 100% { background-position: calc(-100% - var(--shiny-width)) 0; }
+		30%, 60% { background-position: calc(100% + var(--shiny-width)) 0; }
+	}
+	@keyframes aurora {
+		from { background-position: 50% 50%, 50% 50%; }
+		to { background-position: 350% 50%, 350% 50%; }
+	}
+}
+
+.dark {
+	--color-background: var(--color-forest);
+	--color-foreground: var(--color-cream);
+	--color-card: #1a4a38;
+	--color-card-foreground: var(--color-cream);
+	--color-primary: var(--color-lime);
+	--color-primary-foreground: var(--color-forest);
+	--color-border: #2c5c48;
+	--color-muted: #a8b5a9;
+	--color-line: #2c5c48;
+}
+
+html { scroll-behavior: smooth; }
+body {
+	font-family: var(--font-sans);
+	background: var(--color-background);
+	color: var(--color-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html { scroll-behavior: auto; }
+	*, *::before, *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}

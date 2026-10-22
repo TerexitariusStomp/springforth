@@ -9,6 +9,10 @@ export type Lang = 'en' | 'sw' | 'fr';
 
 const STRINGS: Record<Lang, Record<string, string>> = { en, sw, fr };
 
+// Raw dictionaries — the React frontend (packages/web) feeds these to
+// i18next; portal renderers keep using t() below.
+export const DICTS: Record<Lang, Record<string, string>> = STRINGS;
+
 export const LANGS: Lang[] = ['en', 'sw', 'fr'];
 
 export const langFrom = (url: URL, cookie?: string | null): Lang => {

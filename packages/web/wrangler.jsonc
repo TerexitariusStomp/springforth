@@ -1,0 +1,20 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "springforth-web",
+	"account_id": "46966abcfb8f1245ec055842177edcb2",
+	"main": "./workers/app.ts",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	// Page data comes back from the edge Worker via the x-sf-ui contract.
+	"services": [
+		// experimental_remote: local dev calls the deployed edge Worker.
+		{ "binding": "API", "service": "springforth", "experimental_remote": true }
+	],
+	"vars": {
+		"ENVIRONMENT": "production"
+	}
+}

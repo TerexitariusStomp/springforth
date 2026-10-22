@@ -38,6 +38,7 @@ import {
   tickerLines, tickerHtml, pageShell, pageHeader, FAVICON_SVG,
 } from '@springforth/portal';
 import { PICO_CSS, HTMX_JS } from './vendor.js';
+import { stringify as devalueStringify } from 'devalue';
 import { ogPng } from './og.js';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
@@ -115,6 +116,8 @@ export interface Env {
   COMPANIES_HOUSE_KEY?: string;   // api.company-information.service.gov.uk
   AI?: { run(model: string, input: { text: string[] }):
     Promise<{ data: number[][] }> };   // Workers AI bge embeddings
+  WEB?: Fetcher;              // springforth-web — React frontend Worker
+  WEB_FRONTEND?: string;      // '1' → browser page requests forward to WEB
 }
 
 // OpenTimestamps public calendars — free, keyless Bitcoin anchoring.
@@ -254,6 +257,15 @@ const err = (m: string, status = 400) => json({ error: m }, status);
 const wantsHtml = (req: Request) => (req.headers.get('accept') ?? '').includes('text/html');
 const html = (s: string, status = 200) =>
   new Response(s, { status, headers: { 'content-type': 'text/html' } });
+
+// UI contract: the springforth-web Worker asks for a page with
+// `x-sf-ui: 1` (+ Accept: text/html so wantsHtml branches still take the
+// page path). It gets the render args serialized with devalue (Map/Set
+// survive) instead of the legacy HTML string — same public page data.
+const page = (req: Request, render: (...a: any[]) => string, ...args: unknown[]) =>
+  req.headers.get('x-sf-ui') === '1'
+    ? new Response(devalueStringify(args), { headers: { 'content-type': 'application/x-sf-ui' } })
+    : html(render(...args));
 const authed = (req: Request, env: Env) =>
   !!env.ADMIN_TOKEN && req.headers.get('authorization') === `Bearer ${env.ADMIN_TOKEN}`;
 
@@ -807,6 +819,20 @@ export default {
             headers: { location: `${to}${qs ? `?${qs}` : ''}${hash ? `#${hash}` : ''}` } });
         }
       }
+      // Frontend handoff — once WEB_FRONTEND=1, browser page requests go to
+      // the springforth-web Worker (React Router SSR). JSON, POSTs, /tg,
+      // /vendor, /partials and legacy assets stay here. Retired 302s above
+      // already ran, so browser hits to retired slugs still redirect.
+      if (env.WEB && env.WEB_FRONTEND === '1' && (req.method === 'GET' || req.method === 'HEAD')) {
+        const p = url.pathname;
+        const rrAsset = p.startsWith('/assets/') || p.endsWith('.data')
+          || p.startsWith('/__manifest') || p === '/favicon.ico'
+          || p.startsWith('/og/') || p.startsWith('/tiles/');
+        const pageGet = wantsHtml(req) && url.searchParams.get('format') !== 'json'
+          && !p.startsWith('/vendor/') && !p.startsWith('/partials/')
+          && p !== '/favicon.svg' && p !== '/og.png';
+        if (rrAsset || pageGet) return env.WEB.fetch(req);
+      }
       // Vendored MIT assets — same-origin, no CDN at runtime.
       if (req.method === 'GET' && seg[0] === 'vendor' && seg.length === 2) {
         const cache = { 'content-type': '', 'cache-control': 'public, max-age=86400' };
@@ -851,7 +877,7 @@ export default {
         const possById = new Map(poss.map((p) => [p.id, p]));
         const completed = poss.filter((p) => p.status === 'completed').length;
         const reached = poss.filter((p) => p.quorumAt || p.status === 'completed').length;
-        return new Response(renderLandingPage({
+        return page(req, renderLandingPage, {
           cards: poss.map((p) => ({ possibility: p, participants: counts.get(p.id) ?? 0 })),
           proposedOverlaps: recs.filter((r) => r.status === 'proposed').length,
           unmetNeeds: nodes.filter((n) => isNeed(n) && !rallied.has(n.id)).length,
@@ -866,7 +892,7 @@ export default {
           completedCount: completed,
           quorumRate: poss.length ? Math.round((reached / poss.length) * 100) : 0,
           lang: langFrom(url, req.headers.get('cookie')),
-        }), { headers: { 'content-type': 'text/html' } });
+        });
       }
       // GET /search — meaning search over every plan node (hybrid
       // lexical + embeddings). Browsers get the page; ?format=json is the
@@ -876,13 +902,13 @@ export default {
         const results = q ? await searchNodes(env, q) : [];
         if (url.searchParams.get('format') === 'json')
           return json({ q, count: results.length, results });
-        return html(renderSearchPage({
+        return page(req, renderSearchPage, {
           lang: langFrom(url, req.headers.get('cookie')), q,
           hits: results.map((r) => ({
             id: r.node.id, label: r.node.label, source: r.node.source,
             kind: r.node.kind, score: r.score, via: r.via,
           })),
-        }));
+        });
       }
       // ── Hubs — the five plain-language surfaces + the walkthrough.
       // Old top-level routes redirect here (RETIRED); their JSON forms
@@ -945,7 +971,7 @@ export default {
                 { q: q.slice(0, 200), intent: out.intent });
               ask = { q, out };
             }
-            return html(renderCollaboratePage({
+            return page(req, renderCollaboratePage, {
               lang,
               commitments: commits.commitments,
               byCapital: commits.byCapital,
@@ -958,7 +984,7 @@ export default {
               page: Math.max(1, Number(url.searchParams.get('page')) || 1),
               outcomesAll: url.searchParams.get('outcomes') === 'all',
               ask,
-            }));
+            });
           }
           case 'fund': {
             const [rv, pledges, retro, streams, poss] = await Promise.all([
@@ -966,7 +992,7 @@ export default {
               loadRetro(env), loadStreams(env),
               list<Possibility>(env.DB, 'possibility'),
             ]);
-            return html(renderFundPage({
+            return page(req, renderFundPage, {
               lang,
               rounds: rv.rounds, donations: rv.dons, gates: rv.gates,
               endowment: rv.endow,
@@ -974,7 +1000,7 @@ export default {
               retroRounds: retro.rounds, badgeholders: retro.badgeholders,
               streams: streams.streams, yieldStreams: streams.yieldStreams,
               possibilities: poss.map((p) => ({ id: p.id, title: p.title })),
-            }));
+            });
           }
           case 'impact': {
             const [metrics, evidence, ledger, datasets, claims, attestations, poss]
@@ -985,7 +1011,7 @@ export default {
                 list<Attestation>(env.DB, 'attestation'),
                 list<Possibility>(env.DB, 'possibility'),
               ]);
-            return html(renderImpactPage({
+            return page(req, renderImpactPage, {
               lang, metrics,
               checks: evidence.checks, nodes: evidence.nodes,
               sources: evidence.sources,
@@ -993,7 +1019,7 @@ export default {
               releases: datasets.releases, slices: datasets.available,
               verify: ledger.verify, events: ledger.events,
               possibilities: poss,
-            }));
+            });
           }
           case 'community': {
             const [people, trust, gov, apps, seats, poss] = await Promise.all([
@@ -1010,7 +1036,7 @@ export default {
                   status: effectiveStatus(p), seats: seats.filter((s) => s.possibilityId === pid)
                     .map((s) => ({ actor: s.actor, role: s.role })) }] : [];
               });
-            return html(renderCommunityPage({
+            return page(req, renderCommunityPage, {
               lang,
               people, mutual: trust.mutual,
               proposals: gov.proposals, ballots: gov.ballots,
@@ -1022,10 +1048,10 @@ export default {
                 .map((a) => ({ from: a.fromActor, to: a.toActor, note: a.note,
                   possibilityId: a.possibilityId, at: a.at })),
               councils,
-            }));
+            });
           }
           case 'how-it-works':
-            return html(renderHowItWorksPage(lang));
+            return page(req, renderHowItWorksPage, lang);
         }
       }
       // Telegram bot webhook — secret-token verified, unauthenticated otherwise.
@@ -1095,7 +1121,7 @@ export default {
           };
         };
         if (seg.length === 1)
-          return html(renderPlansPage({ lang, plans: plans.map(summarise) }));
+          return page(req, renderPlansPage, { lang, plans: plans.map(summarise) });
         const plan = plans.find((p) => p.id === seg[1]);
         if (!plan) return err('plan not found', 404);
         const summary = summarise(plan);
@@ -1103,13 +1129,13 @@ export default {
         for (const c of checks)
           if (c.nodeId && !c.demo)
             (checksByNode[c.nodeId] ??= []).push({ at: c.at, score: c.score });
-        return html(renderPlanPage({
+        return page(req, renderPlanPage, {
           lang, plan: summary,
           nodes: nodes.filter((n) => n.source === plan.id || n.source === plan.source),
           overlaps: recs.filter((r) =>
             r.nodeIds.some((id) => srcOf.get(id) === plan.id || srcOf.get(id) === plan.source)),
           checks: checksByNode,
-        }));
+        });
       }
       if (seg[0] === 'plans') {
         if (req.method === 'POST' && seg.length === 1) {
@@ -1435,11 +1461,11 @@ export default {
           return json(OPENAPI);
         if ((req.headers.get('accept') ?? '').includes('text/html')
             || !(req.headers.get('accept') ?? '').includes('application/json'))
-          return new Response(renderDocsPage(OPENAPI.paths, langFrom(url, req.headers.get('cookie'))), { headers: { 'content-type': 'text/html' } });
+          return page(req, renderDocsPage, OPENAPI.paths, langFrom(url, req.headers.get('cookie')));
         return json(OPENAPI);
       }
       if (seg[0] === 'whitepaper' && req.method === 'GET')
-        return new Response(renderWhitepaper(langFrom(url, req.headers.get('cookie'))), { headers: { 'content-type': 'text/html' } });
+        return page(req, renderWhitepaper, langFrom(url, req.headers.get('cookie')));
       // Every surface on one scrollable page — review mode.
       // Recurring support streams — top-level list; round-scoped view
       // also exists at /rounds/:id/stream.
@@ -1943,12 +1969,12 @@ export default {
               };
             }
           }
-          return new Response(renderPossibilitiesPage(cards, edges, viewer ?? forActor, {
+          return page(req, renderPossibilitiesPage, cards, edges, viewer ?? forActor, {
             status: url.searchParams.get('status') ?? '',
             lang: langFrom(url, req.headers.get('cookie')),
             connections,
             mine: !!forActor,
-          }), { headers: { 'content-type': 'text/html' } });
+          });
         }
         const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');
         if (!p) return err('possibility not found', 404);
@@ -2172,7 +2198,7 @@ export default {
           ]);
           const myNodes = nodes.filter((n) => n.possibilityId === p.id);
           const claim = claims.find((c) => c.possibilityId === p.id);
-          return new Response(renderReportPage({
+          return page(req, renderReportPage, {
             possibility: p,
             participants: parts.filter((x) => x.possibilityId === p.id),
             nodes: myNodes,
@@ -2187,7 +2213,7 @@ export default {
               .filter((f) => f.possibilityId === p.id)
               .map((f) => ({ id: f.id, parentId: f.parentId, actor: f.actor, kind: f.kind, text: f.text, at: f.at })),
             lang: langFrom(url, req.headers.get('cookie')),
-          }), { headers: { 'content-type': 'text/html' } });
+          });
         }
         // ICS export — the Mobilizon interop lane: possibility → calendar
         // event so cards travel into any calendar client.
@@ -2264,7 +2290,7 @@ export default {
           const [wallets, donations] = await Promise.all([
             list<ActorWallet>(env.DB, 'actor-wallet'), list<Donation>(env.DB, 'donation'),
           ]);
-          return new Response(renderActorProfile({
+          return page(req, renderActorProfile, {
             actor: id,
             created: poss.filter((p) => p.declarerId === id).length,
             joined: parts.filter((x) => x.actor === id).length,
@@ -2277,8 +2303,7 @@ export default {
             donations: donations.filter((d) => d.donor === id),
             recognitions: apps.filter((a) => a.toActor === id && a.note.trim())
               .map((a) => ({ from: a.fromActor, note: a.note, possibilityId: a.possibilityId })),
-          }, langFrom(url, req.headers.get('cookie'))),
-            { headers: { 'content-type': 'text/html' } });
+          }, langFrom(url, req.headers.get('cookie')));
         }
         return json({
           id,
@@ -2358,9 +2383,8 @@ export default {
           const nodes = await list<PlanNode>(env.DB, 'plannode');
           if (url.searchParams.get('format') === 'json')
             return json({ ...round, donations, allocation });
-          return new Response(renderRoundPage(round, donations, allocation, nodes,
-            langFrom(url, req.headers.get('cookie'))),
-            { headers: { 'content-type': 'text/html' } });
+          return page(req, renderRoundPage, round, donations, allocation, nodes,
+            langFrom(url, req.headers.get('cookie')));
         }
         if (req.method === 'GET' && seg[2] === 'donors' && seg[3]) {
           const donor = decodeURIComponent(seg[3]);
@@ -2369,10 +2393,9 @@ export default {
           const receipts = (await list<Attestation>(env.DB, 'attestation'))
             .filter((a) => a.schemaRef === 'springforth.donation.v1'
               && a.payload.includes(`"donor":"${donor}"`));
-          return new Response(renderDonorPage({
+          return page(req, renderDonorPage, {
             roundId: round.id, donor, donations: ds, receipts },
-            langFrom(url, req.headers.get('cookie'))),
-            { headers: { 'content-type': 'text/html' } });
+            langFrom(url, req.headers.get('cookie')));
         }
         if (req.method === 'POST' && seg[2] === 'donate') {
           const ct = req.headers.get('content-type') ?? '';
@@ -2469,9 +2492,8 @@ export default {
           const applications = (await list<RoundApplication>(env.DB, 'round-application'))
             .filter((a) => a.roundId === round.id);
           const nodes = await list<PlanNode>(env.DB, 'plannode');
-          return new Response(renderRoundAdmin(round, applications, nodes,
-            langFrom(url, req.headers.get('cookie'))),
-            { headers: { 'content-type': 'text/html' } });
+          return page(req, renderRoundAdmin, round, applications, nodes,
+            langFrom(url, req.headers.get('cookie')));
         }
         if (req.method === 'GET' && seg[2] === 'applications') {
           const apps = (await list<RoundApplication>(env.DB, 'round-application'))
@@ -2635,9 +2657,8 @@ export default {
           if (url.searchParams.get('format') === 'lexicon')
             return json(toHypercertLexicon(claim));
           if ((req.headers.get('accept') ?? '').includes('text/html'))
-            return new Response(renderClaimPage(claim, atts,
-              { chainReady: !!chainCfg(env) }, langFrom(url, req.headers.get('cookie'))),
-              { headers: { 'content-type': 'text/html' } });
+            return page(req, renderClaimPage, claim, atts,
+              { chainReady: !!chainCfg(env) }, langFrom(url, req.headers.get('cookie')));
           return json({ ...claim, attestations: atts });
         }
         if (req.method === 'POST' && seg[2] === 'attest') {
@@ -2898,7 +2919,7 @@ export default {
           });
         const lang = langFrom(url, req.headers.get('cookie'));
         return wantsHtml(req)
-          ? html(renderMapPage({ lang, markers, evidence, unlocated }))
+          ? page(req, renderMapPage, { lang, markers, evidence, unlocated })
           : json({ markers, evidence, unlocated });
       }
       // ── Chain lane — status + tx recording + confirmation mirror ────
@@ -3000,11 +3021,11 @@ export default {
       if (req.method === 'GET' && seg[0] === 'ledger') {
         if (seg[1] === 'verify') {
           const v = await ledgerVerify(env.DB);
-          return wantsHtml(req) ? html(renderLedgerVerifyPage(v, langFrom(url, req.headers.get('cookie')))) : json(v);
+          return wantsHtml(req) ? page(req, renderLedgerVerifyPage, v, langFrom(url, req.headers.get('cookie'))) : json(v);
         }
         const events = await ledgerEvents(env.DB);
         if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return html(renderLedgerPage(events, await ledgerVerify(env.DB), langFrom(url, req.headers.get('cookie'))));
+          return page(req, renderLedgerPage, events, await ledgerVerify(env.DB), langFrom(url, req.headers.get('cookie')));
         return json({ events });
       }
       if ((req.headers.get('accept') ?? '').includes('text/html')) {

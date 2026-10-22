@@ -38,6 +38,9 @@ Slop-detect (`slop <url> --json`, globally installed) is a supplementary anti-ge
 - Landing/deck data is always live — never hardcode stats.
 - Dark mode follows `prefers-color-scheme` via token remap in theme.ts — components must consume `--sf-*` vars so both modes work; `--sf-ink-fixed`/`--sf-pale` are the never-flip tokens for text on always-light (lime/coral/pale) or always-dark accents.
 - `POST /possibilities` accepts form-encoded bodies and 303-redirects to the new card's deep link.
+- `CouncilSeat` (`council-seat`) auto-seats at quorum in `sweepPossibilities` (declarer + participants; verifiers self-seat via `POST /possibilities/:id/council`; sponsors seat on bound pledge). `ForumPost` (`forum-post`) opens at quorum; writes are council-gated and ledger-attributed (`council.seated`, `forum.posted`).
+- `/map` is server-rendered SVG (`packages/portal/src/map.ts` + hand-simplified `worldmap-data.ts`, Natural Earth 110m provenance in the header) — no tiles, no JS. Geography resolves via `packages/coordination/src/geo.ts`: gazetteer → `Possibility.h3` → plannode h3 fallback. `/map` serves HTML only to `Accept: text/html`; JSON clients get `{markers, unlocated}`.
+- Card overlays carry the verification surfaces: audit trail (ledger events naming the card), verifier-replay `<details>` per value figure, capital-grouped valuation (`capitals` on each `byCurrency` row), Two-pathways scenario block, council, forum, and appreciation-note reviews.
 
 ## Information architecture
 

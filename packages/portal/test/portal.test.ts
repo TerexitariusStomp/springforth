@@ -205,6 +205,73 @@ describe('card connections', () => {
       { connections: { p1: { overlapCount: 0, rounds: [], committed: {}, pledges: 0, hasReport: false } } });
     expect(html).not.toContain('>Connected<');
   });
+  it('renders trail, council, forum, reviews and geo on a quorum card', () => {
+    const quorumCard = { ...card(), status: 'quorum' as const,
+      participants: [{ actor: 'priya' }],
+      value: { byCurrency: { GBP: {
+        asked: 850, riskAvoided: 3600000, total: 1200, riskPerUnit: 5340,
+        capitals: { financial: 800, human: 400, social: 0, natural: 3600000 } } },
+        method: ['volunteer time — 19h declared × GBP 14.43/h (ONS)'],
+        hoursTotal: 19 } };
+    const html = renderPossibilitiesPage([quorumCard] as never, [], undefined,
+      { connections: { p1: {
+        ...conn,
+        trail: [
+          { seq: 0, at: '2026-10-22T00:00:00Z', actor: 'aisha', kind: 'possibility.declared' },
+          { seq: 1, at: '2026-10-22T01:00:00Z', actor: 'priya', kind: 'possibility.joined' },
+        ],
+        seats: [
+          { actor: 'aisha', role: 'declarer' },
+          { actor: 'priya', role: 'participant' },
+          { actor: 'vera', role: 'verifier' },
+        ],
+        posts: [
+          { id: 'fp1', actor: 'aisha', kind: 'note', text: 'debrief thread', at: '2026-10-22T02:00:00Z' },
+          { id: 'fp2', parentId: 'fp1', actor: 'vera', kind: 'evidence', text: 'checked in person', at: '2026-10-22T03:00:00Z' },
+        ],
+        notes: [{ from: 'priya', to: 'aisha', note: 'organized the tools' }],
+        geo: { lat: -3.35, lon: 40.02 },
+      } } });
+    for (const m of [
+      'class="trail"', 'Audit trail', 'declared', 'joined', '/ledger',
+      'class="council"', 'The council', 'self-declared',
+      'class="forum"', 'debrief thread', 'checked in person',
+      '/possibilities/p1/forum', '/possibilities/p1/council',
+      'class="reviews"', 'organized the tools',
+      'map-mini', 'class="scen"', 'Two pathways',
+      '/possibilities/p1/pledge',
+    ]) expect(html).toContain(m);
+  });
+  it('hides the pledge form on expired cards and shows reason lines', () => {
+    const dead = { ...card(), status: 'expired' as const };
+    const html = renderPossibilitiesPage([dead] as never, [], 'priya',
+      { connections: { p1: { ...conn, personal: { joined: false, recognized: 2, near: 'Mida Creek' } } } });
+    expect(html).not.toContain('/possibilities/p1/pledge');
+    expect(html).toContain('class="reason"');
+    expect(html).toContain('2 people you recognize');
+    expect(html).toContain('near a place you joined');
+  });
+});
+
+// World map — zero-JS SVG surface: markers are <a>-wrapped pins with
+// titles, legend covers every status, unlocated cards are listed.
+describe('world map', () => {
+  it('renders markers with accessible links + legend + unlocated list', async () => {
+    const { renderMapPage } = await import('../src/map.ts');
+    const html = renderMapPage({
+      lang: 'en',
+      markers: [
+        { id: 'p1', lat: -3.35, lon: 40.02, status: 'quorum', title: 'Creek card', href: '/possibilities#p1' },
+        { id: 'p2', lat: 53.74, lon: -2.01, status: 'completed', title: 'Flood card', href: '/possibilities#p2' },
+      ],
+      unlocated: [{ id: 'p3', title: 'No geo card', place: '?' }],
+    });
+    for (const m of [
+      'class="sf-map"', 'map-pin', 'aria-label="Creek card"',
+      'map-quorum', 'map-completed', 'map-legend',
+      'No geo card', '/possibilities#p1',
+    ]) expect(html).toContain(m);
+  });
 });
 
 // Render smoke tests — markers a regression can't silently drop: the

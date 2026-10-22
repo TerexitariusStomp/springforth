@@ -34,6 +34,7 @@ export const Possibility = z.object({
   description: z.string().default(''),
   declarerId: z.string().min(1),              // Possibility Declarer role
   place: z.string().optional(),               // free-text location / placeId
+  h3: z.string().optional(),                  // resolved cell when the place is known — powers the map surface
   timeStart: z.string().datetime().optional(),
   timeEnd: z.string().datetime().optional(),
   deadline: z.string().datetime().optional(), // quorum by this date
@@ -286,6 +287,35 @@ export type ImpactClaim = z.infer<typeof ImpactClaim>;
 // schema registry): a named attester signs a payload under a schema ref.
 // `uid` fills once anchored on-chain (celo-sepolia/celo); until then the
 // ledger row + payload hash is the record.
+// Per-card council — seated the moment a card reaches quorum. The
+// declarer and every participant hold seats automatically; verifiers
+// self-seat (publicly marked self-declared); sponsors seat when a
+// pledge binds. The council is who may post to the card's forum —
+// deliberation scoped to the people with something at stake.
+export const CouncilSeat = z.object({
+  id: z.string().min(1),                      // seat-<poss>-<actor>-<role>
+  possibilityId: z.string().min(1),
+  actor: z.string().min(1),
+  role: z.enum(['declarer', 'participant', 'verifier', 'sponsor']),
+  at: z.string().datetime(),
+});
+export type CouncilSeat = z.infer<typeof CouncilSeat>;
+
+// Forum post — threaded note/evidence/objection/review on one card.
+// Opens at quorum only ("no group chat for a thing that doesn't
+// exist"); writes are gated to council members; every post is
+// ledger-attributed. `parentId` threads replies.
+export const ForumPost = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  parentId: z.string().optional(),
+  actor: z.string().min(1),
+  kind: z.enum(['note', 'evidence', 'objection', 'review']),
+  text: z.string().min(1),
+  at: z.string().datetime(),
+});
+export type ForumPost = z.infer<typeof ForumPost>;
+
 export const Attestation = z.object({
   id: z.string().min(1),
   claimId: z.string().optional(),            // evaluating a claim

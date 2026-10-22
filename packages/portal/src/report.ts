@@ -23,9 +23,13 @@ export function renderReportPage(opts: {
   appreciations: Appreciation[];
   claim?: ImpactClaim;
   trajectories: Trajectory[];
+  seats?: { actor: string; role: string }[];
+  posts?: { id: string; parentId?: string; actor: string; kind: string; text: string; at: string }[];
   lang?: Lang;
 }): string {
   const { possibility: p, participants, nodes, checks, appreciations, claim, trajectories } = opts;
+  const seats = opts.seats ?? [];
+  const posts = opts.posts ?? [];
   const lang = opts.lang ?? 'en';
   const label = new Map(nodes.map((n) => [n.id, n.label]));
   const checksByNode = new Map<string, OracleCheck[]>();
@@ -36,13 +40,26 @@ export function renderReportPage(opts: {
   }
   const evidenceRows = [...checksByNode.entries()].map(([nid, cs]) => {
     const tj = trajectories.find((t) => t.nodeId === nid);
-    return `<tr><td>${esc(label.get(nid) ?? nid)}</td><td>${cs.length}</td>
+    const refs = [...new Set(cs.map((c) => c.methodologyRef).filter((x): x is string => !!x))];
+    return `<tr><td>${esc(label.get(nid) ?? nid)}${refs.length ? `<br><small class="muted">${refs.map(esc).join(' · ')}</small>` : ''}</td><td>${cs.length}</td>
 <td>${cs.filter((c) => c.result === 'match').length} ${esc(t(lang, 'misc.match'))} /
 ${cs.filter((c) => c.result === 'mismatch').length} ${esc(t(lang, 'misc.mismatch'))}</td>
 <td>${tj ? `${tj.slopePerDay > 0 ? '+' : ''}${tj.slopePerDay}/day${tj.daysToThreshold != null ? ` · ~${tj.daysToThreshold}d ${esc(t(lang, 'detail.report.toThreshold'))}` : ''}` : '—'}</td></tr>`;
   }).join('\n');
   const appList = appreciations.map((a) =>
-    `<li><strong>${displayName(a.fromActor)}</strong> → <strong>${displayName(a.toActor)}</strong>${a.note ? ` — ${esc(a.note)}` : ''}</li>`).join('\n');
+    `<li><strong>${displayName(a.fromActor)}</strong> → <strong>${displayName(a.toActor)}</strong>${a.note ? ` — <em>“${esc(a.note)}”</em>` : ''}</li>`).join('\n');
+  const byRole = new Map<string, string[]>();
+  for (const s of seats) {
+    if (!byRole.has(s.role)) byRole.set(s.role, []);
+    byRole.get(s.role)!.push(s.actor);
+  }
+  const seatList = byRole.size
+    ? `<ul>${[...byRole.entries()].map(([role, actors]) =>
+        `<li><strong>${esc(t(lang, `council.role.${role}`))}</strong>${role === 'verifier' ? ` <span class="muted">(${esc(t(lang, 'council.selfDeclared'))})</span>` : ''} — ${actors.map((a) => displayName(a)).join(', ')}</li>`).join('')}</ul>`
+    : '';
+  const postList = posts.length
+    ? `<ul>${posts.map((fp) => `<li><span class="badge">${esc(t(lang, `forum.k.${fp.kind}`))}</span> <strong>${displayName(fp.actor)}</strong> — ${esc(fp.text)} <span class="muted">${esc(fp.at.slice(0, 10))}</span></li>`).join('')}</ul>`
+    : '';
   return pageShell({ title: `${t(lang, 'detail.report.kicker')} — ${p.title}`,
     htmx: false, lang,
     extraCss: `.box{background:var(--sf-card);border:1px solid var(--sf-line-2);border-radius:12px;padding:1.2rem;margin:1rem 0}` },
@@ -64,6 +81,8 @@ ${p.report ? `<div class="box"><h2 style="margin-top:0">${esc(t(lang, 'detail.re
 ${evidenceRows || `<tr><td colspan="4"><em>${esc(t(lang, 'detail.report.noReadings'))}</em></td></tr>`}</table>
 <h2>${esc(t(lang, 'detail.report.appreciations'))}</h2>
 <ul>${appList || `<li><em>${esc(t(lang, 'detail.report.noneRecorded'))}</em></li>`}</ul>
+${(seats.length || posts.length) ? `<h2>${esc(t(lang, 'detail.report.council'))}</h2>
+${seatList}${postList}` : ''}
 ${claim ? `<h2>${esc(t(lang, 'detail.report.claim'))}</h2>
 <p>${esc(t(lang, 'detail.report.claimWord'))} <code>${esc(claim.id)}</code> — ${esc(t(lang, 'detail.report.state'))} <strong>${esc(claim.state)}</strong> —
 ${claim.oracleCheckIds.length} ${esc(t(lang, 'detail.report.checksCited'))}; ${claim.contributors.length} ${esc(t(lang, 'detail.report.contributors'))}.

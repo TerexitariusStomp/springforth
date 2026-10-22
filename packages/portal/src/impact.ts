@@ -20,9 +20,11 @@ export interface ValueRow {
   committed: number; matched: number; inKind: number; volunteerTime: number;
   total: number; asked: number; riskAvoided: number; leverage: number;
   riskPerUnit: number;
+  capitals?: { financial: number; human: number; social: number; natural: number };
 }
 export interface SourceRow {
   key: string; source: string; name: string; license: string;
+  methodology?: string;
   needs?: string | null; configured: boolean; lastFetch: string | null;
 }
 export interface LedgerEventRow {
@@ -55,11 +57,15 @@ const RESULT_KEYS = [
   ['possibilities', 'metric.possibilities'],
   ['activated', 'metric.activated'],
   ['quorumRate', 'metric.quorum'],
+  ['completionRate', 'metric.completed'],
+  ['evidenceCoverage', 'metric.evidence'],
   ['declaredHoursTotal', 'metric.hours'],
   ['complementsConfirmed', 'metric.matched'],
   ['successfulCoordinationsPerWeek', 'metric.coordinations'],
   ['expiringSoon', 'metric.closing'],
 ] as const;
+
+const RATE_FIELDS = new Set(['quorumRate', 'completionRate', 'evidenceCoverage']);
 
 export function renderImpactPage(o: ImpactPageInput): string {
   const lang = o.lang;
@@ -68,21 +74,32 @@ export function renderImpactPage(o: ImpactPageInput): string {
   const stats = RESULT_KEYS.map(([field, key]) => {
     const v = Number(o.metrics[field] ?? 0);
     return {
-      v: field === 'quorumRate' ? `${Math.round(v * 100)}%` : MONEY.format(v),
+      v: RATE_FIELDS.has(field) ? `${Math.round(v * 100)}%` : MONEY.format(v),
       l: t(lang, key),
     };
   });
-  const resultsBody = statGrid(stats);
+  const resultsBody = statGrid(stats) +
+    `<p class="muted"><small>${esc(t(lang, 'metric.benchmark'))}</small></p>`;
 
   /* #value — value-by-currency with human columns. */
   const vals = o.metrics.valueByCurrency ?? {};
-  const valRows = Object.entries(vals).map(([cur, r]) => `<tr>
+  const valRows = Object.entries(vals).map(([cur, r]) => {
+    const cap = r.capitals
+      ? [r.capitals.financial > 0 ? `${MONEY.format(r.capitals.financial)} ${t(lang, 'val.cap.financial')}` : '',
+        r.capitals.human > 0 ? `${MONEY.format(r.capitals.human)} ${t(lang, 'val.cap.human')}` : '',
+        r.capitals.social > 0 ? `${MONEY.format(r.capitals.social)} ${t(lang, 'val.cap.social')}` : '',
+        r.capitals.natural > 0 ? `${MONEY.format(r.capitals.natural)} ${t(lang, 'val.cap.natural')}` : '',
+      ].filter(Boolean).join('<br>')
+      : '—';
+    return `<tr>
 <td><strong>${esc(cur)}</strong></td>
 <td>${MONEY.format(r.committed ?? 0)}</td><td>${MONEY.format(r.matched ?? 0)}</td>
 <td>${MONEY.format(r.inKind ?? 0)}</td><td>${MONEY.format(r.volunteerTime ?? 0)}</td>
 <td><strong>${MONEY.format(r.total ?? 0)}</strong></td>
 <td>${MONEY.format(r.riskAvoided ?? 0)}</td><td>${r.leverage ?? 0}×</td>
-</tr>`).join('\n');
+<td class="muted"><small>${cap}</small></td>
+</tr>`;
+  }).join('\n');
   const askRows = Object.entries(vals).map(([cur, r]) => `<tr>
 <td><strong>${esc(cur)}</strong></td><td>${MONEY.format(r.asked ?? 0)}</td>
 <td>${r.riskPerUnit ? `${MONEY.format(r.riskPerUnit)}` : '—'}</td>
@@ -91,7 +108,7 @@ export function renderImpactPage(o: ImpactPageInput): string {
 <table><tr><th scope="col">${esc(t(lang, 'col.currency'))}</th><th scope="col">${esc(t(lang, 'val.committed'))}</th><th scope="col">${esc(t(lang, 'val.matched'))}</th>
 <th scope="col">${esc(t(lang, 'val.inKind'))}</th><th scope="col">${esc(t(lang, 'val.volunteer'))}</th>
 <th scope="col">${esc(t(lang, 'val.total'))}</th><th scope="col">${esc(t(lang, 'val.risk'))}</th>
-<th scope="col">${esc(t(lang, 'val.leverage'))}</th></tr>${valRows}</table>
+<th scope="col">${esc(t(lang, 'val.leverage'))}</th><th scope="col">${esc(t(lang, 'val.cap'))}</th></tr>${valRows}</table>
 <details class="how-note"><summary>${esc(t(lang, 'hub.impact.value.more'))}<span class="hn-mark" aria-hidden="true"></span></summary>
 <div class="hn-body"><table><tr><th scope="col">${esc(t(lang, 'col.currency'))}</th><th scope="col">${esc(t(lang, 'val.asked'))}</th><th scope="col">${esc(t(lang, 'val.riskPerUnit'))}</th></tr>${askRows}</table></div></details>`
     : emptyState(t(lang, 'hub.impact.value.none'));
@@ -117,12 +134,13 @@ ${c.possibilityId ? `<p class="muted"><a href="/possibilities#${esc(c.possibilit
 <td><span class="badge ${c.result === 'match' ? 'lime' : c.result === 'mismatch' ? 'coral' : ''}">${esc(c.result)}</span></td>
 <td class="muted">${esc(c.source)}</td>
 <td>${esc(c.nodeId ? nodeLabel.get(c.nodeId) ?? c.nodeId : '—')}</td>
+<td class="muted"><small>${esc(c.methodologyRef ?? '—')}</small></td>
 <td class="muted">${esc(c.at.slice(0, 10))}</td>
 </tr>`).join('\n');
   const sourceList = o.sources.map((s) => `<li>
-<strong>${esc(s.name)}</strong> <span class="muted">— ${esc(s.license)}${s.configured ? '' : ` · ${esc(t(lang, 'hub.impact.evidence.unconfigured'))}`}${s.lastFetch ? ` · ${esc(s.lastFetch.slice(0, 10))}` : ''}</span></li>`).join('\n');
+<strong>${esc(s.name)}</strong> <span class="muted">— ${esc(s.license)}${s.methodology ? ` · <small>${esc(s.methodology)}</small>` : ''}${s.configured ? '' : ` · ${esc(t(lang, 'hub.impact.evidence.unconfigured'))}`}${s.lastFetch ? ` · ${esc(s.lastFetch.slice(0, 10))}` : ''}</span></li>`).join('\n');
   const evidenceBody = `
-${checkRows ? `<table><tr><th scope="col">${esc(t(lang, 'col.result'))}</th><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.target'))}</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${checkRows}</table>`
+${checkRows ? `<table><tr><th scope="col">${esc(t(lang, 'col.result'))}</th><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.target'))}</th><th scope="col">${esc(t(lang, 'col.method'))}</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${checkRows}</table>`
     : emptyState(t(lang, 'hub.impact.evidence.none'))}
 ${sourceList ? `<details class="how-note"><summary>${esc(t(lang, 'hub.impact.evidence.sources'))} (${o.sources.length})<span class="hn-mark" aria-hidden="true"></span></summary>
 <div class="hn-body"><ul>${sourceList}</ul></div></details>` : ''}

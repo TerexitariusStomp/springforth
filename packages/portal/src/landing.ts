@@ -107,6 +107,7 @@ export interface DeckCardData {
   id: string; title: string; place?: string;
   status: string; participants: number; min: number;
   deadline?: string; needs?: string[];
+  reason?: string;   // viewer-personalized relevance line (edge-computed)
 }
 
 export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string) => string; feed?: { nextId?: string } } = {}): string {
@@ -126,6 +127,7 @@ export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string
 <div><strong>${daysLeft(d.deadline, tt)}</strong><span>${tt('card.left')}</span></div></div>
 <div class="card-progress"><span style="width:${pct}%"></span></div>
 ${needs.length ? `<p class="needs"><span>${tt('card.needs')}</span>${needs.map((n) => `<b>${esc(n)}</b>`).join('')}</p>` : ''}
+${d.reason ? `<p class="reason">${esc(d.reason)}</p>` : ''}
 <a class="join-button" href="${base}#${esc(d.id)}"><span>${more > 0 ? `${more} ${tt('card.more')}` : d.status === 'quorum' ? tt('card.atQuorum') : tt('card.see')}</span><span>→</span></a>
 ${opts.feed ? `<div class="feed-actions">
   <a class="feed-skip" href="${base}#${opts.feed.nextId ? `card-${esc(opts.feed.nextId)}` : 'deck'}">${tt('feed.skip')}</a>

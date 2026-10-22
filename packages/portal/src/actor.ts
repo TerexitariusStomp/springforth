@@ -17,6 +17,8 @@ export interface ActorProfileInput {
   trustScore: number;
   wallets: ActorWallet[];
   donations: Donation[];
+  // Appreciations received — rendered as quotable recognitions.
+  recognitions?: { from: string; note: string; possibilityId?: string }[];
 }
 
 export function renderActorProfile(i: ActorProfileInput, lang: Lang = 'en'): string {
@@ -26,6 +28,8 @@ export function renderActorProfile(i: ActorProfileInput, lang: Lang = 'en'): str
     `<tr><td><a href="/rounds/${esc(d.roundId)}">${esc(d.roundId)}</a></td>
 <td>${esc(d.needNodeId)}</td><td>${d.amount} ${esc(d.currency)}</td>
 <td class="muted">${esc(d.settlement)}${d.settlementRef ? ` · <code>${esc(d.settlementRef.slice(0, 18))}…</code>` : ''}</td></tr>`).join('\n');
+  const recList = (i.recognitions ?? []).filter((r) => r.note.trim()).map((r) =>
+    `<li><em>“${esc(r.note)}”</em> — ${displayName(r.from)}${r.possibilityId ? ` · <a href="/possibilities#${esc(r.possibilityId)}">${esc(t(lang, 'detail.actor.cardLink'))}</a>` : ''}</li>`).join('\n');
   return shell(displayNameText(i.actor), `
 ${pageHeader({
     kicker: t(lang, 'detail.actor.kicker'),
@@ -39,6 +43,7 @@ ${pageHeader({
 <tr><td>${esc(t(lang, 'detail.actor.earned'))}</td><td>${i.earned.toFixed(2)}</td></tr>
 <tr><td>${esc(t(lang, 'detail.actor.credits'))}</td><td>${i.assuranceCredits}</td></tr>
 <tr><td>${esc(t(lang, 'detail.actor.trust'))}</td><td>${i.trustScore}</td></tr></table>
+${recList ? `<h2>${esc(t(lang, 'detail.actor.recognitions'))}</h2><ul>${recList}</ul>` : ''}
 ${howItWorks(lang, 'how.actor.trust', 's3')}
 <h2>${esc(t(lang, 'detail.actor.wallets'))}</h2>
 <table><tr><th scope="col">${esc(t(lang, 'col.address'))}</th><th scope="col">${esc(t(lang, 'col.bound'))}</th></tr>

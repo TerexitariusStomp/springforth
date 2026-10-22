@@ -43,6 +43,12 @@ export interface CurrencyValue {
   riskAvoided: number;                   // homes × cited per-home damage — outside total
   leverage: number;                      // total ÷ committed — value mobilized per £1 in
   riskPerUnit: number;                   // riskAvoided ÷ total — est. £ protected per £1
+  // Capitals Coalition four-capitals view (capitalscoalition.org/approach):
+  // financial = produced/financial capital (committed + matched),
+  // human = human capital (volunteer time), social = social capital
+  // (in-kind community contributions), natural = natural-capital risk
+  // avoided. Asked is a dependency, not an impact — never in the totals.
+  capitals?: { financial: number; human: number; social: number; natural: number };
 }
 
 export interface Valuation {
@@ -89,6 +95,12 @@ export function valueCoordinated(i: ValuationInput): Valuation {
   }
   for (const v of Object.values(by)) {
     v.total = r2(v.committed + v.matched + v.inKind + v.volunteerTime);
+    v.capitals = {
+      financial: r2(v.committed + v.matched),
+      human: v.volunteerTime,
+      social: v.inKind,
+      natural: v.riskAvoided,
+    };
     v.leverage = v.committed > 0 ? r2(v.total / v.committed) : 0;
     v.riskPerUnit = v.total > 0 && v.riskAvoided > 0 ? r2(v.riskAvoided / v.total) : 0;
     if (v.leverage > 0)

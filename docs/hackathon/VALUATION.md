@@ -59,6 +59,7 @@ Mixed-currency contributions display side by side; no FX rate is assumed.
 | Avg flood damage per home | £30,000 | Environment Agency flood-warning guidance; corroborated by ABI 2025 claims data (avg domestic flood payout £30k, +60% YoY). Also feeds `riskAvoided = homes × rate` |
 | Avg flood damage per business | £82,000 | Environment Agency |
 | Properties at flood risk in England | 5.2M | Environment Agency |
+| Avg annual UK flood damages | £2.2bn | Environment Agency Long-Term Investment Scenarios (LTIS), 2023 — cited on GB cards' scenario block as the macro context |
 
 ## Which rate applies where
 
@@ -78,16 +79,28 @@ maps to named standards rather than ad-hoc claims:
 - **Transition pathways / scenario framing** — `riskAvoided` and
   `riskPerUnit` are scenario deltas: damages under the un-coordinated
   path vs. the activated path, stated against the funder's objective.
-- **Capitals Coalition / Value Accounting Network** — natural + social
-  capital accounting: contributions to society and environment are
-  monetized as *value creation*, not just cost.
+- **Capitals Coalition / Value Accounting Network** — the four-capitals
+  frame (natural, social, human, produced/financial) with the
+  *impacts-and-dependencies* principle: each valuation component carries
+  a `capital` tag (`financial` / `human` / `social` / `natural`), and the
+  card renders mobilized value + damage avoided as **impacts** against
+  the declared ask as the **dependency**. Canonical-method lineage:
+  Natural Capital Protocol, Social & Human Capital Protocol, Social
+  Value International, UN SEEA.
+  https://capitalscoalition.org/approach/ ·
   https://capitalscoalition.org/project/value-accounting-network/
 - **Damage-avoidance framing** (cf. rebalance.earth) — `riskAvoided`
   answers "reduce damages"; `volunteerTime`/`inKind`/`matched` answer
-  "benefits created and yield enhanced."
+  "benefits created and yield enhanced." The card's *Two pathways* block
+  is their degraded→restored frame: environmental → operational →
+  financial risk lanes, underwritten by "exposure grows with evidence."
+  https://rebalance.earth/investment-strategy
 - **Verifier-replay rule** — every rendered figure must be re-derivable:
   declared inputs name their declarer (ledger), estimates name their
   published source, and the formula above is the whole computation.
+  Enforced in-page: every figure expands into a replay `<details>`
+  listing inputs, formula and source, and each card carries a
+  ledger-linked audit trail a third party can re-walk.
 
 ## Limitations (stated, not hidden)
 
@@ -107,8 +120,15 @@ maps to named standards rather than ad-hoc claims:
 
 ## Where it shows
 
-- `/possibilities` — "Coordinated value (est.)" block on each card
+- `/possibilities` — "Coordinated value (est.)" block on each card,
+  capital-grouped (impacts vs dependencies) with an in-page
+  verifier-replay `<details>` per figure
+- `/possibilities` — "Two pathways" scenario block per card (baseline vs
+  activated, EA LTIS £2.2bn macro context on GB cards)
 - `/metrics` — `valueByCurrency` + `declaredHoursTotal` aggregates
+- `/impact#results` — `completionRate`, `evidenceCoverage` and the
+  Kickstarter ~41.57% published success-rate benchmark alongside
+  `quorumRate`
 - `/rounds` — committed totals per currency
 - Card "Verified context" — the cited risk/cost benchmarks
 - Implementation: `packages/core/src/valuation.ts` (pure, unit-tested)

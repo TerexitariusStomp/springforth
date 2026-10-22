@@ -1,6 +1,6 @@
 import {
   Possibility, Participation, Appreciation, Pass, AssuranceCredit,
-  OracleCheck, Signal,
+  OracleCheck, Signal, CouncilSeat, ForumPost,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
   RetroRound, RetroBallot, ChainTx, YieldStream,
   ActorWallet, RoundApplication, RecurringSupport,
@@ -32,7 +32,7 @@ import {
   renderWhitepaper,
   renderLedgerPage, renderLedgerVerifyPage,
   renderCollaboratePage, renderFundPage, renderImpactPage,
-  renderCommunityPage, renderHowItWorksPage,
+  renderCommunityPage, renderHowItWorksPage, renderMapPage,
   t, langFrom, LANGS, type Lang,
   tickerLines, tickerHtml, pageShell, pageHeader, FAVICON_SVG,
 } from '@springforth/portal';
@@ -44,6 +44,7 @@ import {
   canonicalize,
   effectiveStatus, quorumMet, trustEdges, scoreCard,
   earnedRecognition, eigenTrust, viewerDeck, identitiesRevealed,
+  resolvePlace,
 } from '@springforth/coordination';
 import { normalizePlan, fromCsv, fromMarkdown } from '@springforth/oneplanet-adapter';
 import { fromJson as fromClcJson } from '@springforth/clc-adapter';
@@ -70,7 +71,7 @@ import {
 } from '@springforth/oracle';
 import { liveAtlas } from '@springforth/atlas-adapter';
 import { handleTelegramUpdate, sendTelegram } from './telegram.js';
-import { cellToLatLng, isValidCell } from 'h3-js';
+import { cellToLatLng, isValidCell, latLngToCell } from 'h3-js';
 import { get, list, put, ledgerAppend, ledgerEvents, ledgerVerify } from './store.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
@@ -283,6 +284,18 @@ async function notifySubscribers(env: Env, target: string, kind: string,
   }
 }
 
+// Council seating — idempotent via the seat id. The council is who may
+// post to the card's forum once it opens at quorum.
+async function seatCouncil(env: Env, possibilityId: string, actor: string,
+  role: CouncilSeat['role'], at: string): Promise<boolean> {
+  const id = `seat-${possibilityId}-${actor.toLowerCase().replace(/\W+/g, '-')}-${role}`;
+  if (await get<CouncilSeat>(env.DB, 'council-seat', id)) return false;
+  await put(env.DB, 'council-seat', id, CouncilSeat.parse({
+    id, possibilityId, actor, role, at,
+  }));
+  return true;
+}
+
 async function sweepPossibilities(env: Env, actor = 'system'): Promise<void> {
   const [poss, nodes, recs, parts] = await Promise.all([
     list<Possibility>(env.DB, 'possibility'), list<PlanNode>(env.DB, 'plannode'),
@@ -318,8 +331,15 @@ async function sweepPossibilities(env: Env, actor = 'system'): Promise<void> {
       if (!quorumMet(p, nodes, recs, count).met) continue;
       await put(env.DB, 'possibility', p.id, { ...p, status: 'quorum', quorumAt: iso });
       await ledgerAppend(env.DB, actor, 'possibility.quorum', { id: p.id });
+      // Seat the council — declarer + every committed participant.
+      let seated = 0;
+      if (await seatCouncil(env, p.id, p.declarerId, 'declarer', iso)) seated++;
+      for (const pt of parts.filter((x) => x.possibilityId === p.id))
+        if (await seatCouncil(env, p.id, pt.actor, 'participant', iso)) seated++;
+      if (seated)
+        await ledgerAppend(env.DB, actor, 'council.seated', { id: p.id, seats: seated });
       await notifySubscribers(env, p.id, 'quorum',
-        `Quorum reached: ${p.title} — commitment bound`,
+        `Quorum reached: ${p.title} — commitment bound, the council chamber is open`,
         `https://springforth.widespread.workers.dev/possibilities#${p.id}`);
     }
   }
@@ -335,6 +355,9 @@ async function sweepPossibilities(env: Env, actor = 'system'): Promise<void> {
       await put(env.DB, 'pledge', pl.id, next);
       await ledgerAppend(env.DB, actor, `pledge.${next.state}`,
         { id: pl.id, possibilityId: p.id });
+      // A bound pledge seats the sponsor on the card's council.
+      if (next.state === 'bound' && await seatCouncil(env, p.id, pl.pledger, 'sponsor', iso))
+        await ledgerAppend(env.DB, actor, 'council.seated', { id: p.id, actor: pl.pledger, role: 'sponsor' });
     }
   }
 }
@@ -804,9 +827,20 @@ export default {
             }));
           }
           case 'community': {
-            const [people, trust, gov] = await Promise.all([
+            const [people, trust, gov, apps, seats, poss] = await Promise.all([
               loadActorsDirectory(env), loadTrust(env), loadGovernance(env),
+              list<Appreciation>(env.DB, 'appreciation'),
+              list<CouncilSeat>(env.DB, 'council-seat'),
+              list<Possibility>(env.DB, 'possibility'),
             ]);
+            const possById = new Map(poss.map((p) => [p.id, p]));
+            const councils = [...new Set(seats.map((s) => s.possibilityId))]
+              .flatMap((pid) => {
+                const p = possById.get(pid);
+                return p ? [{ possibilityId: pid, title: p.title,
+                  status: effectiveStatus(p), seats: seats.filter((s) => s.possibilityId === pid)
+                    .map((s) => ({ actor: s.actor, role: s.role })) }] : [];
+              });
             return html(renderCommunityPage({
               lang,
               people, mutual: trust.mutual,
@@ -814,6 +848,11 @@ export default {
               params: gov.params, governable: gov.governable,
               voters: gov.eligibleVoters.length,
               peopleAll: url.searchParams.get('people') === 'all',
+              voices: apps.filter((a) => a.note.trim())
+                .sort((x, y) => Date.parse(y.at) - Date.parse(x.at))
+                .map((a) => ({ from: a.fromActor, to: a.toActor, note: a.note,
+                  possibilityId: a.possibilityId, at: a.at })),
+              councils,
             }));
           }
           case 'how-it-works':
@@ -1492,6 +1531,11 @@ export default {
             deadline: b.deadline, minParticipants: Number(b.minParticipants ?? 0),
             maxParticipants: b.maxParticipants ? Number(b.maxParticipants) : undefined,
             householdsProtected: b.householdsProtected ? Number(b.householdsProtected) : undefined,
+            // Optional geo: explicit h3 wins, else lat/lon → cell, else the
+            // gazetteer resolves the free-text place at render time.
+            h3: typeof b.h3 === 'string' && isValidCell(b.h3) ? b.h3
+              : (b.lat != null && b.lon != null && isFinite(Number(b.lat)) && isFinite(Number(b.lon)))
+                ? latLngToCell(Number(b.lat), Number(b.lon), 5) : undefined,
             context: b.context,
             status: 'active', createdAt: iso,
           });
@@ -1613,6 +1657,22 @@ export default {
             || b.score - a.score);
           if (url.searchParams.get('format') === 'json') return json({ possibilities: cards });
           const connections = await loadCardConnections(env, cards);
+          // Viewer-personalized reason data — counts only, no name reveal.
+          const me = viewer ?? forActor;
+          if (me) {
+            const recognized = new Set(edges.filter((e) => e.from === me && e.mutual > 0).map((e) => e.to));
+            const myPlaces = new Set(scoped.filter((p) =>
+              parts.some((x) => x.possibilityId === p.id && x.actor === me))
+              .map((p) => p.place?.toLowerCase()).filter(Boolean));
+            for (const c of cards) {
+              const mine = parts.filter((x) => x.possibilityId === c.id);
+              connections[c.id]!.personal = {
+                joined: mine.some((x) => x.actor === me),
+                recognized: mine.filter((x) => recognized.has(x.actor)).length,
+                near: !mine.some((x) => x.actor === me) && c.place && myPlaces.has(c.place.toLowerCase()) ? c.place : undefined,
+              };
+            }
+          }
           return new Response(renderPossibilitiesPage(cards, edges, viewer ?? forActor, {
             status: url.searchParams.get('status') ?? '',
             lang: langFrom(url, req.headers.get('cookie')),
@@ -1829,6 +1889,12 @@ export default {
             appreciations: apps.filter((a) => a.possibilityId === p.id),
             claim,
             trajectories: myNodes.map((n) => trajectory(n.id, checks)),
+            seats: (await list<CouncilSeat>(env.DB, 'council-seat'))
+              .filter((s) => s.possibilityId === p.id)
+              .map((s) => ({ actor: s.actor, role: s.role })),
+            posts: (await list<ForumPost>(env.DB, 'forum-post'))
+              .filter((f) => f.possibilityId === p.id)
+              .map((f) => ({ id: f.id, parentId: f.parentId, actor: f.actor, kind: f.kind, text: f.text, at: f.at })),
             lang: langFrom(url, req.headers.get('cookie')),
           }), { headers: { 'content-type': 'text/html' } });
         }
@@ -1918,6 +1984,8 @@ export default {
             trustScore: mean > 0 ? +((vec[id] ?? 0) / mean).toFixed(4) : 0,
             wallets: wallets.filter((w) => w.actor === id),
             donations: donations.filter((d) => d.donor === id),
+            recognitions: apps.filter((a) => a.toActor === id && a.note.trim())
+              .map((a) => ({ from: a.fromActor, note: a.note, possibilityId: a.possibilityId })),
           }, langFrom(url, req.headers.get('cookie'))),
             { headers: { 'content-type': 'text/html' } });
         }
@@ -2419,7 +2487,10 @@ export default {
       if (req.method === 'POST' && seg[0] === 'possibilities' && seg[2] === 'pledge') {
         const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');
         if (!p) return err('possibility not found', 404);
-        const b = await req.json() as Record<string, unknown>;
+        const ct = req.headers.get('content-type') ?? '';
+        const b = ct.includes('form')
+          ? Object.fromEntries((await req.formData()).entries())
+          : await req.json() as Record<string, unknown>;
         const pledger = String(b.pledger ?? b.actor ?? '');
         const amount = Number(b.amount ?? 0);
         if (!pledger || !(amount > 0)) return err('pledger and positive amount required');
@@ -2435,10 +2506,99 @@ export default {
         await put(env.DB, 'pledge', pledge.id, pledge);
         await ledgerAppend(env.DB, pledger, 'pledge.pending',
           { id: pledge.id, possibilityId: p.id, amount, currency: pledge.currency });
-        return json(pledge, 201);
+        const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+        return wantsHtml
+          ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+          : json(pledge, 201);
       }
       if (req.method === 'GET' && seg[0] === 'pledges')
         return json({ pledges: await list<Pledge>(env.DB, 'pledge') });
+      // ── Council + forum — deliberation scoped to a live card ───────
+      // Verifiers self-seat on quorum/completed cards; sponsors seat via
+      // bound pledge (sweepPossibilities); declarer/participants auto-seat.
+      if (req.method === 'POST' && seg[0] === 'possibilities' && seg[2] === 'council') {
+        const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');
+        if (!p) return err('possibility not found', 404);
+        const ct = req.headers.get('content-type') ?? '';
+        const b = ct.includes('form')
+          ? Object.fromEntries((await req.formData()).entries())
+          : await req.json() as Record<string, unknown>;
+        const actor = String(b.actor ?? '');
+        if (!actor) return err('actor required');
+        const eff = effectiveStatus(p);
+        if (eff !== 'quorum' && eff !== 'completed')
+          return err('the council chamber opens at quorum', 409);
+        const iso = new Date().toISOString();
+        const seated = await seatCouncil(env, p.id, actor, 'verifier', iso);
+        if (seated)
+          await ledgerAppend(env.DB, actor, 'council.seated',
+            { id: p.id, actor, role: 'verifier', selfDeclared: true });
+        const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+        return wantsHtml
+          ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+          : json({ id: `seat-${p.id}-${actor.toLowerCase().replace(/\W+/g, '-')}-verifier`, seated }, 201);
+      }
+      // Forum posts — quorum/completed only, council members only, every
+      // post ledger-attributed. `parentId` threads replies.
+      if (req.method === 'POST' && seg[0] === 'possibilities' && seg[2] === 'forum') {
+        const p = await get<Possibility>(env.DB, 'possibility', seg[1] ?? '');
+        if (!p) return err('possibility not found', 404);
+        const ct = req.headers.get('content-type') ?? '';
+        const b = ct.includes('form')
+          ? Object.fromEntries((await req.formData()).entries())
+          : await req.json() as Record<string, unknown>;
+        const actor = String(b.actor ?? ''), text = String(b.text ?? '').slice(0, 600).trim();
+        if (!actor || !text) return err('actor and text required');
+        const eff = effectiveStatus(p);
+        if (eff !== 'quorum' && eff !== 'completed')
+          return err('the forum opens at quorum', 409);
+        const seats = (await list<CouncilSeat>(env.DB, 'council-seat'))
+          .filter((s) => s.possibilityId === p.id);
+        if (!seats.some((s) => s.actor === actor))
+          return err('forum posts are council-only — join the council first', 403);
+        const kind = (['note', 'evidence', 'objection', 'review'] as const)
+          .includes(b.kind as 'note') ? b.kind as ForumPost['kind'] : 'note';
+        const parentId = b.parentId ? String(b.parentId) : undefined;
+        if (parentId) {
+          const parent = await get<ForumPost>(env.DB, 'forum-post', parentId);
+          if (!parent || parent.possibilityId !== p.id) return err('parent post not found on this card', 422);
+        }
+        const post = ForumPost.parse({
+          id: `fp-${p.id}-${actor.toLowerCase().replace(/\W+/g, '-')}-${Date.now().toString(36)}`,
+          possibilityId: p.id, parentId, actor, kind, text, at: new Date().toISOString(),
+        });
+        await put(env.DB, 'forum-post', post.id, post);
+        await ledgerAppend(env.DB, actor, 'forum.posted',
+          { id: post.id, possibilityId: p.id, kind });
+        const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+        return wantsHtml
+          ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+          : json(post, 201);
+      }
+      if (req.method === 'GET' && seg[0] === 'councils')
+        return json({ seats: await list<CouncilSeat>(env.DB, 'council-seat') });
+      if (req.method === 'GET' && seg[0] === 'forum')
+        return json({ posts: await list<ForumPost>(env.DB, 'forum-post') });
+      // ── /map — the geography surface. Server-rendered SVG, no tiles,
+      // no CDN, no JS — markers link into the deck.
+      if (req.method === 'GET' && seg[0] === 'map' && seg.length === 1) {
+        const [poss, nodes] = await Promise.all([
+          list<Possibility>(env.DB, 'possibility'), list<PlanNode>(env.DB, 'plannode'),
+        ]);
+        const now = Date.now();
+        const markers: { id: string; lat: number; lon: number; status: string; title: string; href: string }[] = [];
+        const unlocated: { id: string; title: string; place?: string }[] = [];
+        for (const p of poss) {
+          const g = resolvePlace(p, nodes);
+          if (g) markers.push({ id: p.id, lat: g.lat, lon: g.lon,
+            status: effectiveStatus(p, now), title: p.title, href: `/possibilities#${p.id}` });
+          else unlocated.push({ id: p.id, title: p.title, place: p.place });
+        }
+        const lang = langFrom(url, req.headers.get('cookie'));
+        return wantsHtml(req)
+          ? html(renderMapPage({ lang, markers, unlocated }))
+          : json({ markers, unlocated });
+      }
       // ── Chain lane — status + tx recording + confirmation mirror ────
       if (seg[0] === 'chain') {
         const cfg = chainCfg(env);

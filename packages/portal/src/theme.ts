@@ -41,6 +41,7 @@ export const SF_CSS = `
   --sf-gold-tint:#fffdf6; --sf-gold-line:#e8e0c8; --sf-gold-ink:#6b5518;
   --sf-ok-ink:#3c5c1a; --sf-coral-ink:#8a3c22;
   --sf-danger-deep:#7a2828; --sf-danger-soft:#fdecea;
+  --sf-map-sea:#e4ede8; --sf-map-land:#c6d8cb;
   --sf-serif:'DM Serif Display',Georgia,serif;
   --sf-sans:'Figtree','Manrope',system-ui,-apple-system,sans-serif;
 font-family:var(--sf-sans); color:var(--sf-ink); background:var(--sf-cream);
@@ -440,6 +441,7 @@ dialog.sf-dialog,.modal-anchor:not(:target) .modal-backdrop{display:none}
   --sf-ok:#8fd18f; --sf-ok-soft:#1c3a28; --sf-ok-ink:#a8d99b;
   --sf-danger-soft:#3a2020; --sf-danger-ink:#f0a8a8; --sf-danger-deep:#f0a8a8;
   --sf-info:#9cc8d4; --sf-coral-ink:#f0a08a;
+  --sf-map-sea:#10251c; --sf-map-land:#2a4a3a;
   --pico-background-color:#0c1d16; --pico-color:#dfe7da;
   --pico-muted-color:#93a89b; --pico-muted-border-color:#264336;
   --pico-code-background-color:#163025; --pico-code-color:#a9c0b1;

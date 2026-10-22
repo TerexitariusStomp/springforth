@@ -7,6 +7,7 @@ import {
   OracleCheck, FundingRound, Donation, Pledge, ImpactClaim,
   RetroRound, ActorWallet, RecurringSupport, YieldStream,
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
+  CouncilSeat, ForumPost,
   valueCoordinated, roundDemand, endowmentAccrual,
 } from '@springforth/core';
 import {
@@ -17,6 +18,7 @@ import {
   PlanNode, OverlapRecord,
   isNeed, inferCapital, effectiveStatus, trustEdges,
   earnedRecognition, eigenTrust, successfulCoordinationsPerWeek,
+  resolvePlace,
 } from '@springforth/coordination';
 import { SOURCES, evidenceBoost } from '@springforth/oracle';
 import { list, ledgerEvents, ledgerVerify } from './store.js';
@@ -31,7 +33,7 @@ export const VOLUNTEER_GB = {
   source: 'ONS Household Satellite Accounts (2017)',
   riskPerHome: 30_000, riskSource: 'Environment Agency / ABI (2025)',
 };
-export const GB_PLACE = /shrewsbury|severn|london|england|britain|uk\b|manchester|bristol|oxford|cardiff|edinburgh|birmingham|leeds|glasgow/i;
+export const GB_PLACE = /shrewsbury|severn|london|england|britain|uk\b|manchester|bristol|oxford|cardiff|edinburgh|birmingham|leeds|glasgow|hebden|calder|thorntree|middlesbrough|yorkshire/i;
 
 // Which store slices are exportable as datasets.
 export const DATASET_SOURCES: Record<string, { kind: string; describe: string }> = {
@@ -125,9 +127,19 @@ export async function loadMetrics(env: Env) {
   const expiringSoon = statuses.filter((x) =>
     (x.s === 'active' || x.s === 'draft') && x.p.deadline
     && Date.parse(x.p.deadline) - now < 3 * 86_400_000).length;
+  // Evidence coverage: quorum/completed cards carrying at least one
+  // oracle check on their nodes or a filed completion report.
+  const checks = await list<OracleCheck>(env.DB, 'oracle-check');
+  const nodeToPoss = new Map(nodes.map((n) => [n.id, n.possibilityId]));
+  const checkedPoss = new Set(checks.map((c) => nodeToPoss.get(c.nodeId ?? '')).filter(Boolean));
+  const activatedIds = statuses.filter((x) => x.s === 'quorum' || x.s === 'completed').map((x) => x.p);
+  const withEvidence = activatedIds.filter((p) => checkedPoss.has(p.id) || !!p.report).length;
+  const completed = statuses.filter((x) => x.s === 'completed').length;
   const payload: Record<string, unknown> = {
     possibilities: statuses.length, activated, expired: statuses.filter((x) => x.s === 'expired').length,
     quorumRate: statuses.length ? +(activated / statuses.length).toFixed(3) : 0,
+    completionRate: activated ? +(completed / activated).toFixed(3) : 0,
+    evidenceCoverage: activated ? +(withEvidence / activated).toFixed(3) : 0,
     appreciationRatio: completedParts ? +(completedApps / completedParts).toFixed(3) : 0,
     coordinationsPerWeek: +(activated / weeks).toFixed(3),
     successfulCoordinationsPerWeek: successfulCoordinationsPerWeek(poss, apps, now),
@@ -140,7 +152,7 @@ export async function loadMetrics(env: Env) {
     ...(() => {
       const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
         .map((n) => [n.id, n.possibilityId]));
-      const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number; riskAvoided: number; leverage: number; riskPerUnit: number }> = {};
+      const acc: Record<string, { committed: number; matched: number; inKind: number; volunteerTime: number; total: number; asked: number; riskAvoided: number; leverage: number; riskPerUnit: number; capitals?: { financial: number; human: number; social: number; natural: number } }> = {};
       let hoursTotal = 0;
       for (const p of poss) {
         const mine = parts.filter((x) => x.possibilityId === p.id);
@@ -165,6 +177,11 @@ export async function loadMetrics(env: Env) {
           a.committed += cv.committed; a.matched += cv.matched;
           a.inKind += cv.inKind; a.volunteerTime += cv.volunteerTime; a.total += cv.total;
           a.asked += cv.asked; a.riskAvoided += cv.riskAvoided;
+          if (cv.capitals) {
+            const cap = (a.capitals ??= { financial: 0, human: 0, social: 0, natural: 0 });
+            cap.financial += cv.capitals.financial; cap.human += cv.capitals.human;
+            cap.social += cv.capitals.social; cap.natural += cv.capitals.natural;
+          }
         }
       }
       // Ratios are derived post-sum — they must never be summed across cards.
@@ -172,8 +189,13 @@ export async function loadMetrics(env: Env) {
         a.leverage = a.committed > 0 ? Math.round(a.total / a.committed * 100) / 100 : 0;
         a.riskPerUnit = a.total > 0 && a.riskAvoided > 0 ? Math.round(a.riskAvoided / a.total * 100) / 100 : 0;
       }
-      for (const a of Object.values(acc))
-        for (const k of Object.keys(a) as (keyof typeof a)[]) a[k] = Math.round(a[k] * 100) / 100;
+      for (const a of Object.values(acc)) {
+        for (const k of Object.keys(a) as (keyof typeof a)[])
+          if (k !== 'capitals') (a[k] as number) = Math.round((a[k] as number) * 100) / 100;
+        if (a.capitals)
+          for (const k of Object.keys(a.capitals) as (keyof typeof a.capitals)[])
+            a.capitals[k] = Math.round(a.capitals[k] * 100) / 100;
+      }
       return { valueByCurrency: acc, declaredHoursTotal: Math.round(hoursTotal * 100) / 100 };
     })(),
   };
@@ -354,9 +376,12 @@ export async function loadLedgerSummary(env: Env) {
   return { verify, events };
 }
 
-// Extra 1 — card ↔ hub links. For each possibility card: overlaps
-// touching its plan nodes, rounds whose eligible needs it owns,
-// committed donations + pledge count, claim id, report flag.
+// Extra 1 — card ↔ hub links + the megaplan extras. For each
+// possibility card: overlaps touching its plan nodes, rounds whose
+// eligible needs it owns, committed donations + pledge count, claim
+// id, report flag — plus the audit trail (ledger events naming the
+// card), council seats, forum posts, appreciation notes, and the
+// resolved geo point for the map.
 export interface CardConnections {
   overlapCount: number;
   focusNodeId?: string;
@@ -365,14 +390,23 @@ export interface CardConnections {
   pledges: number;
   claimId?: string;
   hasReport: boolean;
+  trail?: { seq: number; at: string; actor: string; kind: string }[];
+  seats?: { actor: string; role: string }[];
+  posts?: { id: string; parentId?: string; actor: string; kind: string; text: string; at: string }[];
+  notes?: { from: string; to: string; note: string }[];
+  geo?: { lat: number; lon: number };
+  personal?: { joined: boolean; recognized: number; near?: string };
 }
 export async function loadCardConnections(
-  env: Env, cards: { id: string; report?: unknown }[],
+  env: Env,
+  cards: { id: string; report?: unknown; place?: string; h3?: string }[],
 ): Promise<Record<string, CardConnections>> {
-  const [nodes, recs, rounds, dons, pledges, claims] = await Promise.all([
+  const [nodes, recs, rounds, dons, pledges, claims, events, seats, posts, apps] = await Promise.all([
     list<PlanNode>(env.DB, 'plannode'), list<OverlapRecord>(env.DB, 'overlap'),
     list<FundingRound>(env.DB, 'round'), list<Donation>(env.DB, 'donation'),
     list<Pledge>(env.DB, 'pledge'), list<ImpactClaim>(env.DB, 'claim'),
+    ledgerEvents(env.DB), list<CouncilSeat>(env.DB, 'council-seat'),
+    list<ForumPost>(env.DB, 'forum-post'), list<Appreciation>(env.DB, 'appreciation'),
   ]);
   const out: Record<string, CardConnections> = {};
   for (const card of cards) {
@@ -386,6 +420,17 @@ export async function loadCardConnections(
     for (const d of dons)
       if (myNeedIds.has(d.needNodeId))
         committed[d.currency] = (committed[d.currency] ?? 0) + d.amount;
+    // Audit trail: ledger events whose payload names this card
+    // (payload.id, payload.possibilityId) or one of its nodes.
+    const trail = events.filter((e) => {
+      const pl = e.payload as Record<string, unknown>;
+      if (pl?.id === card.id || pl?.possibilityId === card.id) return true;
+      if (typeof pl?.nodeId === 'string' && myNodeIds.has(pl.nodeId)) return true;
+      if (typeof pl?.id === 'string' && myNodeIds.has(pl.id)) return true;
+      return false;
+    }).map((e) => ({ seq: e.seq, at: e.at, actor: e.actor, kind: e.kind }));
+    const geo = resolvePlace(
+      { id: card.id, place: card.place, h3: card.h3 }, nodes);
     out[card.id] = {
       overlapCount: myOverlaps.length,
       focusNodeId: myNeeds[0]?.id,
@@ -396,6 +441,14 @@ export async function loadCardConnections(
       pledges: pledges.filter((p) => p.possibilityId === card.id).length,
       claimId: claims.find((c) => c.possibilityId === card.id)?.id,
       hasReport: !!card.report,
+      trail,
+      seats: seats.filter((s) => s.possibilityId === card.id)
+        .map((s) => ({ actor: s.actor, role: s.role })),
+      posts: posts.filter((f) => f.possibilityId === card.id)
+        .map((f) => ({ id: f.id, parentId: f.parentId, actor: f.actor, kind: f.kind, text: f.text, at: f.at })),
+      notes: apps.filter((a) => a.possibilityId === card.id && a.note.trim())
+        .map((a) => ({ from: a.fromActor, to: a.toActor, note: a.note })),
+      ...(geo ? { geo: { lat: geo.lat, lon: geo.lon } } : {}),
     };
   }
   return out;

@@ -22,6 +22,7 @@ export { renderImpactPage, type ImpactPageInput,
 export { renderCommunityPage, type CommunityPageInput,
   type ActorRow, type MutualEdge } from './community.ts';
 export { renderHowItWorksPage } from './howitworks.ts';
+export { renderMapPage, worldMapSvg, type MapMarker, type MapPageInput } from './map.ts';
 export {
   pageHeader, hubNav, hubSection, howItWorks, statGrid, emptyState,
   pager, displayName, hubScript,

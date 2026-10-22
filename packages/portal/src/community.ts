@@ -27,6 +27,10 @@ export interface CommunityPageInput {
   governable: Record<string, { default: string; describe: string }>;
   voters: number;
   peopleAll?: boolean;
+  // Community voices — real appreciation notes, site-wide.
+  voices?: { from: string; to: string; note: string; possibilityId?: string; at: string }[];
+  // Active councils — seats on quorum/completed cards.
+  councils?: { possibilityId: string; title: string; status: string; seats: { actor: string; role: string }[] }[];
 }
 
 export function renderCommunityPage(o: CommunityPageInput): string {
@@ -97,9 +101,25 @@ ${o.proposals.length ? `<table><tr><th scope="col">${esc(t(lang, 'col.proposal')
 ${paramRows ? `<table><tr><th scope="col">${esc(t(lang, 'col.param'))}</th><th scope="col">${esc(t(lang, 'col.current'))}</th><th scope="col">${esc(t(lang, 'col.meaning'))}</th><th scope="col">${esc(t(lang, 'col.setBy'))}</th></tr>${paramRows}</table>` : ''}
 ${howItWorks(lang, 'how.community.gov', 's8')}`;
 
+  /* #voices — appreciation notes as public reviews. */
+  const voicesBody = (o.voices ?? []).length
+    ? `<ul>${(o.voices ?? []).slice(0, 15).map((v) =>
+        `<li><em>“${esc(v.note)}”</em> — <a href="/actors/${esc(v.from)}">${displayName(v.from)}</a> → <a href="/actors/${esc(v.to)}">${displayName(v.to)}</a>${v.possibilityId ? ` · <a href="/possibilities#${esc(v.possibilityId)}">${esc(t(lang, 'hub.community.voices.card'))}</a>` : ''} <span class="muted">${esc(v.at.slice(0, 10))}</span></li>`).join('')}</ul>`
+    : emptyState(t(lang, 'hub.community.voices.none'));
+
+  /* #councils — per-card councils across quorum/completed cards. */
+  const councilsBody = (o.councils ?? []).length
+    ? `<ul>${(o.councils ?? []).map((c) =>
+        `<li><a href="/possibilities#${esc(c.possibilityId)}"><strong>${esc(c.title)}</strong></a>
+<span class="badge">${esc(c.status)}</span> — ${c.seats.length} ${esc(t(lang, 'hub.community.councils.seats'))}
+<span class="muted">(${c.seats.map((s) => displayName(s.actor)).join(', ')})</span></li>`).join('')}</ul>`
+    : emptyState(t(lang, 'hub.community.councils.none'));
+
   const sections: Array<[string, number | undefined, string, string | undefined]> = [
     ['people', o.people.length, peopleBody, undefined],
     ['trust', o.mutual.length, mutualBody, t(lang, 'hub.community.trust.lede')],
+    ['voices', (o.voices ?? []).length, voicesBody, t(lang, 'hub.community.voices.lede')],
+    ['councils', (o.councils ?? []).length, councilsBody, t(lang, 'hub.community.councils.lede')],
     ['decisions', open.length, decisionsBody, t(lang, 'hub.community.decisions.lede')],
   ];
 

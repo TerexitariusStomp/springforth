@@ -4,6 +4,7 @@ import { deckCard } from './landing.ts';
 import { pageShell } from './theme.ts';
 import { t, type Lang } from './i18n.ts';
 import { displayName } from './ui.ts';
+import { worldMapSvg, mapLegend, MAP_CSS } from './map.ts';
 
 // /possibilities — the card deck. Compact Figma cards in a filterable grid;
 // each card opens a full detail overlay (pure CSS :target — no JS needed)
@@ -16,11 +17,14 @@ const esc = (s: string) =>
 export interface PossibilityCard {
   id: string; title: string; description: string; declarerId: string;
   place?: string; timeStart?: string; timeEnd?: string; deadline?: string;
+  h3?: string;
   minParticipants: number; maxParticipants?: number;
   status: PossibilityStatus;
   score: number; tipping?: boolean;
   scoring: { score: number; trust: number; urgency: number; cover: number };
   participantCount: number;
+  // Declarer-stated households protected — feeds the risk frame.
+  householdsProtected?: number;
   // Identity gradation — undefined until critical mass (cover ≥ 0.5 or
   // quorum reached). Counts are always public; names reveal late.
   participants?: { actor: string; bringingNodeId?: string }[];
@@ -45,6 +49,15 @@ export interface CardConnections {
   pledges: number;
   claimId?: string;
   hasReport: boolean;
+  // Megaplan extras (all optional — older payloads render unchanged):
+  trail?: { seq: number; at: string; actor: string; kind: string }[];
+  seats?: { actor: string; role: string }[];
+  posts?: { id: string; parentId?: string; actor: string; kind: string; text: string; at: string }[];
+  notes?: { from: string; to: string; note: string }[];
+  geo?: { lat: number; lon: number };
+  // Viewer-personalized relevance, computed edge-side where full
+  // participant data exists (counts only — names stay gated).
+  personal?: { joined: boolean; recognized: number; near?: string };
 }
 
 const money0 = (amount: number, currency: string) =>
@@ -85,28 +98,164 @@ const money = (amount: number, currency: string) =>
 // "Coordinated value (est.)" — derived at render from ledger donations/match,
 // participant-declared hours and offer budgets, and cited benchmark rates.
 // Per-currency rows, never converted; every component carries its provenance.
+// The block groups components under the Capitals Coalition's impacts-and-
+// dependencies frame: mobilized value + damage avoided are impacts; the
+// declared ask is a dependency. Each row expands into a verifier-replay
+// trail — inputs, formula and source, tier-labelled — so every figure on
+// the page can be re-derived in place.
 function valueBlock(v: Valuation, tt: (k: string) => string): string {
   const rows = Object.entries(v.byCurrency).filter(([, c]) => c.total > 0 || c.asked > 0 || c.riskAvoided > 0)
     .map(([cur, c]) => {
-      const parts: string[] = [];
-      if (c.committed > 0) parts.push(`${money(c.committed, cur)} ${tt('valb.committed')}`);
-      if (c.matched > 0) parts.push(`${money(c.matched, cur)} ${tt('valb.matched')}`);
-      if (c.inKind > 0) parts.push(`${money(c.inKind, cur)} ${tt('valb.inKind')}`);
-      if (c.volunteerTime > 0) parts.push(`${money(c.volunteerTime, cur)} ${tt('valb.volunteer')}`);
-      if (c.asked > 0) parts.push(`${money(c.asked, cur)} ${tt('valb.asked')}`);
-      const risk = c.riskAvoided > 0
-        ? ` <em>+ ${tt('valb.est')} ${money(c.riskAvoided, cur)} ${tt('valb.risk')}` +
-          (c.riskPerUnit > 0 ? ` (${tt('valb.est')} ${money(Math.round(c.riskPerUnit), cur)} ${tt('valb.per')} ${money(1, cur)})` : '') +
-          `</em>` : '';
+      const cap = c.capitals;
+      const capBits = cap ? [
+        cap.financial > 0 ? `${money(cap.financial, cur)} ${tt('valb.cap.financial')}` : '',
+        cap.human > 0 ? `${money(cap.human, cur)} ${tt('valb.cap.human')}` : '',
+        cap.social > 0 ? `${money(cap.social, cur)} ${tt('valb.cap.social')}` : '',
+      ].filter(Boolean).join(' · ') : '';
       const lev = c.leverage > 0 ? ` <small>(×${c.leverage} ${tt('valb.lev')})</small>` : '';
-      return `<li>${esc(cur)} <strong>${money(c.total, cur)}</strong>${lev} — ${parts.join(' · ')}${risk}</li>`;
+      const replay = v.method.length
+        ? `<details class="replay"><summary>${esc(tt('valb.replay'))}</summary><ul>${v.method.map((m) => `<li>${esc(m)}</li>`).join('')}</ul></details>` : '';
+      return `<li><details class="valrow"><summary>${esc(cur)} <strong>${money(c.total, cur)}</strong>${lev}
+<span class="nice">${esc(tt('valb.groups.mobilized'))}</span></summary>
+<ul>
+${capBits ? `<li>${esc(tt('valb.impacts'))}: ${capBits}</li>` : ''}
+${c.riskAvoided > 0 ? `<li>${esc(tt('valb.groups.avoided'))}: ${tt('valb.est')} ${money(c.riskAvoided, cur)}${cap?.natural ? ` (${tt('valb.cap.natural')})` : ''}${c.riskPerUnit > 0 ? ` — ${tt('valb.est')} ${money(Math.round(c.riskPerUnit), cur)} ${tt('valb.per')} ${money(1, cur)}` : ''}</li>` : ''}
+${c.asked > 0 ? `<li>${esc(tt('valb.deps'))} — ${esc(tt('valb.groups.cost'))}: ${money(c.asked, cur)}</li>` : ''}
+</ul>${replay}</details></li>`;
     }).join('');
   if (!rows && !(v.hoursTotal > 0)) return '';
-  return `<p class="meta"><strong>${esc(tt('valb.title'))}</strong> —
+  return `<div class="meta"><strong>${esc(tt('valb.title'))}</strong> —
 ${esc(tt('valb.lede'))}
 <ul class="needs">${rows}</ul>
-${v.method.length ? `<small>${v.method.map(esc).join(' · ')}</small>` : ''}
-<small><a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/VALUATION.md">${esc(tt('valb.methodology'))}</a></small></p>`;
+<small>${esc(tt('valb.frame'))}</small><br>
+<small><a href="https://github.com/TerexitariusStomp/springforth/blob/main/docs/hackathon/VALUATION.md">${esc(tt('valb.methodology'))}</a></small></div>`;
+}
+
+// Two pathways — the Rebalance Earth degraded→restored frame. The card's
+// ask and declared risk map onto environmental / operational / financial
+// lanes so a supporter can read the card against their own mandate.
+function scenarioBlock(c: PossibilityCard, tt: (k: string) => string): string {
+  const vals = Object.entries(c.value?.byCurrency ?? {});
+  const cur = vals.find(([, v]) => (v.riskAvoided ?? 0) > 0 || (v.asked ?? 0) > 0);
+  if (!cur) return '';
+  const [ccy, cv] = cur;
+  const isGB = ccy === 'GBP';
+  return `<div class="scen"><strong>${esc(tt('scen.title'))}</strong>
+<div class="scen-paths">
+<div class="scen-path"><em>${esc(tt('scen.a'))}</em>
+<p>${cv.riskAvoided > 0 ? `${tt('valb.est')} ${money(cv.riskAvoided, ccy)} ${esc(tt('scen.a.risk'))} ` : ''}${esc(tt('scen.a.body'))}${cv.asked > 0 ? ` ${money(cv.asked, ccy)} ${esc(tt('scen.a.cost'))}` : ''}</p></div>
+<div class="scen-path"><em>${esc(tt('scen.b'))}</em>
+<p>${cv.total > 0 ? `${money(cv.total, ccy)} ` : ''}${esc(tt('scen.b.body'))}</p></div>
+</div>
+<small>${esc(tt('scen.lanes'))}${isGB ? ` ${esc(tt('scen.macro'))}` : ''}</small></div>`;
+}
+
+// Per-card audit trail — the verifier's replay: every ledger event that
+// names this card, chronological, linked to /ledger.
+function trailBlock(trail: NonNullable<CardConnections['trail']>, tt: (k: string) => string): string {
+  const labelFor = (kind: string): string => {
+    if (kind.startsWith('possibility.')) {
+      const k = kind.slice('possibility.'.length);
+      const map: Record<string, string> = {
+        declared: 'trail.declared', joined: 'trail.joined', quorum: 'trail.quorum',
+        completed: 'trail.completed', expired: 'trail.expired',
+        appreciated: 'trail.appreciated', passed: 'trail.passed',
+        need_flagged: 'trail.need',
+      };
+      return tt(map[k] ?? 'trail.other');
+    }
+    if (kind.startsWith('pledge.')) return tt('trail.pledge');
+    if (kind === 'council.seated') return tt('trail.seat');
+    if (kind === 'forum.posted') return tt('trail.post');
+    if (kind === 'context.refreshed') return tt('trail.context');
+    return tt('trail.other');
+  };
+  const rows = trail.map((e) =>
+    `<li><time>${esc(e.at.slice(0, 10))}</time> — <strong>${esc(labelFor(e.kind))}</strong>
+<span class="nice">${displayName(e.actor)} · <a href="/ledger">#${e.seq}</a></span></li>`).join('');
+  return `<details class="trail"><summary>${esc(tt('card.trail'))} (${trail.length})</summary>
+<p class="nice">${esc(tt('card.trail.lede'))}</p><ol>${rows}</ol></details>`;
+}
+
+// Appreciation notes as quotable reviews — real notes only, never
+// fabricated testimonials.
+function reviewsBlock(notes: NonNullable<CardConnections['notes']>, tt: (k: string) => string): string {
+  const rows = notes.filter((n) => n.note.trim()).map((n) =>
+    `<li><blockquote>“${esc(n.note)}”</blockquote>
+<span class="nice">— ${displayName(n.from)} → ${displayName(n.to)}</span></li>`).join('');
+  if (!rows) return '';
+  return `<div class="reviews"><strong>${esc(tt('reviews.title'))}</strong><ul>${rows}</ul></div>`;
+}
+
+// Council — who holds seats on this card (seated at quorum; verifiers
+// are publicly marked self-declared).
+function councilBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
+  const seats = conn?.seats ?? [];
+  if (!seats.length && c.status !== 'quorum' && c.status !== 'completed') return '';
+  const byRole = new Map<string, string[]>();
+  for (const s of seats) {
+    if (!byRole.has(s.role)) byRole.set(s.role, []);
+    byRole.get(s.role)!.push(s.actor);
+  }
+  const bits = [...byRole.entries()].map(([role, actors]) =>
+    `<li><strong>${esc(tt(`council.role.${role}`))}</strong>${role === 'verifier' ? ` <span class="nice">(${esc(tt('council.selfDeclared'))})</span>` : ''} — ${actors.map((a) => displayName(a)).join(', ')}</li>`).join('');
+  return `<div class="council"><strong>${esc(tt('council.title'))}</strong>
+<span class="nice"> — ${esc(tt('council.lede'))}</span>
+${bits ? `<ul class="needs">${bits}</ul>` : `<p class="nice">${esc(tt('council.empty'))}</p>`}
+${(c.status === 'quorum' || c.status === 'completed') ? `<form method="post" action="/possibilities/${esc(c.id)}/council" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <button>${esc(tt('council.join'))}</button>
+</form>` : ''}</div>`;
+}
+
+// Forum — opens at quorum; posts are council-gated and ledger-attributed.
+function forumBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
+  const posts = conn?.posts ?? [];
+  const open = c.status === 'quorum' || c.status === 'completed';
+  if (!open && !posts.length) return '';
+  const byParent = new Map<string | undefined, typeof posts>();
+  for (const p of posts) {
+    const k = p.parentId;
+    if (!byParent.has(k)) byParent.set(k, []);
+    byParent.get(k)!.push(p);
+  }
+  const render = (parent: string | undefined, depth: number): string =>
+    (byParent.get(parent) ?? []).map((p) =>
+      `<li${depth ? ' class="reply"' : ''}><span class="badge">${esc(tt(`forum.k.${p.kind}`))}</span>
+<strong>${displayName(p.actor)}</strong> <time class="nice">${esc(p.at.slice(0, 10))}</time><br>${esc(p.text)}</li>
+${render(p.id, depth + 1)}`).join('');
+  return `<div class="forum"><strong>${esc(tt('forum.title'))}</strong>
+<span class="nice"> — ${esc(tt('forum.lede'))}</span>
+${posts.length ? `<ul class="needs forum-list">${render(undefined, 0)}</ul>` : `<p class="nice">${esc(tt('forum.empty'))}</p>`}
+${open ? `<form method="post" action="/possibilities/${esc(c.id)}/forum" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <select name="kind" aria-label="${esc(tt('forum.kind'))}">
+    <option value="note">${esc(tt('forum.k.note'))}</option>
+    <option value="evidence">${esc(tt('forum.k.evidence'))}</option>
+    <option value="objection">${esc(tt('forum.k.objection'))}</option>
+    <option value="review">${esc(tt('forum.k.review'))}</option>
+  </select>
+  <input name="text" placeholder="${esc(tt('forum.placeholder'))}" aria-label="${esc(tt('forum.placeholder'))}" required maxlength="600">
+  <button>${esc(tt('forum.cta'))}</button>
+</form>` : ''}</div>`;
+}
+
+// "Why it matters" — who benefits, what the ask costs, what's pledged.
+function whyBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
+  const vals = Object.entries(c.value?.byCurrency ?? {});
+  const cur = vals.find(([, v]) => (v.asked ?? 0) > 0 || (v.riskPerUnit ?? 0) > 0);
+  const bits: string[] = [];
+  if (c.householdsProtected)
+    bits.push(`${c.householdsProtected} ${tt('card.why.homes')}`);
+  if (cur) {
+    const [ccy, cv] = cur;
+    if (cv.asked > 0) bits.push(`${money(cv.asked, ccy)} ${tt('card.why.ask')}`);
+    if (cv.riskPerUnit > 0)
+      bits.push(`${tt('valb.est')} ${money(Math.round(cv.riskPerUnit), ccy)} ${tt('card.why.per')}`);
+  }
+  if (conn?.pledges) bits.push(`${conn.pledges} ${tt('card.why.pledged')}`);
+  if (!bits.length) return '';
+  return `<p class="ctx"><strong>${esc(tt('card.why'))}</strong> — ${esc(bits.join(' · '))}${c.tipping ? ` — <em>${esc(tt('card.why.tips'))}</em>` : ''}</p>`;
 }
 
 function countdown(deadline: string | undefined, tt: (k: string) => string): string {
@@ -146,7 +295,10 @@ ${c.value ? valueBlock(c.value, tt) : ''}
 <p>${esc(tt('card.declaredBy'))} <strong>${displayName(c.declarerId)}</strong>${c.place ? ` · ${esc(c.place)}` : ''}
 ${c.timeStart ? ` · ${esc(c.timeStart.slice(0, 10))}${c.timeEnd ? ` → ${esc(c.timeEnd.slice(0, 10))}` : ''}` : ''}
 · <a href="/possibilities/${esc(c.id)}/ics">${esc(tt('card.ics'))}</a></p>
+${conn?.geo ? `<div class="map-mini">${worldMapSvg([{ id: c.id, lat: conn.geo.lat, lon: conn.geo.lon, status: c.status, title: c.title, href: `/possibilities#${c.id}` }], tt)}<a href="/map">${esc(tt('map.full'))} →</a></div>` : ''}
 ${c.description ? `<p>${esc(c.description)}</p>` : ''}
+${whyBlock(c, conn, tt)}
+${scenarioBlock(c, tt)}
 ${c.context?.datasets?.length ? `<p class="ctx"><strong>${esc(tt('card.verified'))}</strong></p><ul class="needs">${c.context.datasets.map((d) => `<li>◆ ${esc(d.name)}: ${esc(d.value)}${d.source ? ` <span class="nice">(${esc(d.source)})</span>` : ''}</li>`).join('')}</ul>` : ''}
 ${needRows ? `<p><strong>${esc(tt('card.needs'))}</strong></p><ul class="needs">${needRows}</ul>` : ''}
 ${bringing ? `<p><strong>${esc(tt('card.bringing'))}</strong></p><ul class="needs">${bringing}</ul>` : ''}
@@ -169,6 +321,14 @@ ${live ? `<form method="post" action="/possibilities/${esc(c.id)}/join" class="v
   <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
   <button>${esc(tt('form.pass'))}</button>
 </form>` : ''}
+${live || c.status === 'quorum' ? `<details class="how-note"><summary>${esc(tt('pledge.title'))}</summary>
+<div class="hn-body"><p>${esc(tt('pledge.body'))}</p>
+<form method="post" action="/possibilities/${esc(c.id)}/pledge" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="amount" type="number" min="1" step="0.01" placeholder="${esc(tt('pledge.amount'))}" aria-label="${esc(tt('pledge.amount'))}" required style="max-width:7rem">
+  <input name="currency" placeholder="${esc(tt('pledge.currency'))}" aria-label="${esc(tt('pledge.currency'))}" value="${esc(Object.keys(c.value?.byCurrency ?? {})[0] ?? 'USD')}" style="max-width:5rem">
+  <button>${esc(tt('pledge.cta'))}</button>
+</form></div></details>` : ''}
 ${c.status === 'completed' || c.status === 'quorum' ? `<form method="post" action="/possibilities/${esc(c.id)}/appreciate" class="val">
   <input name="from" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
   <input name="to" placeholder="${esc(tt('form.whoShowed'))}" aria-label="${esc(tt('form.whoShowed'))}" required>
@@ -176,6 +336,10 @@ ${c.status === 'completed' || c.status === 'quorum' ? `<form method="post" actio
   <button>${esc(tt('form.appreciate'))}</button>
 </form>` : ''}
 ${c.report ? `<p class="res"><strong>${esc(tt('card.report'))}</strong> ${esc(c.report.summary)}${c.report.learnings ? ` — <em>${esc(c.report.learnings)}</em>` : ''}</p>` : ''}
+${conn?.notes?.length ? reviewsBlock(conn.notes, tt) : ''}
+${councilBlock(c, conn, tt)}
+${forumBlock(c, conn, tt)}
+${conn?.trail?.length ? trailBlock(conn.trail, tt) : ''}
 ${connectedBlock(c, conn, lang)}
 </div></div>`;
 }
@@ -205,6 +369,28 @@ const DECK_CSS = `
 .mutual-panel h3{font-family:var(--sf-serif);font-weight:400;font-size:24px;margin:0 0 .375rem}
 .mutual-panel ul{list-style:none;padding:0;font-size:13px}
 .feed-actions{display:none}
+${MAP_CSS}
+.map-mini{max-width:16.25rem;margin:.5rem 0}
+.map-mini .map-halo{display:none}
+.replay summary,.valrow>summary{cursor:pointer;font-size:.8rem;color:var(--sf-info)}
+.valrow>summary{font-size:13px}
+.replay ul,.valrow ul{list-style:none;padding-left:.5rem;font-size:.78rem;color:var(--sf-muted)}
+.trail summary,.reviews,.council,.forum{margin-top:.75rem}
+.trail summary{cursor:pointer;font-size:.8rem;color:var(--sf-info)}
+.trail ol{list-style:none;padding-left:.25rem;font-size:.8rem}
+.trail li{padding:.2rem 0;border-bottom:1px solid var(--sf-line-2)}
+.scen{background:var(--sf-gold-tint);border:1px solid var(--sf-gold-line);border-radius:.6rem;padding:.7rem .85rem;margin:.6rem 0;font-size:13px}
+.scen-paths{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin:.4rem 0}
+.scen-path em{color:var(--sf-gold-ink);font-style:normal;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.4px}
+.scen-path p{margin:.25rem 0;font-size:.82rem;color:var(--sf-ink-mute)}
+.scen small{color:var(--sf-gold-ink)}
+.reviews blockquote{margin:.3rem 0 .1rem;font-style:italic;font-size:.85rem;color:var(--sf-ink-mute)}
+.reviews ul,.council ul,.forum-list{list-style:none;padding-left:.25rem}
+.reviews li,.forum-list li{padding:.3rem 0;border-bottom:1px solid var(--sf-line-2);font-size:.83rem}
+.forum-list li.reply{padding-left:1.1rem;border-left:2px solid var(--sf-line-2)}
+.council,.forum,.reviews{font-size:13px}
+.reason{font-size:.72rem;color:var(--sf-info);margin:.35rem 0 0}
+@media(max-width:45rem){.scen-paths{grid-template-columns:1fr}}
 @media(max-width:40rem){
   .feed-mode .possibility-card .join-button{display:none}
   .feed-mode .possibility-card .needs{display:none}
@@ -230,13 +416,28 @@ export function renderPossibilitiesPage(
   const filtered = status ? cards.filter((c) => c.status === status) : cards;
   const keep = `${viewer ? `actor=${encodeURIComponent(viewer)}` : ''}${mine ? `${viewer ? '&' : ''}for=${encodeURIComponent(viewer ?? '')}` : ''}`;
   const qp = (extra: string) => `?${[extra, keep].filter(Boolean).join('&')}`;
+  const reasonFor = (c: PossibilityCard): string | undefined => {
+    const p = opts.connections?.[c.id]?.personal;
+    if (!p) return undefined;
+    const bits: string[] = [];
+    if (p.joined) bits.push(tt('reason.joined'));
+    if (p.recognized > 0) bits.push(`${p.recognized} ${tt('reason.recognized')}`);
+    if (p.near) bits.push(`${tt('reason.near')} ${p.near}`);
+    return bits.length ? bits.join(' · ') : undefined;
+  };
   const grid = filtered.map((c, idx) => deckCard({
     id: c.id, title: c.title, place: c.place,
     status: c.status, participants: c.participantCount,
     min: c.minParticipants || 0, deadline: c.deadline,
     needs: c.needs.filter((n) => !n.met).slice(0, 3).map((n) => n.label),
+    reason: reasonFor(c),
   }, { base: '', tt, feed: { nextId: filtered[idx + 1]?.id } })).join('\n');
   const overlays = cards.map((c) => cardDetail(c, opts.connections?.[c.id], lang)).join('\n');
+  const markers = cards.flatMap((c) => {
+    const g = opts.connections?.[c.id]?.geo;
+    return g ? [{ id: c.id, lat: g.lat, lon: g.lon, status: c.status, title: c.title, href: `/possibilities#${c.id}` }] : [];
+  });
+  const unlocated = cards.filter((c) => !opts.connections?.[c.id]?.geo);
   const mutual = edges.filter((e) => e.mutual > 0).slice(0, 10)
     .map((e) => `<li>${displayName(e.from)} &harr; ${displayName(e.to)} — ${e.mutual} × ${esc(t(lang, 'deck.mutual.times'))}</li>`).join('');
 
@@ -262,6 +463,10 @@ export function renderPossibilitiesPage(
       <input id="deck-search" type="search" placeholder="${esc(tt('deck.search'))}" aria-label="${esc(tt('a11y.deckSearch'))}">
     </label>
   </div>
+  ${markers.length ? `<div class="mutual-panel" style="margin-top:0;margin-bottom:2rem"><h3>${esc(tt('map.section'))}</h3>
+    ${worldMapSvg(markers, tt)}${mapLegend(tt)}
+    <p class="muted"><a href="/map">${esc(tt('map.full'))} →</a>${unlocated.length ? ` · ${unlocated.length} ${esc(tt('map.unlocated'))}` : ''}</p>
+  </div>` : ''}
   <div class="card-grid feed-mode" id="card-grid">
     ${grid || `<div class="empty-state">${esc(tt('deck.empty'))} <a href="#declare">${esc(tt('deck.empty.cta'))}</a>.</div>`}
   </div>

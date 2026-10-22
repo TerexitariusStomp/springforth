@@ -47,12 +47,31 @@ environment/climate risk. What follows is her guidance, distilled.
 ## Action items
 
 - [x] This file — call captured.
-- [ ] VALUATION.md — framework-alignment section (ISO, Capitals
+- [x] VALUATION.md — framework-alignment section (ISO, Capitals
       Coalition, damage-avoidance framing, verifier-replay rule).
-- [ ] Geo: `place` is already on every card — a map surface (OSM +
-      Leaflet, both commercially-usable OSS) is the natural next
-      addition for the abstract-project problem she named.
-- [ ] Reviews: render appreciations as quotable evidence on completed
-      cards (they exist in the ledger; make them visible).
+- [x] Geo: `place` is already on every card — shipped as a
+      server-rendered SVG world map (`/map`, `packages/portal/src/map.ts`)
+      with h3-anchored markers; zero JS/tile dependency so it runs
+      entirely on the Worker. (OSM+Leaflet considered; server-SVG won on
+      the no-CDN constraint.)
+- [x] Reviews: appreciation notes render as quotable "what participants
+      said" blocks on cards, actor profiles, the report page, and
+      `/community#voices` — real notes only, never fabricated.
+- [x] Verification surfaces (shipped): per-card audit trail in the card
+      overlay — every ledger event that names the card, chronological,
+      linked to `/ledger`; every value figure expands into a
+      verifier-replay `<details>` (inputs, formula, source, tier).
+      `methodologyRef` citations render in the `/impact#evidence` table
+      and on report pages.
+- [x] Pathways: "Two pathways" block on every card — expires (damages
+      stand, costs unmet) vs activates (value mobilized, risk mitigated) —
+      the Rebalance Earth degraded→restored frame, with the
+      environmental/operational/financial risk lanes footnoted.
+- [x] Council + forum: `CouncilSeat` auto-seated at quorum (declarer +
+      participants; verifiers self-seat; sponsors seat on bound pledge);
+      `ForumPost` opens at quorum, council-gated writes, ledger-attributed.
+- [x] Capitals grouping: valuation components tagged financial / human /
+      social / natural-capital-risk in `valueCoordinated`; rendered as
+      "Impacts vs Dependencies" per the Value Accounting Network frame.
 - [ ] Follow-up: ask whether she'll review VALUATION.md after the
       hackathon and intro a treasurer/assurance contact.

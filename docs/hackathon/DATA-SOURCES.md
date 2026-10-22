@@ -39,17 +39,18 @@ context" — never affects quorum).
 | EO Data Hub (SatCat) | mentor | `EODATAHUB_KEY` | `api.eodatahub.org.uk` STAC — Sentinel-2, EOCIS LST |
 | Alpha-Klima | mentor | `ALPHAKLIMA_KEY` | `platform.alpha-klima.com/prapi` — physrisk hazards to 2085 |
 | Natural England | 16 (22) | `DEFRA_KEY` | NE Open Data Geoportal — designated sites |
-| OnePlanet | mentor | `ONEPLANET_API_KEY` | `mcp.oneplanet.com/mcp` — client verified against `vendor/oneplanet-mcp-guide.pdf` |
 
-**How to activate each (from the OneNote resources page):**
+## Live integration imports
+
+| Source | Lane | Status |
+|---|---|---|
+| **OnePlanet MCP** (`mcp.oneplanet.com/mcp`) | `POST /plans/import` → plan + plannode rows + `plan.imported` ledger event | **Live 2026-10-22** — SFLive Sandbox plans imported: Local Flood Risk Management Strategy (37 OAIs), Climate and Nature Plan (146 OAIs); Brighton outcomes surface in `/collaborate` overlap detection |
+
+**How to activate the remaining key-gated lanes (from the OneNote resources page):**
 - **Alpha-Klima** — email `contacto@alpha-klima.com` with the team name;
   they provision a platform account + API for the event
   (`platform.alpha-klima.com`, API ref `/prapi/docs`, OS-Climate physrisk
   notebooks at github.com/Alpha-Klima/alpha-klima-notebooks).
-- **OnePlanet** — free account at oneplanet.com → My Profile → API keys →
-  `opk_…` key; then email `pooran.desai@oneplanet.com` for the SFLive
-  sandbox workspace. Endpoint verified live 2026-10-22 (401 without key —
-  correct behaviour).
 - **EO Data Hub** — request `EODATAHUB_KEY` via the Teams Help Desk
   channel (SatCat mentors: Liz Scott / Luisa Doughty).
 - **Sarafu** — no key needed for the published Zenodo export

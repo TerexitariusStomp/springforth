@@ -119,8 +119,8 @@ council/stewardship) — use this slide's vocabulary in the pitch.
       with the endorsed-sources block on `/impact#data`
 - [x] Pull the Grassroots commitment-pooling material — it was in OneNote,
       now extracted to `vendor/onenote-Resources.txt`
-- [ ] User: email pooran.desai@oneplanet.com for the SFLive sandbox +
-      OnePlanet free account
+- [x] OnePlanet live — `opk_` key obtained, MCP verified, SFLive Sandbox
+      plans imported to prod (flood strategy 37 OAIs, climate plan 146 OAIs)
 - [ ] User: email contacto@alpha-klima.com with team name for physrisk API
 - [ ] User: request EODATAHUB_KEY via Help Desk channel
 - [ ] User: confirm pitch slot (Oct 28, 10:00–12:00) in calendar

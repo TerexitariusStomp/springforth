@@ -34,11 +34,12 @@ appreciation→trust graph on `/community#trust`, councils.
 **Pooran Desai** (OnePlanet — BRP challenge owner)
 Care about: joined-up funding for BRP, co-benefit quantification, avoided
 costs harvested for community work, the MCP connection working.
-Show: `packages/oneplanet-adapter` (implemented per the official MCP guide),
-`/impact#data` imports block, scenario block on GB cards (£1→£10 NHS-style
-avoided-cost framing), `PITCH-LIVE.md` BRP section.
-Action pending (user): email `pooran.desai@oneplanet.com` for the SFLive
-sandbox connection.
+Show: `packages/oneplanet-adapter` (implemented per the official MCP guide —
+**verified live**: the SFLive Sandbox flood + climate plans are imported,
+183 real OAI nodes in `/collaborate`, Brighton outcomes like "Reduce Flood
+Risk to Property in Brighton and Hove" surface with contribution-gap
+detection), `/impact#data` imports block, scenario block on GB cards,
+`PITCH-LIVE.md` BRP section.
 
 **Mohammed Sohail** (Grassroots Economics CTO) / **Will Ruddick** (founder)
 Care about: Sarafu commitment pools, fulfilment histories, investability

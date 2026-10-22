@@ -667,6 +667,10 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(env, req.headers.get('origin')) });
     const res = await this.handle(req, env).catch((e) =>
       json({ error: 'internal', detail: String(e) }, 500));
+    // HTML pages embed live state (footer timestamp, ticker, counts) — never
+    // let the browser heuristically cache them; assets carry their own TTLs.
+    if (res.headers.get('content-type')?.includes('text/html'))
+      res.headers.set('cache-control', 'no-cache');
     return withCors(res, env, req);
   },
   async handle(req: Request, env: Env): Promise<Response> {

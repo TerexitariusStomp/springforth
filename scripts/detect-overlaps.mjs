@@ -15,7 +15,7 @@ const APPLY = process.argv.includes('--apply');
 const NOW = new Date().toISOString();
 const q = (sql) => JSON.parse(execFileSync('npx',
   ['wrangler', 'd1', 'execute', DB, '--remote', '--json', '--command', sql],
-  { encoding: 'utf8' }))[0].results;
+  { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))[0].results;
 
 const nodes = q("SELECT json FROM entities WHERE kind='plannode'").map((r) => JSON.parse(r.json));
 const existing = q("SELECT json FROM entities WHERE kind='overlap'").map((r) => JSON.parse(r.json));

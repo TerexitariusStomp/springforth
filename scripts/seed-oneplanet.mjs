@@ -13,13 +13,10 @@ const KEY = process.env.ONEPLANET_API_KEY;
 if (!KEY) { console.error('ONEPLANET_API_KEY required'); process.exit(1); }
 const APPLY = process.argv.includes('--apply');
 
-// SFLive Sandbox plans — Brighton Resilience Partnership context.
-const PLANS = [
-  '294fb866-9bc8-4d3a-ab59-c5e057593231', // Local Flood Risk Management Strategy
-  'fff3d651-d79b-4f66-81c1-240f332ccad3', // Climate And Nature Plan
-  '0da8c349-fc4e-4640-9118-7e5b0c08bca1', // SFLive Sandbox — BRP Global Outcomes
-];
 const WS = '3db92684-b538-4fdc-9799-83ca141483cb';
+// Plan uuids to import — default: every plan in the workspace (full copy).
+// Pass uuids as args to narrow, e.g. `node seed-oneplanet.mjs <uuid> …`.
+const PLANS_ARG = process.argv.filter((a) => /^[0-9a-f-]{36}$/.test(a));
 
 const q = (sql) => JSON.parse(execFileSync('npx',
   ['wrangler', 'd1', 'execute', DB, '--remote', '--json', '--command', sql],
@@ -61,9 +58,19 @@ const OAI_KIND = { outcome: 'outcome', action: 'action', indicator: 'indicator' 
 await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {},
   clientInfo: { name: 'springforth-seed', version: '0.1.0' } }, 0);
 
-// real plan names from list_workspace_plans (uuid → name)
-const plansList = await call('list_workspace_plans', { workspace_uuid: WS }, 2);
-const nameOf = new Map((plansList.items ?? []).map((p) => [p.uuid, p.name]));
+// real plan names from list_workspace_plans (uuid → name); pages through all
+const nameOf = new Map();
+for (let offset = 0; ; offset += 100) {
+  const d = await call('list_workspace_plans',
+    { workspace_uuid: WS, limit: 100, offset }, 2);
+  for (const p of d.items ?? []) nameOf.set(p.uuid, p.name);
+  if (!d.has_more) break;
+}
+const PLANS = PLANS_ARG.length ? PLANS_ARG : [...nameOf.keys()];
+// ledger events only for plans not already stored (idempotent re-runs)
+const already = new Set(
+  q("SELECT id FROM entities WHERE kind='plan' AND id LIKE 'oneplanet:%'").map((r) => r.id));
+console.log(`plans in workspace: ${nameOf.size} · already imported: ${already.size}`);
 
 const entityRows = [];
 const imported = [];
@@ -95,8 +102,8 @@ for (const planId of PLANS) {
     owner: 'OnePlanet SFLive Sandbox',
     importedAt: NOW, nodeCount: nodes.length }]);
   for (const n of nodes) entityRows.push(['plannode', n.id, n]);
-  imported.push({ id: source, nodes: nodes.length });
-  console.log(`${source}: ${nodes.length} OAI nodes`);
+  if (!already.has(source)) imported.push({ id: source, nodes: nodes.length });
+  console.log(`${source}: ${nodes.length} OAI nodes — ${nameOf.get(planId) ?? ''}`);
 }
 
 // ledger — continue the remote chain

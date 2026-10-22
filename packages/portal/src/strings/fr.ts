@@ -685,7 +685,7 @@ const fr: Record<string, string> = {
   'form.noteClutch': 'a apporté X et c’était précieux',
   'form.appreciate': 'Remercier',
   'valb.title': 'Valeur coordonnée (est.)',
-  'valb.lede': 'unités environnementales en monnaie, pour les trésoriers :',
+  'valb.lede': 'fonds mobilisés, coûts évités, bénéfices créés — aligné ISO 14008, sources citées :',
   'valb.committed': 'engagés',
   'valb.matched': 'en contrepartie',
   'valb.inKind': 'en nature (déclaré)',

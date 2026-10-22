@@ -686,7 +686,7 @@ const en: Record<string, string> = {
   'form.noteClutch': 'brought X and it was clutch',
   'form.appreciate': 'Appreciate',
   'valb.title': 'Coordinated value (est.)',
-  'valb.lede': 'environmental units in money, for treasurers:',
+  'valb.lede': 'money mobilized, cost avoided, benefit created — ISO 14008-aligned, sources cited:',
   'valb.committed': 'committed',
   'valb.matched': 'matched',
   'valb.inKind': 'in-kind (declared)',

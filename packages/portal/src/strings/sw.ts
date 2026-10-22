@@ -685,7 +685,7 @@ const sw: Record<string, string> = {
   'form.noteClutch': 'alileta X na ilikuwa muhimu',
   'form.appreciate': 'Shukuru',
   'valb.title': 'Thamani iliyoratibiwa (est.)',
-  'valb.lede': 'vitengo vya mazingira kwa fedha, kwa weka hazina:',
+  'valb.lede': 'fedha zilizochochezwa, gharama zilizoepukwa, manufaa yaliyoundwa — kwa mfumo wa ISO 14008, vyanzo vimetajwa:',
   'valb.committed': 'imeahidiwa',
   'valb.matched': 'imelinganishwa',
   'valb.inKind': 'kwa vitu (imetangazwa)',

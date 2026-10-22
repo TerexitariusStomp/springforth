@@ -67,6 +67,28 @@ resolves to Great Britain (keyword match on the card's `place` field). Other
 scenes show their declared hours without a money conversion — honest, not
 empty.
 
+## Framework alignment
+
+Per advisor guidance (see `NOTES-CHRYSSI-2026-10-22.md`), the methodology
+maps to named standards rather than ad-hoc claims:
+
+- **ISO 14008** — monetary valuation of environmental impacts and
+  related aspects; our per-currency totals and `riskAvoided` follow its
+  principle of explicit, documented valuation methods.
+- **Transition pathways / scenario framing** — `riskAvoided` and
+  `riskPerUnit` are scenario deltas: damages under the un-coordinated
+  path vs. the activated path, stated against the funder's objective.
+- **Capitals Coalition / Value Accounting Network** — natural + social
+  capital accounting: contributions to society and environment are
+  monetized as *value creation*, not just cost.
+  https://capitalscoalition.org/project/value-accounting-network/
+- **Damage-avoidance framing** (cf. rebalance.earth) — `riskAvoided`
+  answers "reduce damages"; `volunteerTime`/`inKind`/`matched` answer
+  "benefits created and yield enhanced."
+- **Verifier-replay rule** — every rendered figure must be re-derivable:
+  declared inputs name their declarer (ledger), estimates name their
+  published source, and the formula above is the whole computation.
+
 ## Limitations (stated, not hidden)
 
 - **Declared ≠ verified.** Hours, protected-household counts and in-kind budgets are self-reported by

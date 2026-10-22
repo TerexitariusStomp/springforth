@@ -39,8 +39,7 @@ ${stops}
 <p class="muted" style="margin-top:2rem">${esc(t(lang, 'howto.more'))}
 <a href="/possibilities">${esc(t(lang, 'nav.possibilities'))} →</a></p>
 <p class="muted"><a href="/whitepaper">${esc(t(lang, 'nav.whitepaper'))}</a> ·
-<a href="/docs">${esc(t(lang, 'nav.apiDocs'))}</a> ·
-<a href="/all">${esc(t(lang, 'nav.everything'))}</a></p>
+<a href="/docs">${esc(t(lang, 'nav.apiDocs'))}</a></p>
 </div>${hubScript}`;
 
   return pageShell({ title: `${t(lang, 'nav.howItWorks')} — Springforth`,

@@ -105,7 +105,6 @@ const fr: Record<string, string> = {
   'nav.whitepaper': 'Livre blanc',
   'nav.apiDocs': 'Docs API',
   'nav.telegram': 'Bot Telegram',
-  'nav.everything': 'Tout sur une page',
   'nav.startPossibility': 'Lancer une possibilit\u00e9',
   'a11y.skipToContent': 'Aller au contenu',
   'a11y.primaryNav': 'Principal',

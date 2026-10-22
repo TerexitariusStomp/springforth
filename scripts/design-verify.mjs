@@ -11,7 +11,7 @@ const ROUTES = [
   ['landing', '/'], ['deck', '/possibilities'], ['console', '/collaborate'],
   ['console', '/fund'], ['instrument', '/impact'], ['console', '/community'],
   ['tour-all', '/how-it-works'], ['reference', '/whitepaper'], ['reference', '/docs'],
-  ['tour-all', '/all'],
+
 ];
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } };
 

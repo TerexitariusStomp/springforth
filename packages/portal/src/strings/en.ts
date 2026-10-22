@@ -106,7 +106,6 @@ const en: Record<string, string> = {
   'nav.whitepaper': 'Whitepaper',
   'nav.apiDocs': 'API docs',
   'nav.telegram': 'Telegram bot',
-  'nav.everything': 'Everything on one page',
   'nav.startPossibility': 'Start a possibility',
   'a11y.skipToContent': 'Skip to content',
   'a11y.primaryNav': 'Primary',

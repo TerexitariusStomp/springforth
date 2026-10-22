@@ -38,11 +38,10 @@ Slop-detect (`slop <url> --json`, globally installed) is a supplementary anti-ge
 - Landing/deck data is always live — never hardcode stats.
 - Dark mode follows `prefers-color-scheme` via token remap in theme.ts — components must consume `--sf-*` vars so both modes work; `--sf-ink-fixed`/`--sf-pale` are the never-flip tokens for text on always-light (lime/coral/pale) or always-dark accents.
 - `POST /possibilities` accepts form-encoded bodies and 303-redirects to the new card's deep link.
-- `/all` splices page bodies server-side via a `SELF` service binding (Cloudflare blocks plain self-fetch, error 1042).
 
 ## Information architecture
 
-- The site is organized as five plain-language hubs plus a Learn menu: `/possibilities`, `/collaborate`, `/fund`, `/impact`, `/community`, with Learn holding `/how-it-works`, `/whitepaper`, `/docs`, the Telegram bot, and `/all`.
+- The site is organized as five plain-language hubs plus a Learn menu: `/possibilities`, `/collaborate`, `/fund`, `/impact`, `/community`, with Learn holding `/how-it-works`, `/whitepaper`, `/docs`, and the Telegram bot.
 - Retired top-level surfaces 302-redirect to their hub section (e.g. `/coordination` → `/collaborate#overlaps`, `/rounds` → `/fund#rounds`, `/verify` → `/impact#evidence`, `/governance` → `/community#decisions`). The full map lives in `RETIRED` in `packages/edge/src/index.ts`.
 - Redirects apply to browser HTML requests only — JSON API routes answer exactly as before, forever. Never reuse a retired slug for new UI.
 - Every visible string goes through `t(lang, key)` with `en`/`sw`/`fr` dictionaries in `packages/portal/src/strings/`; tests enforce key parity across all three locales — add a key to all three or the suite fails.

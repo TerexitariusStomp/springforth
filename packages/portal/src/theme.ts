@@ -502,7 +502,6 @@ const learnItems = (lang: Lang): Array<[string, string]> => [
   ['/whitepaper', t(lang, 'nav.whitepaper')],
   ['/docs', t(lang, 'nav.apiDocs')],
   ['https://t.me/springforth_bot', t(lang, 'nav.telegram')],
-  ['/all', t(lang, 'nav.everything')],
 ];
 
 const ext = (href: string) => (href.startsWith('http') ? ' rel="noopener"' : '');
@@ -563,7 +562,7 @@ export const siteFooter = (lang: Lang = 'en', gen = new Date().toISOString()): s
   </nav>
   <nav class="foot-col" aria-label="${esc(t(lang, 'footer.connect'))}">
     <h2>${esc(t(lang, 'footer.connect'))}</h2>
-    ${link('https://t.me/springforth_bot', 'nav.telegram')}${link('https://github.com/TerexitariusStomp/springforth', 'footer.github')}${link('/ledger/verify', 'footer.verify')}${link('/all', 'nav.everything')}
+    ${link('https://t.me/springforth_bot', 'nav.telegram')}${link('https://github.com/TerexitariusStomp/springforth', 'footer.github')}${link('/ledger/verify', 'footer.verify')}
   </nav>
   <div class="foot-meta">
     ${langSwitch(lang, 'a11y.langFooter')}

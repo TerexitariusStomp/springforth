@@ -11,13 +11,12 @@
   },
   "decisions": {
     "primaryDecision": "self-serve walkthrough of every surface",
-    "primaryAction": "follow the tour / scroll the single-page all view",
-    "signatureMove": "one scrollable page splicing every live surface"
+    "primaryAction": "follow the tour through the hubs",
+    "signatureMove": "seven-stop walkthrough linking each live surface"
   },
   "implementation": {
     "sourceRoots": [
       "packages/portal/src/howitworks.ts",
-      "packages/portal/src/all.ts",
       "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
       "packages/portal/src/i18n.ts"

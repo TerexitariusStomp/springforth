@@ -9,7 +9,6 @@ export { walletScript } from './wallet.ts';
 export { renderClaimPage } from './claim.ts';
 export { t, langFrom, LANGS, type Lang } from './i18n.ts';
 export { renderDocsPage } from './docs.ts';
-export { renderAllPage } from './all.ts';
 export { renderWhitepaper } from './whitepaper.ts';
 export { FAVICON_SVG } from './theme.ts';
 export { renderLedgerPage, renderLedgerVerifyPage,

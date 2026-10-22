@@ -9,7 +9,6 @@ import { renderHowItWorksPage } from '../src/howitworks.ts';
 import { renderRoundsPage } from '../src/rounds.ts';
 import { renderLedgerPage, renderLedgerVerifyPage } from '../src/ledger.ts';
 import { renderWhitepaper } from '../src/whitepaper.ts';
-import { renderAllPage } from '../src/all.ts';
 import { pageShell } from '../src/theme.ts';
 import { displayName } from '../src/ui.ts';
 import type { OverlapRecord, PlanNode } from '@springforth/coordination';
@@ -321,7 +320,7 @@ describe('Phase A chrome + ui kit', () => {
     expect(nav).toContain('Learn');
     expect(html).toContain('Start a possibility');
     // and nothing else — no leftover backend-surface links in primary nav
-    for (const gone of ['/rounds', '/outcomes', '/coordination', '/docs', '/all'])
+    for (const gone of ['/rounds', '/outcomes', '/coordination', '/docs'])
       expect(top).not.toContain(`href="${gone}"`);
   });
   it('language switcher renders EN/SW/FR with aria-current', () => {
@@ -431,21 +430,6 @@ describe('wording + a11y markers', () => {
     expect(html).toMatch(/<details class="hub-sec" id="people" open data-hub-index="1">/);
     expect(html).toContain('data-hub-index="3"');
     expect(html).toContain('matchMedia'); // hubScript mobile collapse
-  });
-  it('/all wrapper emits a single topbar and a single h1', async () => {
-    const doc = (inner: string) =>
-      `<!doctype html><html><body><a class="skip-link" href="#main">x</a>` +
-      `<header class="topbar">t</header><main>${inner}</main>` +
-      `<footer>f</footer></body></html>`;
-    const fetcher = {
-      fetch: async () => new Response(
-        doc('<div class="page"><h1 class="hs-title">Hub</h1><p>body</p></div>'),
-        { headers: { 'content-type': 'text/html' } }),
-    };
-    const html = await renderAllPage(fetcher as never, 'http://self', 'en');
-    expect(html.match(/class="topbar"/g) ?? []).toHaveLength(1);
-    expect(html.match(/<h1[\s>]/g) ?? []).toHaveLength(1);
-    expect(html).toContain('id="s11"'); // all twelve sections spliced
   });
 });
 

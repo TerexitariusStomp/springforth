@@ -105,7 +105,6 @@ const sw: Record<string, string> = {
   'nav.whitepaper': 'Waraka',
   'nav.apiDocs': 'Nyaraka za API',
   'nav.telegram': 'Bot ya Telegram',
-  'nav.everything': 'Yote kwenye ukurasa mmoja',
   'nav.startPossibility': 'Anzisha uwezekano',
   'a11y.skipToContent': 'Ruka hadi maudhui',
   'a11y.primaryNav': 'Msingi',

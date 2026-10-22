@@ -28,7 +28,7 @@ import {
   renderPossibilitiesPage, renderLandingPage,
   renderRoundPage, renderReportPage, renderRoundAdmin,
   renderActorProfile, renderDonorPage,
-  renderClaimPage, renderDocsPage, renderAllPage,
+  renderClaimPage, renderDocsPage,
   renderWhitepaper,
   renderLedgerPage, renderLedgerVerifyPage,
   renderCollaboratePage, renderFundPage, renderImpactPage,
@@ -87,7 +87,7 @@ import {
 
 export interface Env {
   DB: D1Database;
-  SELF?: Fetcher;               // service binding to this worker — /all inlining
+  SELF?: Fetcher;               // unused — binding kept in wrangler.toml harmlessly
   ADMIN_TOKEN?: string;
   OPENAQ_API_KEY?: string;     // free registration — explore.openaq.org
   TITILER_URL?: string;
@@ -569,6 +569,7 @@ const RETIRED: Record<string, { to: string; always?: boolean; keep: string[] }> 
   outcomes:     { to: '/collaborate#outcomes', always: true, keep: [] },
   portfolio:    { to: '/collaborate#plans',    always: true, keep: [] },
   tour:         { to: '/how-it-works',         always: true, keep: [] },
+  all:          { to: '/how-it-works',         always: true, keep: [] },
   commitments:  { to: '/collaborate#needs',    keep: [] },
   resources:    { to: '/collaborate#commons',  keep: [] },
   agent:        { to: '/collaborate#ask',      keep: ['q'] },
@@ -1146,10 +1147,6 @@ export default {
       if (seg[0] === 'whitepaper' && req.method === 'GET')
         return new Response(renderWhitepaper(langFrom(url, req.headers.get('cookie'))), { headers: { 'content-type': 'text/html' } });
       // Every surface on one scrollable page — review mode.
-      if (seg[0] === 'all' && req.method === 'GET')
-        return new Response(await renderAllPage(env.SELF ?? { fetch }, url.origin,
-          langFrom(url, req.headers.get('cookie'))),
-          { headers: { 'content-type': 'text/html' } });
       // Recurring support streams — top-level list; round-scoped view
       // also exists at /rounds/:id/stream.
       if (seg[0] === 'streams' && req.method === 'GET')

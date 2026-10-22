@@ -594,7 +594,7 @@ function renderVerifyPage(checks: (OracleCheck & { nodeId?: string })[], nodes: 
   const label = new Map(nodes.map((n) => [n.id, n.label]));
   const rows = checks.slice().reverse().slice(0, 200).map((c) => {
     const target = c.nodeId ? (label.get(c.nodeId) ?? c.nodeId) : '—';
-    const cls = c.result === 'match' ? '#8fd18f' : c.result === 'mismatch' ? '#e88f8f' : '#f0d78a';
+    const cls = c.result === 'match' ? 'var(--sf-ok-bright)' : c.result === 'mismatch' ? 'var(--sf-danger)' : 'var(--sf-warn-soft)';
     return `<tr><td><span class="badge" style="background:${cls}">${esc(c.result)}</span></td>`
       + `<td>${esc(c.source)}</td><td>${esc(target)}</td><td>${esc(c.detail)}</td>`
       + `<td class="muted">${esc(c.at.slice(0, 16).replace('T', ' '))}</td></tr>`;
@@ -722,6 +722,8 @@ export default {
           planCount: plans.length,
           ticker: tickerLines(events, possById),
           participantsTotal: new Set(parts.map((pt) => pt.actor)).size,
+          participantInitials: [...new Set(parts.map((pt) => pt.actor))]
+            .slice(0, 3).map((a) => a.trim()[0]?.toUpperCase() ?? '·'),
           placesCount: new Set(poss.map((p) => p.place).filter((x): x is string => !!x)).size,
           hoursTotal: parts.reduce((s, pt) => s + (pt.hours ?? 0), 0),
           completedCount: completed,

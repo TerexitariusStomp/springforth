@@ -6,3 +6,4 @@ dist/
 *.log
 *.docx
 *.png
+.styleseed/evidence/

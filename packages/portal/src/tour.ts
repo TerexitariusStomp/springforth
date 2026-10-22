@@ -57,9 +57,9 @@ export function renderTourPage(): string {
 <small class="muted">proves: ${esc(s.proves)}</small></div></div>`).join('');
   return pageShell({ title: 'Judge tour — Springforth', htmx: false,
     extraCss: `.page{max-width:48rem}
-.stop{display:flex;gap:1rem;border:1px solid var(--sf-line-2);border-left:5px solid var(--sf-sage);border-radius:.6rem;padding:.9rem;margin:.7rem 0;background:#fff}
+.stop{display:flex;gap:1rem;border:1px solid var(--sf-line-2);border-radius:.6rem;padding:.9rem;margin:.7rem 0;background:var(--sf-card)}
 .n{font-size:1.6rem;font-weight:700;color:var(--sf-sage);min-width:1.8rem;font-family:var(--sf-serif)}
-.stop p{margin:.3rem 0;font-size:13px;color:#5a6a60}
+.stop p{margin:.3rem 0;font-size:13px;color:var(--sf-ink-mute)}
 .stop a{color:var(--sf-ink-2);font-weight:700;text-decoration:none}
 .stop a:hover{color:var(--sf-coral-a11y)}` }, `<div class="page">
 <h1>The tour — ~5 minutes</h1>

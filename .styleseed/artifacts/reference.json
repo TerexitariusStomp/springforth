@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "reference",
+  "target": {
+    "kind": "route",
+    "locator": "/docs"
+  },
+  "selection": {
+    "grammar": "editorial-reading",
+    "page": "detail"
+  },
+  "decisions": {
+    "primaryDecision": "read API and protocol documentation",
+    "primaryAction": "read docs / follow a link to a live route",
+    "signatureMove": "documentation rendered in product chrome, not a bare page"
+  },
+  "implementation": {
+    "sourceRoots": [
+      "packages/portal/src/docs.ts",
+      "packages/portal/src/actor.ts",
+      "packages/portal/src/claim.ts",
+      "packages/portal/src/report.ts",
+      "packages/portal/src/theme.ts",
+      "packages/portal/src/i18n.ts"
+    ],
+    "tokenFiles": [
+      "packages/portal/src/theme.ts"
+    ]
+  },
+  "validation": {
+    "scoreFloor": 85,
+    "requiredRenders": [
+      {
+        "id": "desktop-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "id": "mobile-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "temporal": {
+      "required": false,
+      "scenarios": []
+    },
+    "humanAcceptance": false
+  }
+}

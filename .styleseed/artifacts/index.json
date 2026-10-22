@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "artifacts": [
+    { "id": "landing", "config": "landing.json" },
+    { "id": "deck", "config": "deck.json" },
+    { "id": "console", "config": "console.json" },
+    { "id": "instrument", "config": "instrument.json" },
+    { "id": "reference", "config": "reference.json" },
+    { "id": "tour-all", "config": "tour-all.json" }
+  ]
+}

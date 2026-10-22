@@ -28,7 +28,7 @@ export function renderRoundsPage(
     const gate = g?.gated
       ? g.active
         ? ` <span class="badge">demand met — ${g.backers.length} backers · ${MONEY.format(g.pledged)} pledged</span>`
-        : ` <span class="badge" style="background:#fec">matching locked — ${g.backers.length}/${g.minBackers} backers · ${MONEY.format(g.pledged)}/${MONEY.format(g.goal)} pledged</span>`
+        : ` <span class="badge" style="background:var(--sf-gold-soft)">matching locked — ${g.backers.length}/${g.minBackers} backers · ${MONEY.format(g.pledged)}/${MONEY.format(g.goal)} pledged</span>`
       : '';
     const skim = r.skimBps ? ` <span class="muted">· ${r.skimBps / 100}% of donations seeds the endowment</span>` : '';
     return `<tr>
@@ -36,7 +36,7 @@ export function renderRoundsPage(
 <td>${esc(r.matchingFund.currency)} ${MONEY.format(r.matchingFund.amount)}</td>
 <td>${r.eligibleNeedIds.length}</td>
 <td><span class="badge">${esc(r.state)}</span></td>
-<td class="muted">${esc(r.closesAt.slice(0, 10))}</td></tr>`;
+<td class="muted" style="white-space:nowrap">${esc(r.closesAt.slice(0, 10))}</td></tr>`;
   }).join('\n');
   const accruedStr = endowment ? fmt(endowment.accrued) : '';
   const principalStr = endowment ? fmt(endowment.principal) : '';

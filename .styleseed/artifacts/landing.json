@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "landing",
+  "target": {
+    "kind": "route",
+    "locator": "/"
+  },
+  "selection": {
+    "grammar": "expressive-marketing",
+    "page": "landing"
+  },
+  "decisions": {
+    "primaryDecision": "understand the coordination commons and take one next action",
+    "primaryAction": "Explore the deck / Start a possibility",
+    "signatureMove": "live nearest-to-quorum orbit card + real-ledger activity ticker in the hero"
+  },
+  "implementation": {
+    "sourceRoots": [
+      "packages/portal/src/landing.ts",
+      "packages/portal/src/theme.ts",
+      "packages/portal/src/i18n.ts"
+    ],
+    "tokenFiles": [
+      "packages/portal/src/theme.ts"
+    ]
+  },
+  "validation": {
+    "scoreFloor": 85,
+    "requiredRenders": [
+      {
+        "id": "desktop-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "id": "mobile-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "temporal": {
+      "required": false,
+      "scenarios": []
+    },
+    "humanAcceptance": false
+  }
+}

@@ -10,6 +10,8 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "seed": "node --experimental-strip-types scripts/seed-d1.mjs",
+    "design:check": "node scripts/design-check.mjs",
+    "design:scan": "for a in landing deck console instrument reference tour-all; do node .devin/skills/ss-score/scripts/styleseed-check.mjs scan --project-root . --artifact $a --format json; done",
     "deploy": "cd packages/edge && wrangler deploy"
   },
   "devDependencies": {

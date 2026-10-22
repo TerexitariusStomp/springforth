@@ -7,7 +7,7 @@ const esc = (s: string) =>
 
 const shell = (title: string, body: string) =>
   pageShell({ title: `${title} — Springforth`, htmx: false,
-    extraCss: `.page code{word-break:break-all}.page button.done{background:#cfe9cf}` },
+    extraCss: `.page code{word-break:break-all}.page button.done{background:var(--sf-ok-soft)}` },
     `<div class="page">${body}</div>`);
 
 // Claim page — the claim, its attestations, and signer-facing publish

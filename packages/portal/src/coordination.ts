@@ -11,7 +11,8 @@ const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const KIND_COLOR: Record<string, string> = {
-  duplicate: '#f6c344', overlap: '#7fb3e8', complement: '#8fd18f', conflict: '#e88f8f',
+  duplicate: 'var(--sf-warn)', overlap: 'var(--sf-info-bright)',
+  complement: 'var(--sf-ok-bright)', conflict: 'var(--sf-danger)',
 };
 
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
@@ -40,7 +41,7 @@ function card(rec: OverlapRecord, byId: Map<string, PlanNode>, signals: Signal[]
   const [a, b] = rec.nodeIds.map((id) => byId.get(id));
   // Complements are directional — nodeIds = [need, offer]; head it that way.
   const heading = rec.kind === 'complement'
-    ? `${esc(a?.label ?? rec.nodeIds[0])} <span class="dir">&#8592; met by</span> ${esc(b?.label ?? rec.nodeIds[1])}`
+    ? `${esc(a?.label ?? rec.nodeIds[0])} <span class="dir">← met by</span> ${esc(b?.label ?? rec.nodeIds[1])}`
     : `${esc(a?.label ?? rec.nodeIds[0])} &harr; ${esc(b?.label ?? rec.nodeIds[1])}`;
   const evRows = rec.evidence
     .map((e) => `<tr><td>${esc(e.field)}</td><td>${esc(e.a.slice(0, 60))}</td><td>${esc(e.b.slice(0, 60))}</td><td>${e.score.toFixed(2)}</td></tr>`)
@@ -91,9 +92,9 @@ function card(rec: OverlapRecord, byId: Map<string, PlanNode>, signals: Signal[]
   const tg = [a, b].some((n) => n?.source.startsWith('treegens'))
     ? `<p class="dir">Treegens evidence — <a href="https://world.treegens.app">filmed records + sponsor verified plantings &rarr; world.treegens.app</a></p>`
     : '';
-  return `<div class="card" style="border-left:6px solid ${KIND_COLOR[rec.kind] ?? '#ccc'}">
+  return `<div class="card">
 <h3>${heading}</h3>
-<p><span class="badge">${esc(rec.kind)}</span> <span class="badge">${esc(rec.status)}</span>
+<p><span class="badge" style="background:${KIND_COLOR[rec.kind] ?? 'var(--sf-line)'};color:var(--sf-ink)">${esc(rec.kind)}</span> <span class="badge">${esc(rec.status)}</span>
 <span class="badge">strength ${pct(tri.strength)}</span>
 <span class="badge">materiality ${tri.materiality !== undefined ? pct(tri.materiality) : '—'}</span>
 <span class="badge">readiness ${pct(tri.readiness)}</span>

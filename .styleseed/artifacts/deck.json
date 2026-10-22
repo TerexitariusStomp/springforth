@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "deck",
+  "target": {
+    "kind": "route",
+    "locator": "/possibilities"
+  },
+  "selection": {
+    "grammar": "consumer-service",
+    "page": "list"
+  },
+  "decisions": {
+    "primaryDecision": "scan declared possibilities, find one to join or declare a new one",
+    "primaryAction": "join a card / declare a possibility",
+    "signatureMove": "tone-by-status card grid with live quorum progress"
+  },
+  "implementation": {
+    "sourceRoots": [
+      "packages/portal/src/possibilities.ts",
+      "packages/portal/src/theme.ts",
+      "packages/portal/src/i18n.ts"
+    ],
+    "tokenFiles": [
+      "packages/portal/src/theme.ts"
+    ]
+  },
+  "validation": {
+    "scoreFloor": 85,
+    "requiredRenders": [
+      {
+        "id": "desktop-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "id": "mobile-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "temporal": {
+      "required": false,
+      "scenarios": []
+    },
+    "humanAcceptance": false
+  }
+}

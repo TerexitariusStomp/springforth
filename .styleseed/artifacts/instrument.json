@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "instrument",
+  "target": {
+    "kind": "route",
+    "locator": "/verify"
+  },
+  "selection": {
+    "grammar": "technical-instrument",
+    "page": "detail"
+  },
+  "decisions": {
+    "primaryDecision": "verify ledger integrity and inspect evidence state",
+    "primaryAction": "run/inspect a verification",
+    "signatureMove": "hash-chain ledger verification surfaced as readable state"
+  },
+  "implementation": {
+    "sourceRoots": [
+      "packages/edge/src/index.ts",
+      "packages/portal/src/theme.ts",
+      "packages/portal/src/i18n.ts"
+    ],
+    "tokenFiles": [
+      "packages/portal/src/theme.ts"
+    ]
+  },
+  "validation": {
+    "scoreFloor": 85,
+    "requiredRenders": [
+      {
+        "id": "desktop-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "id": "mobile-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "temporal": {
+      "required": false,
+      "scenarios": []
+    },
+    "humanAcceptance": false
+  }
+}

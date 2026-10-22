@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "tour-all",
+  "target": {
+    "kind": "route",
+    "locator": "/tour"
+  },
+  "selection": {
+    "grammar": "sequential-story",
+    "page": "onboarding"
+  },
+  "decisions": {
+    "primaryDecision": "self-serve walkthrough of every surface",
+    "primaryAction": "follow the tour / scroll the single-page all view",
+    "signatureMove": "one scrollable page splicing every live surface"
+  },
+  "implementation": {
+    "sourceRoots": [
+      "packages/portal/src/tour.ts",
+      "packages/portal/src/all.ts",
+      "packages/portal/src/theme.ts",
+      "packages/portal/src/i18n.ts"
+    ],
+    "tokenFiles": [
+      "packages/portal/src/theme.ts"
+    ]
+  },
+  "validation": {
+    "scoreFloor": 85,
+    "requiredRenders": [
+      {
+        "id": "desktop-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "id": "mobile-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "temporal": {
+      "required": false,
+      "scenarios": []
+    },
+    "humanAcceptance": false
+  }
+}

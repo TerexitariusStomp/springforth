@@ -75,7 +75,7 @@ function cardDetail(c: PossibilityCard): string {
   const live = c.status === 'active' || c.status === 'draft';
   const cover = c.scoring.cover;
   const needRows = c.needs.map((n) => `<li>
-    ${n.met ? '&#10003;' : '&#8226;'} ${esc(n.label)}
+    ${n.met ? '✓' : '•'} ${esc(n.label)}
     ${n.category ? `<span class="nice">[${esc(n.category)}]</span>` : ''}
     ${n.required ? '<span class="req">required</span>' : '<span class="nice">nice-to-have</span>'}
     ${n.flaggedBy ? `<span class="nice">flagged by ${esc(n.flaggedBy)}</span>` : ''}
@@ -86,7 +86,7 @@ function cardDetail(c: PossibilityCard): string {
   return `<div class="card-overlay" id="${esc(c.id)}">
 <div class="detail-panel" role="dialog" aria-modal="true" aria-label="${esc(c.title)}">
 <a class="modal-close" href="#deck" aria-label="Close">✕</a>
-<h3>&#8220;${esc(c.title)}&#8221;</h3>
+<h3>“${esc(c.title)}”</h3>
 <p><span class="badge lime">${esc(c.status)}</span>
 ${c.tipping ? '<span class="badge gold">tipping — 30% reached, momentum building</span>' : ''}
 <span class="badge">${esc(countdown(c.deadline))}</span>
@@ -101,7 +101,7 @@ ${c.value ? valueBlock(c.value) : ''}
 ${c.timeStart ? ` · ${esc(c.timeStart.slice(0, 10))}${c.timeEnd ? ` → ${esc(c.timeEnd.slice(0, 10))}` : ''}` : ''}
 · <a href="/possibilities/${esc(c.id)}/ics">add to calendar (.ics)</a></p>
 ${c.description ? `<p>${esc(c.description)}</p>` : ''}
-${c.context?.datasets?.length ? `<p class="ctx"><strong>Verified context</strong></p><ul class="needs">${c.context.datasets.map((d) => `<li>&#9670; ${esc(d.name)}: ${esc(d.value)}${d.source ? ` <span class="nice">(${esc(d.source)})</span>` : ''}</li>`).join('')}</ul>` : ''}
+${c.context?.datasets?.length ? `<p class="ctx"><strong>Verified context</strong></p><ul class="needs">${c.context.datasets.map((d) => `<li>◆ ${esc(d.name)}: ${esc(d.value)}${d.source ? ` <span class="nice">(${esc(d.source)})</span>` : ''}</li>`).join('')}</ul>` : ''}
 ${needRows ? `<p><strong>Needs</strong></p><ul class="needs">${needRows}</ul>` : ''}
 ${bringing ? `<p><strong>Being brought</strong></p><ul class="needs">${bringing}</ul>` : ''}
 ${c.participants === undefined
@@ -140,24 +140,24 @@ const STATUS_FILTERS: Array<[string, string]> = [
 
 const DECK_CSS = `
 .card-overlay{display:none}
-.card-overlay:target{display:grid;position:fixed;inset:0;z-index:50;padding:20px;place-items:center;background:rgba(8,28,20,.7);backdrop-filter:blur(8px)}
-.detail-panel{width:min(700px,100%);max-height:88vh;overflow:auto;padding:36px;position:relative;border-radius:18px;background:#f8f9f4;box-shadow:0 30px 100px rgba(0,0,0,.3)}
-.detail-panel h3{margin:0 0 12px;font-family:var(--sf-serif);font-weight:400;color:#183a2d;font-size:30px;line-height:1.16}
+.card-overlay:target{display:grid;position:fixed;inset:0;z-index:50;padding:1.25rem;place-items:center;background:rgba(8,28,20,.7);backdrop-filter:blur(8px)}
+.detail-panel{width:min(43.75rem,100%);max-height:88vh;overflow:auto;padding:2.25rem;position:relative;border-radius:18px;background:var(--sf-cream-2);box-shadow:0 30px 100px rgba(0,0,0,.3)}
+.detail-panel h3{margin:0 0 .75rem;font-family:var(--sf-serif);font-weight:400;color:var(--sf-ink-2);font-size:30px;line-height:1.16}
 .detail-panel .needs{list-style:none;padding-left:.25rem;margin:.2rem 0;font-size:13px}
 .detail-panel .needs li{padding:.15rem 0}
 .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
 .val input{padding:.5rem .7rem;flex:1;min-width:8rem;border:1px solid var(--sf-line);border-radius:8px;font:inherit;font-size:13px}
-.val button{padding:.5rem 1.1rem;cursor:pointer;background:var(--sf-green-3);color:#fff;border:0;border-radius:99px;font-weight:800;font-size:12px}
+.val button{padding:.5rem 1.1rem;cursor:pointer;background:var(--sf-green-3);color:var(--sf-cream);border:0;border-radius:99px;font-weight:800;font-size:12px}
 .res{background:rgba(200,243,109,.25);padding:.6rem .8rem;border-radius:.5rem;font-size:13px}
-.req{color:#a33;font-size:.8rem}.nice{color:#888;font-size:.8rem}.met{color:#4a7a4a;font-size:.8rem}
-.tip{background:#fde8c8;color:#7a5a00}.meta{font-size:.8rem;color:#777}
-.bar{background:#edf0ea;border-radius:99px;height:6px;margin:.5rem 0;overflow:hidden}
+.req{color:var(--sf-danger-ink);font-size:.8rem}.nice{color:var(--sf-muted);font-size:.8rem}.met{color:var(--sf-ok);font-size:.8rem}
+.tip{background:var(--sf-gold-soft);color:var(--sf-gold)}.meta{font-size:.8rem;color:var(--sf-muted)}
+.bar{background:var(--sf-cream-3);border-radius:99px;height:.375rem;margin:.5rem 0;overflow:hidden}
 .fill{background:var(--sf-lime);height:100%}
-.ctx{color:#2f5c67;font-size:13px}
-.mutual-panel{max-width:1250px;margin:3rem auto 0;background:#fff;border:1px solid var(--sf-line-2);border-radius:12px;padding:26px}
-.mutual-panel h3{font-family:var(--sf-serif);font-weight:400;font-size:24px;margin:0 0 6px}
+.ctx{color:var(--sf-info);font-size:13px}
+.mutual-panel{max-width:78.125rem;margin:3rem auto 0;background:var(--sf-card);border:1px solid var(--sf-line-2);border-radius:12px;padding:1.625rem}
+.mutual-panel h3{font-family:var(--sf-serif);font-weight:400;font-size:24px;margin:0 0 .375rem}
 .mutual-panel ul{list-style:none;padding:0;font-size:13px}
-@media(max-width:720px){.detail-panel{padding:26px 18px}}
+@media(max-width:45rem){.detail-panel{padding:1.625rem 1.125rem}}
 `;
 
 export function renderPossibilitiesPage(
@@ -203,7 +203,7 @@ export function renderPossibilitiesPage(
   ${mutual ? `<div class="mutual-panel"><h3>Mutual recognition</h3>
     <p class="muted">Pairwise appreciation made visible — mutual recognition steers which cards surface to whom.</p>
     <ul>${mutual}</ul></div>` : ''}
-  <p class="muted" style="max-width:1250px;margin:2rem auto 0">
+  <p class="muted" style="max-width:78.125rem;margin:2rem auto 0">
     <a href="/possibilities?format=json">JSON</a> ·
     <a href="/coordination">coordination</a> · <a href="/commitments">commitments</a> ·
     <a href="/outcomes">outcomes</a> · Cards sort by

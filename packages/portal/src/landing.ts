@@ -21,6 +21,7 @@ export interface LandingInput {
   planCount: number;
   ticker: string[];                 // recent ledger events, humanized
   participantsTotal: number;        // distinct actors across participations
+  participantInitials: string[];    // first-letter initials of real participants
   placesCount: number;              // distinct places across cards
   hoursTotal: number;               // declared hours pledged
   completedCount: number;           // cards marked complete
@@ -172,7 +173,7 @@ Real work from imported plans and field records.
     <a class="secondary-button" href="#how">${tt('hero.cta.how')}</a>
   </div>
   <div class="trust-line">
-    <div class="avatar-stack"><span>S</span><span>T</span><span>K</span><span>+</span></div>
+    <div class="avatar-stack">${i.participantInitials.map(() => `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg></span>`).join('')}<span>+${Math.max(0, i.participantsTotal - i.participantInitials.length)}</span></div>
     <p><strong>${i.participantsTotal}</strong> ${tt('hero.trust')} <strong>${i.placesCount}</strong> ${tt('hero.trust.places')}</p>
   </div>
   ${orbit ? `<aside class="orbit-card">
@@ -187,10 +188,10 @@ Real work from imported plans and field records.
       <a href="/possibilities#${esc(orbit.possibility.id)}">${tt('hero.orbit.join')} →</a></div>
   </aside>` : ''}
   <a class="float-badge badge-one" href="/outcomes">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:#699556"><path d="M20 6L9 17l-5-5"/></svg>
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--sf-sage)"><path d="M20 6L9 17l-5-5"/></svg>
     <span><strong>${i.completedCount}</strong>${tt('hero.badge.actions')}</span></a>
   <a class="float-badge badge-two" href="/possibilities">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="color:#699556"><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg>
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="color:var(--sf-sage)"><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg>
     <span><strong>${i.cards.length}</strong>${tt('hero.badge.open')}</span></a>
 </section>
 

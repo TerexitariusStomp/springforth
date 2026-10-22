@@ -1,0 +1,27 @@
+# StyleSeed — Design Lock
+<!-- Selections persist here. This file cannot waive StyleSeed core invariants. -->
+- App domain: marketplace (public-goods coordination + funding commons)
+- Surface: desktop-web product, responsive to mobile
+- Surface adapter: product-ui
+- Output grammar: per-artifact (see .styleseed/artifacts/) — expressive-marketing landing, consumer-service deck, operations-console funding/state surfaces, technical-instrument evidence surfaces, editorial-reading reference, sequential-story tour
+- Grammar path: built-in:engine/RULESETS.md
+- Grammar fallback: consumer-service
+- Reference confidence: n/a
+- Brand recipe: expressive-brand
+- Palette recipe: deep-lime-studio (forest-green canvas #123B2C + lime #C8F36D; coral #F17E64 as the signal/action accent)
+- Key color: #123B2C
+- Palette character: deep
+- Palette mode: light (cream canvas; dark hero surfaces)
+- Palette harmony: adjacent (green↔lime; coral reserved for primary action + signal)
+- Surface temperature: warm
+- Aesthetic profile: none
+- Skin: custom (vendored Pico classless base + .devin SF_CSS token layer)
+- Primary action: coral #F17E64 on dark surfaces, deepened coral #B5502F on cream (contrast)
+- Font: DM Serif Display (display), Figtree (body/UI; Manrope fallback)
+- Radius: soft
+- Elevation: hairline + restrained-shadow (dark surfaces: tonal + hairline)
+- Density: comfortable
+- Motion: spring, restrained (landing orbit/ticker are the cinematic exception the grammar allows; prefers-reduced-motion required)
+- Imagery/data role: data-first — live ledger/coordination data, no stock imagery
+- Signature move: the live "nearest to quorum" orbit card — a real coordination object floating in the hero
+- Locked: 2026-05-21

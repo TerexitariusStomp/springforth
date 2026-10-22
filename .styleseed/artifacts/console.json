@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "id": "console",
+  "target": {
+    "kind": "route",
+    "locator": "/rounds"
+  },
+  "selection": {
+    "grammar": "operations-console",
+    "page": "dashboard"
+  },
+  "decisions": {
+    "primaryDecision": "scan funding and coordination state, find exceptions, act",
+    "primaryAction": "review demand-gated match state / act on a round or outcome",
+    "signatureMove": "demand-met vs matching-locked badges + permanent endowment card"
+  },
+  "implementation": {
+    "sourceRoots": [
+      "packages/portal/src/rounds.ts",
+      "packages/portal/src/outcomes.ts",
+      "packages/portal/src/coordination.ts",
+      "packages/portal/src/portfolio.ts",
+      "packages/portal/src/governance.ts",
+      "packages/portal/src/theme.ts",
+      "packages/portal/src/i18n.ts"
+    ],
+    "tokenFiles": [
+      "packages/portal/src/theme.ts"
+    ]
+  },
+  "validation": {
+    "scoreFloor": 85,
+    "requiredRenders": [
+      {
+        "id": "desktop-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "id": "mobile-loaded",
+        "state": "loaded",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "temporal": {
+      "required": false,
+      "scenarios": []
+    },
+    "humanAcceptance": false
+  }
+}

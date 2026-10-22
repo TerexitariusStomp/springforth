@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "projectId": "springforth-portal",
+  "defaults": {
+    "agent": "codex",
+    "domain": "marketplace",
+    "adapter": "product-ui",
+    "recipe": "expressive-brand",
+    "palette": "deep-lime-studio",
+    "profile": "none",
+    "fallback": "consumer-service"
+  },
+  "brand": {
+    "keyColor": "#123B2C",
+    "paletteCharacter": "deep",
+    "paletteMode": "light",
+    "paletteHarmony": "adjacent",
+    "surfaceTemperature": "warm",
+    "fontFamilies": ["DM Serif Display", "Manrope"],
+    "radius": "soft",
+    "elevation": "restrained-shadow",
+    "density": "comfortable",
+    "motion": { "seed": "spring", "intensity": "restrained" },
+    "imageryRole": "data-first"
+  }
+}

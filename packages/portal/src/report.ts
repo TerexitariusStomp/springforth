@@ -40,7 +40,7 @@ ${cs.filter((c) => c.result === 'mismatch').length} mismatch</td>
   const appList = appreciations.map((a) =>
     `<li><strong>${esc(a.fromActor)}</strong> → <strong>${esc(a.toActor)}</strong>${a.note ? ` — ${esc(a.note)}` : ''}</li>`).join('\n');
   return pageShell({ title: `Field report — ${p.title}`, htmx: false,
-    extraCss: `.box{background:#fff;border:1px solid var(--sf-line-2);border-radius:12px;padding:1.2rem;margin:1rem 0}` },
+    extraCss: `.box{background:var(--sf-card);border:1px solid var(--sf-line-2);border-radius:12px;padding:1.2rem;margin:1rem 0}` },
     `<div class="page">
 <h1>Field report — ${esc(p.title)}</h1>
 <p class="muted">${esc(p.place ?? '')} · declared by ${esc(p.declarerId)} · status ${esc(p.status)}</p>

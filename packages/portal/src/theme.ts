@@ -250,6 +250,8 @@ details.hub-sec>summary:focus-visible,.hub-nav a:focus-visible,
 body>footer{min-height:150px;padding:45px clamp(24px,6vw,90px);display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1.3fr;align-items:start;gap:36px;color:rgba(255,255,255,.72);background:var(--sf-green-0);font-size:11px}
 .footer-brand{color:var(--sf-pale);display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:15px;text-decoration:none}
 .foot-tag{display:block;margin-top:14px;line-height:1.7}
+/* Pico sets nav{display:flex} horizontally — footer link columns must stack. */
+.foot-col{display:flex;flex-direction:column;align-items:stretch}
 .foot-col h2{font-family:var(--sf-sans);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.72);margin:0 0 10px}
 .foot-col a{display:flex;align-items:center;min-height:44px;color:rgba(255,255,255,.7);text-decoration:none}
 .foot-col a:hover{color:var(--sf-pale)}

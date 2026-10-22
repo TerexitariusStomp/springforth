@@ -10,6 +10,8 @@ import { renderRoundsPage } from '../src/rounds.ts';
 import { renderLedgerPage, renderLedgerVerifyPage } from '../src/ledger.ts';
 import { renderWhitepaper } from '../src/whitepaper.ts';
 import { pageShell } from '../src/theme.ts';
+import { renderSearchPage } from '../src/search.ts';
+import { renderNetworkSvg } from '../src/network.ts';
 import { displayName } from '../src/ui.ts';
 import type { OverlapRecord, PlanNode } from '@springforth/coordination';
 
@@ -564,5 +566,36 @@ describe('displayName', () => {
   });
   it('keeps the raw id in title=""', () => {
     expect(displayName('demo-amina')).toContain('title="demo-amina"');
+  });
+});
+describe('search page', () => {
+  it('renders form, hits with via badges, and empty state', () => {
+    const html = renderSearchPage({
+      lang: 'en', q: 'mangrove',
+      hits: [{
+        id: 'sarafu:r1', label: 'Restored mangrove forest cover',
+        source: 'sarafu:field-reports', kind: 'action', score: 0.82,
+        via: 'semantic',
+      }],
+    });
+    for (const m of ['action="/search"', 'name="q"', 'search-hits',
+      'collaborate?node=sarafu%3Ar1', 'semantic', '82%'])
+      expect(html).toContain(m);
+    const empty = renderSearchPage({ lang: 'en', q: 'zzz', hits: [] });
+    expect(empty).toContain('Nothing matched');
+  });
+});
+describe('network svg', () => {
+  it('renders vertices and weighted edges', () => {
+    const svg = renderNetworkSvg({
+      vertices: [
+        { id: 'a', label: 'Flood plan', x: 100, y: 100, count: 37, kind: 'plan' },
+        { id: 'b', label: 'Sarafu reports', x: 400, y: 300, count: 42, kind: 'plan' },
+      ],
+      edges: [{ a: 'a', b: 'b', count: 4, confidence: 0.6 }],
+    }, 'en');
+    for (const m of ['net-svg', '<line', '<circle', 'Flood plan', 'shared nodes'])
+      expect(svg).toContain(m);
+    expect(renderNetworkSvg({ vertices: [], edges: [] }, 'en')).toBe('');
   });
 });

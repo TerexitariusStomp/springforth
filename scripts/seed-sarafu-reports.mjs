@@ -26,24 +26,11 @@ const q = (sql) => JSON.parse(execFileSync('npx',
   { encoding: 'utf8' }))[0].results;
 const NOW = new Date().toISOString();
 
-// minimal CSV parse — quoted fields, embedded newlines
-function parseCsv(text) {
-  const rows = []; let f = '', row = [], inQ = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQ) {
-      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else inQ = false; }
-      else f += c;
-    } else if (c === '"') inQ = true;
-    else if (c === ',') { row.push(f); f = ''; }
-    else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
-    else if (c !== '\r') f += c;
-  }
-  if (f || row.length) { row.push(f); rows.push(row); }
-  const head = rows[0];
-  return rows.slice(1).filter((r) => r.length > 3)
-    .map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
-}
+// CSV parse — papaparse (MIT), handles quoted fields + embedded newlines
+import Papa from 'papaparse';
+const parseCsv = (text) =>
+  Papa.parse(text, { header: true, skipEmptyLines: true }).data
+    .filter((r) => Object.keys(r).length > 3);
 const canonicalize = (s) => s.toLowerCase()
   .replace(/\[redacted-name:[0-9a-f]+\]/g, ' ')
   .replace(/[^a-z0-9\s]/g, ' ')

@@ -19,10 +19,22 @@ const q = (sql) => JSON.parse(execFileSync('npx',
 
 const nodes = q("SELECT json FROM entities WHERE kind='plannode'").map((r) => JSON.parse(r.json));
 const existing = q("SELECT json FROM entities WHERE kind='overlap'").map((r) => JSON.parse(r.json));
+const emb = new Map(q("SELECT json FROM entities WHERE kind='embedding'")
+  .map((r) => { const e = JSON.parse(r.json); return [e.id.replace(/^emb:/, ''), e.vec]; }));
 const keep = new Map(existing.map((o) => [o.id, o]));
-console.log(`nodes ${nodes.length} · existing overlaps ${existing.length}`);
+console.log(`nodes ${nodes.length} · existing overlaps ${existing.length} · embeddings ${emb.size}`);
 
-const detected = [...detectOverlaps(nodes), ...detectComplements(nodes)];
+// Same scorer the worker wires in: cosine when both sides have vectors.
+const cosine = (a, b) => {
+  let d = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+  return na && nb ? d / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
+};
+const scorer = emb.size
+  ? (a, b) => { const va = emb.get(a.id), vb = emb.get(b.id); return va && vb ? cosine(va, vb) : undefined; }
+  : undefined;
+
+const detected = [...detectOverlaps(nodes, { scorer }), ...detectComplements(nodes)];
 const write = detected.map((rec) => {
   const prior = keep.get(rec.id);
   return prior && prior.status !== 'proposed' ? prior : rec;

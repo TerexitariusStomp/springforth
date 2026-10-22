@@ -32,7 +32,8 @@ import {
   renderWhitepaper,
   renderLedgerPage, renderLedgerVerifyPage,
   renderCollaboratePage, renderFundPage, renderImpactPage,
-  renderCommunityPage, renderHowItWorksPage, renderMapPage,
+  renderCommunityPage, renderHowItWorksPage, renderMapPage, renderSearchPage,
+  renderPlansPage, renderPlanPage,
   t, langFrom, LANGS, type Lang,
   tickerLines, tickerHtml, pageShell, pageHeader, FAVICON_SVG,
 } from '@springforth/portal';
@@ -72,6 +73,10 @@ import {
 import { liveAtlas } from '@springforth/atlas-adapter';
 import { handleTelegramUpdate, sendTelegram } from './telegram.js';
 import { cellToLatLng, isValidCell, latLngToCell } from 'h3-js';
+import MiniSearch from 'minisearch';
+import Graph from 'graphology';
+import forceAtlas2 from 'graphology-layout-forceatlas2';
+import type { NetworkGraph, NetVertex, NetEdge } from '@springforth/portal';
 import { get, list, put, ledgerAppend, ledgerEvents, ledgerVerify } from './store.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
@@ -108,6 +113,8 @@ export interface Env {
   ALPHAKLIMA_KEY?: string;        // Alpha-Klima physrisk platform
   DEFRA_KEY?: string;             // defra data services / Natural England
   COMPANIES_HOUSE_KEY?: string;   // api.company-information.service.gov.uk
+  AI?: { run(model: string, input: { text: string[] }):
+    Promise<{ data: number[][] }> };   // Workers AI bge embeddings
 }
 
 // OpenTimestamps public calendars — free, keyless Bitcoin anchoring.
@@ -589,6 +596,135 @@ async function rateLimitOk(env: Env, key: string, limit: number): Promise<boolea
   return true;
 }
 
+// ── Embeddings — meaning-matched search + overlap scoring ──────────────
+// Workers AI bge-base-en-v1.5 (768-dim), stored as `embedding` entities
+// keyed emb:<nodeId>. Everything degrades gracefully when env.AI or stored
+// vectors are absent — the scorer hook just contributes nothing.
+const EMB_MODEL = '@cf/baai/bge-base-en-v1.5';
+const EMB_BATCH = 50;
+
+const cosine = (a: number[], b: number[]): number => {
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) { dot += a[i]! * b[i]!; na += a[i]! * a[i]!; nb += b[i]! * b[i]!; }
+  return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
+};
+
+const loadEmbeddings = async (db: D1Database): Promise<Map<string, number[]>> => {
+  const rows = await list<{ id: string; vec: number[] }>(db, 'embedding');
+  return new Map(rows.map((r) => [r.id.replace(/^emb:/, ''), r.vec]));
+};
+
+const nodeText = (n: PlanNode) => `${n.label} ${n.description ?? ''} ${(n.tags ?? []).join(' ')}`.slice(0, 512);
+
+const embedTexts = async (env: Env, texts: string[]): Promise<number[][]> => {
+  if (!env.AI) return [];
+  const r = await env.AI.run(EMB_MODEL, { text: texts });
+  return r.data ?? [];
+};
+
+// detectOverlaps `scorer` opt: cosine when both sides have vectors.
+const embeddingScorer = (emb: Map<string, number[]>) =>
+  emb.size
+    ? (a: PlanNode, b: PlanNode) => {
+        const va = emb.get(a.id), vb = emb.get(b.id);
+        return va && vb ? cosine(va, vb) : undefined;
+      }
+    : undefined;
+
+// Hybrid meaning search over plan nodes: lexical ∪ semantic cosine.
+export interface NodeHit { node: PlanNode; score: number; via: 'semantic' | 'lexical' }
+const searchNodes = async (env: Env, q: string): Promise<NodeHit[]> => {
+  const nodes = await list<PlanNode>(env.DB, 'plannode');
+  const emb = await loadEmbeddings(env.DB);
+  let qv: number[] | undefined;
+  if (env.AI) qv = (await embedTexts(env, [q]))[0];
+  const mini = new MiniSearch<PlanNode>({ fields: ['label', 'description', 'tags'],
+    idField: 'id', searchOptions: { prefix: true, fuzzy: 0.2 } });
+  mini.addAll(nodes);
+  const lex = new Map(mini.search(q).map((r) => [r.id, r.score]));
+  const maxLex = Math.max(1, ...lex.values());
+  return nodes.map((n) => {
+    const v = emb.get(n.id);
+    const sem = qv && v ? Math.max(0, cosine(qv, v)) : 0;
+    const lexs = (lex.get(n.id) ?? 0) / maxLex;
+    const score = Math.max(sem, lexs * 0.85);
+    return { node: n, score: Math.round(score * 1000) / 1000,
+      via: sem >= lexs ? 'semantic' as const : 'lexical' as const };
+  }).filter((r) => r.score >= 0.2)
+    .sort((a, b) => b.score - a.score).slice(0, 25);
+};
+
+// ── Cross-plan network — ForceAtlas2 layout over overlap edges ─────────
+// Vertices are plan sources (plus possibility cards); edges are detected
+// overlaps that span two sources. Deterministic: circular seed order.
+const buildNetwork = (plans: ExternalPlan[], poss: Possibility[],
+  nodes: PlanNode[], recs: OverlapRecord[]): NetworkGraph => {
+  const srcOf = new Map(nodes.map((n) => [n.id, n.source]));
+  const title = new Map<string, string>([
+    ...plans.map((p): readonly [string, string] => [p.id, p.title]),
+    ...poss.map((p): readonly [string, string] => [`possibility:${p.id}`, p.title]),
+  ]);
+  const counts = new Map<string, number>();
+  for (const n of nodes) counts.set(n.source, (counts.get(n.source) ?? 0) + 1);
+  const edges = new Map<string, NetEdge>();
+  for (const r of recs) {
+    const a = srcOf.get(r.nodeIds[0]), b = srcOf.get(r.nodeIds[1]);
+    if (!a || !b || a === b) continue;
+    const [lo, hi] = [a, b].sort() as [string, string];
+    const e = edges.get(`${lo}~${hi}`) ?? { a: lo, b: hi, count: 0, confidence: 0 };
+    e.count++; e.confidence = Math.max(e.confidence, r.confidence);
+    edges.set(`${lo}~${hi}`, e);
+  }
+  if (!edges.size) return { vertices: [], edges: [] };
+  const g = new Graph();
+  const ids = [...new Set([...edges.values()].flatMap((e) => [e.a, e.b]))].sort();
+  ids.forEach((id, i) => {
+    const ang = (i / ids.length) * Math.PI * 2;
+    g.addNode(id, { x: Math.cos(ang) * 100, y: Math.sin(ang) * 100 });
+  });
+  for (const e of edges.values()) g.addEdge(e.a, e.b, { weight: e.count });
+  const pos = forceAtlas2(g, { iterations: 90,
+    settings: { gravity: 1, scalingRatio: 12, slowDown: 4 } });
+  const xs = ids.map((id) => pos[id]!.x), ys = ids.map((id) => pos[id]!.y);
+  const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+  const [y0, y1] = [Math.min(...ys), Math.max(...ys)];
+  const pad = 90, W = 900, H = 560;
+  const sx = (x1 - x0) ? (W - 2 * pad) / (x1 - x0) : 0;
+  const sy = (y1 - y0) ? (H - 2 * pad) / (y1 - y0) : 0;
+  const s = Math.min(sx || Infinity, sy || Infinity);
+  const vertices: NetVertex[] = ids.map((id) => ({
+    id,
+    label: title.get(id) ?? id.replace(/^[^:]+:/, '').replace(/[-_]/g, ' '),
+    x: pad + (pos[id]!.x - x0) * s + (sx && !sy ? 0 : (W - 2 * pad - (x1 - x0) * s) / 2),
+    y: pad + (pos[id]!.y - y0) * s + (H - 2 * pad - (y1 - y0) * s) / 2,
+    count: counts.get(id) ?? 1,
+    kind: id.startsWith('possibility:') ? 'possibility' : 'plan',
+  }));
+  return { vertices, edges: [...edges.values()] };
+};
+
+// Linked-evidence bundle for a node: its plan, inferred/explicit parent,
+// child actions, oracle checks, evidence credits and overlap count.
+const nodeLinks = async (env: Env, node: PlanNode,
+  cache?: { nodes?: PlanNode[]; plans?: ExternalPlan[]; checks?: OracleCheck[]; credits?: AssuranceCredit[]; overlaps?: OverlapRecord[] }) => {
+  const [nodes, plans, checks, credits, overlaps] = await Promise.all([
+    cache?.nodes ? Promise.resolve(cache.nodes) : list<PlanNode>(env.DB, 'plannode'),
+    cache?.plans ? Promise.resolve(cache.plans) : list<ExternalPlan>(env.DB, 'plan'),
+    cache?.checks ? Promise.resolve(cache.checks) : list<OracleCheck>(env.DB, 'oracle-check'),
+    cache?.credits ? Promise.resolve(cache.credits) : list<AssuranceCredit>(env.DB, 'assurance-credit'),
+    cache?.overlaps ? Promise.resolve(cache.overlaps) : list<OverlapRecord>(env.DB, 'overlap'),
+  ]);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  return {
+    plan: plans.find((p) => p.id === node.source || p.source === node.source) ?? null,
+    parent: node.parentOutcomeId ? byId.get(node.parentOutcomeId) ?? null : null,
+    children: nodes.filter((n) => n.parentOutcomeId === node.id),
+    checks: checks.filter((c) => c.nodeId === node.id && !c.demo),
+    credits: credits.filter((c) => c.nodeId === node.id),
+    overlaps: overlaps.filter((r) => r.nodeIds.includes(node.id)),
+  };
+};
+
 // Retired top-level surfaces → their hub section. `always` routes had no
 // JSON form so every GET redirects; the rest only redirect browsers —
 // API clients keep receiving the same JSON byte-for-byte.
@@ -731,6 +867,22 @@ export default {
           lang: langFrom(url, req.headers.get('cookie')),
         }), { headers: { 'content-type': 'text/html' } });
       }
+      // GET /search — meaning search over every plan node (hybrid
+      // lexical + embeddings). Browsers get the page; ?format=json is the
+      // same payload as /nodes/search.
+      if (req.method === 'GET' && seg.length === 1 && seg[0] === 'search') {
+        const q = (url.searchParams.get('q') ?? '').trim();
+        const results = q ? await searchNodes(env, q) : [];
+        if (url.searchParams.get('format') === 'json')
+          return json({ q, count: results.length, results });
+        return html(renderSearchPage({
+          lang: langFrom(url, req.headers.get('cookie')), q,
+          hits: results.map((r) => ({
+            id: r.node.id, label: r.node.label, source: r.node.source,
+            kind: r.node.kind, score: r.score, via: r.via,
+          })),
+        }));
+      }
       // ── Hubs — the five plain-language surfaces + the walkthrough.
       // Old top-level routes redirect here (RETIRED); their JSON forms
       // are untouched and keep serving the same payloads.
@@ -738,20 +890,29 @@ export default {
         const lang = langFrom(url, req.headers.get('cookie'));
         switch (seg[0]) {
           case 'collaborate': {
-            const [commits, res, recs, plans, signals, nodes] = await Promise.all([
+            const [commits, res, recs, plans, signals, nodes, poss] = await Promise.all([
               loadCommitments(env, url.searchParams), loadResources(env),
               list<OverlapRecord>(env.DB, 'overlap'),
               list<ExternalPlan>(env.DB, 'plan'), list<Signal>(env.DB, 'signal'),
               list<PlanNode>(env.DB, 'plannode'),
+              list<Possibility>(env.DB, 'possibility'),
             ]);
+            const network = buildNetwork(plans, poss, nodes, recs);
+            // ?node=<id> — linked-evidence bundle for the focused node.
+            const focusId = url.searchParams.get('node');
+            const focusNode = focusId ? nodes.find((n) => n.id === focusId) : undefined;
+            const focus = focusNode
+              ? await nodeLinks(env, focusNode,
+                { nodes, plans, overlaps: recs })
+              : undefined;
             // /collaborate?q=… — the cited agent reader folded into #ask.
             // Mirrors the /agent JSON handler's computation exactly; that
             // route keeps answering JSON unchanged.
             let ask: { q: string; out?: import('@springforth/portal').AgentOut } | undefined;
             const q = url.searchParams.get('q');
             if (q) {
-              const [poss, parts, apps, credits] = await Promise.all([
-                list<Possibility>(env.DB, 'possibility'), list<Participation>(env.DB, 'participation'),
+              const [parts, apps, credits] = await Promise.all([
+                list<Participation>(env.DB, 'participation'),
                 list<Appreciation>(env.DB, 'appreciation'),
                 list<AssuranceCredit>(env.DB, 'assurance-credit'),
               ]);
@@ -790,6 +951,8 @@ export default {
               resources: res.resources,
               overlaps: recs, nodes, plans, signals,
               nodeFocus: url.searchParams.get('node') ?? undefined,
+              focus,
+              network,
               overlapsAll: url.searchParams.get('overlaps') === 'all',
               page: Math.max(1, Number(url.searchParams.get('page')) || 1),
               outcomesAll: url.searchParams.get('outcomes') === 'all',
@@ -903,6 +1066,50 @@ export default {
         const { checks } = await loadEvidence(env);
         return json({ checks });
       }
+      // /plans + /plans/:id — the plan document lens (HTML only;
+      // ?format=json and API clients keep the JSON below).
+      if (req.method === 'GET' && seg[0] === 'plans' && seg.length <= 2
+          && wantsHtml(req) && url.searchParams.get('format') !== 'json') {
+        const lang = langFrom(url, req.headers.get('cookie'));
+        const [plans, nodes, recs, checks] = await Promise.all([
+          list<ExternalPlan & { nodeCount?: number }>(env.DB, 'plan'),
+          list<PlanNode>(env.DB, 'plannode'),
+          list<OverlapRecord>(env.DB, 'overlap'),
+          list<OracleCheck>(env.DB, 'oracle-check'),
+        ]);
+        const srcOf = new Map(nodes.map((n) => [n.id, n.source]));
+        const summarise = (p: ExternalPlan & { nodeCount?: number }) => {
+          const mine = nodes.filter((n) => n.source === p.id || n.source === p.source);
+          const overlaps = recs.filter((r) =>
+            r.nodeIds.map((id) => srcOf.get(id)).includes(p.id)
+            || r.nodeIds.map((id) => srcOf.get(id)).includes(p.source));
+          const by = (k: PlanNode['kind']) => mine.filter((n) => n.kind === k).length;
+          return {
+            id: p.id, title: p.title, source: p.source, importedAt: p.importedAt,
+            nodeCount: p.nodeCount ?? mine.length,
+            outcomes: by('outcome'), actions: by('action'), indicators: by('indicator'),
+            offers: by('offer'), needs: by('need'),
+            overlaps: new Set(overlaps.flatMap((r) => r.nodeIds)
+              .filter((id) => srcOf.get(id) !== p.id && srcOf.get(id) !== p.source)).size,
+          };
+        };
+        if (seg.length === 1)
+          return html(renderPlansPage({ lang, plans: plans.map(summarise) }));
+        const plan = plans.find((p) => p.id === seg[1]);
+        if (!plan) return err('plan not found', 404);
+        const summary = summarise(plan);
+        const checksByNode: Record<string, { at: string; score: number }[]> = {};
+        for (const c of checks)
+          if (c.nodeId && !c.demo)
+            (checksByNode[c.nodeId] ??= []).push({ at: c.at, score: c.score });
+        return html(renderPlanPage({
+          lang, plan: summary,
+          nodes: nodes.filter((n) => n.source === plan.id || n.source === plan.source),
+          overlaps: recs.filter((r) =>
+            r.nodeIds.some((id) => srcOf.get(id) === plan.id || srcOf.get(id) === plan.source)),
+          checks: checksByNode,
+        }));
+      }
       if (seg[0] === 'plans') {
         if (req.method === 'POST' && seg.length === 1) {
           if (!authed(req, env)) return err('unauthorized', 401);
@@ -979,9 +1186,25 @@ export default {
       // audit ledger with a before/after diff — the fix is visible, the
       // extraction trail is never silently rewritten.
       if (seg[0] === 'nodes') {
+        // GET /nodes/search?q= — hybrid meaning search: minisearch lexical
+        // ∪ cosine over stored embeddings. OnePlanet's search matches by
+        // meaning; this one does too — and it's verifiable (every result
+        // is a real stored node with provenance).
+        if (seg[1] === 'search' && req.method === 'GET') {
+          const q = (url.searchParams.get('q') ?? '').trim();
+          if (!q) return json({ results: [] });
+          const results = await searchNodes(env, q);
+          return json({ q, count: results.length, results });
+        }
         const node = await get<PlanNode>(env.DB, 'plannode', seg[1] ?? '');
         if (!node) return err('node not found', 404);
-        if (req.method === 'GET' && seg.length === 2) return json(node);
+        if (req.method === 'GET' && seg.length === 2) {
+          // ?links=1 — the node plus its linked evidence bundle
+          // (plan, parent, children, oracle checks, credits, overlaps).
+          if (url.searchParams.get('links'))
+            return json({ ...node, links: await nodeLinks(env, node) });
+          return json(node);
+        }
         if (req.method === 'POST' && seg[2] === 'correct') {
           const ct = req.headers.get('content-type') ?? '';
           const b: Record<string, string> = ct.includes('form')
@@ -1021,15 +1244,39 @@ export default {
             : json({ node: corrected, diff });
         }
       }
+      // Embed all plannodes lacking vectors — batch via Workers AI,
+      // one ledger event per run. Idempotent: skips already-embedded nodes.
+      if (req.method === 'POST' && seg[0] === 'embeddings' && seg[1] === 'build') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        if (!env.AI) return err('Workers AI binding not configured', 503);
+        const nodes = await list<PlanNode>(env.DB, 'plannode');
+        const have = await loadEmbeddings(env.DB);
+        const todo = nodes.filter((n) => !have.has(n.id));
+        let done = 0;
+        for (let i = 0; i < todo.length; i += EMB_BATCH) {
+          const batch = todo.slice(i, i + EMB_BATCH);
+          const vecs = await embedTexts(env, batch.map(nodeText));
+          for (const [j, n] of batch.entries()) {
+            if (!vecs[j]) continue;
+            await put(env.DB, 'embedding', `emb:${n.id}`,
+              { id: `emb:${n.id}`, nodeId: n.id, vec: vecs[j], model: EMB_MODEL });
+            done++;
+          }
+        }
+        await ledgerAppend(env.DB, 'api', 'embeddings.built',
+          { nodes: done, skipped: nodes.length - todo.length, model: EMB_MODEL });
+        return json({ embedded: done, total: nodes.length, skipped: nodes.length - todo.length });
+      }
       // Overlap detection over every stored plannode; stores new records,
       // preserves existing validation state on re-runs.
       if (req.method === 'POST' && seg[0] === 'overlaps' && seg[1] === 'detect') {
         if (!authed(req, env)) return err('unauthorized', 401);
         const nodes = await list<PlanNode>(env.DB, 'plannode');
+        const emb = await loadEmbeddings(env.DB);
         const existing = await list<OverlapRecord>(env.DB, 'overlap');
         const keep = new Map(existing.map((o) => [o.id, o]));
         const detected = [
-          ...detectOverlaps(nodes),
+          ...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }),
           ...detectComplements(nodes),           // need × offer direction
         ];
         for (const rec of detected) {
@@ -1056,8 +1303,9 @@ export default {
           for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
         }
         const nodes = await list<PlanNode>(env.DB, 'plannode');
+        const emb = await loadEmbeddings(env.DB);
         const keep = new Map((await list<OverlapRecord>(env.DB, 'overlap')).map((o) => [o.id, o]));
-        const detected = [...detectOverlaps(nodes), ...detectComplements(nodes)];
+        const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }), ...detectComplements(nodes)];
         for (const rec of detected) {
           const prior = keep.get(rec.id);
           await put(env.DB, 'overlap', rec.id, prior && prior.status !== 'proposed' ? prior : rec);
@@ -1089,8 +1337,9 @@ export default {
           { ...plan, id: `${plan.id}-${project.id}`, title: `Silvi — ${project.name}`, nodes: undefined, nodeCount: plan.nodes.length });
         for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
         const nodes = await list<PlanNode>(env.DB, 'plannode');
+        const emb = await loadEmbeddings(env.DB);
         const keep = new Map((await list<OverlapRecord>(env.DB, 'overlap')).map((o) => [o.id, o]));
-        const detected = [...detectOverlaps(nodes), ...detectComplements(nodes)];
+        const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }), ...detectComplements(nodes)];
         for (const rec of detected) {
           const prior = keep.get(rec.id);
           await put(env.DB, 'overlap', rec.id, prior && prior.status !== 'proposed' ? prior : rec);

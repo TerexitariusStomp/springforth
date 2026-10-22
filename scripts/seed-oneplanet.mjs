@@ -23,29 +23,17 @@ const q = (sql) => JSON.parse(execFileSync('npx',
   { encoding: 'utf8' }))[0].results;
 const NOW = new Date().toISOString();
 
-// ── minimal MCP client (same wire shape as packages/oneplanet-adapter/mcp.ts)
-const MCP = 'https://mcp.oneplanet.com/mcp';
-let sid;
-async function rpc(method, params, id = 1) {
-  const r = await fetch(MCP, { method: 'POST', headers: {
-    authorization: `Bearer ${KEY}`, 'content-type': 'application/json',
-    accept: 'application/json, text/event-stream',
-    ...(sid ? { 'mcp-session-id': sid } : {}) },
-    body: JSON.stringify({ jsonrpc: '2.0', id, method, ...(params ? { params } : {}) }) });
-  const s = r.headers.get('mcp-session-id'); if (s) sid = s;
-  const text = await r.text();
-  const ct = r.headers.get('content-type') ?? '';
-  if (ct.includes('text/event-stream')) {
-    for (const m of text.matchAll(/^data:\s*(\{.*\})\s*$/gm)) {
-      const msg = JSON.parse(m[1]); if (msg.id === id) return msg;
-    }
-    return {};
-  }
-  return JSON.parse(text);
-}
-const call = async (name, args, id) => {
-  const r = await rpc('tools/call', { name, arguments: args }, id);
-  const t = (r.result?.content ?? []).filter((c) => c.type === 'text').map((c) => c.text).join('');
+// ── MCP client — official SDK (resolved from edge's deps, pnpm isolation)
+import { Client } from '../packages/edge/node_modules/@modelcontextprotocol/sdk/dist/esm/client/index.js';
+import { StreamableHTTPClientTransport } from '../packages/edge/node_modules/@modelcontextprotocol/sdk/dist/esm/client/streamableHttp.js';
+const client = new Client({ name: 'springforth-seed', version: '0.1.0' });
+await client.connect(new StreamableHTTPClientTransport(
+  new URL('https://mcp.oneplanet.com/mcp'),
+  { requestInit: { headers: { authorization: `Bearer ${KEY}` } } }));
+const call = async (name, args) => {
+  const r = await client.callTool({ name, arguments: args });
+  if (r.isError) throw new Error(`${name}: ${JSON.stringify(r.content).slice(0, 200)}`);
+  const t = (r.content ?? []).filter((c) => c.type === 'text').map((c) => c.text).join('');
   return JSON.parse(t);
 };
 
@@ -54,9 +42,6 @@ const canonicalize = (s) => s.toLowerCase()
   .replace(/\b(the|a|an|of|for|and|in|to|project|programme|program|plan|initiative|scheme)\b/g, ' ')
   .replace(/\s+/g, ' ').trim();
 const OAI_KIND = { outcome: 'outcome', action: 'action', indicator: 'indicator' };
-
-await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {},
-  clientInfo: { name: 'springforth-seed', version: '0.1.0' } }, 0);
 
 // real plan names from list_workspace_plans (uuid → name); pages through all
 const nameOf = new Map();

@@ -24,6 +24,11 @@ ENVIRONMENT = "production"
 # celo-sepolia is the proving ground once contracts are deployed there.
 CHAIN_MODE = "celo"
 
+# Workers AI — embeddings for meaning-matched search + overlap scoring.
+# bge-base-en-v1.5 (768-dim); free tier, no secret needed.
+[ai]
+binding = "AI"
+
 # Real-time MRV: hourly oracle cycle over live open-data sources.
 [triggers]
 crons = ["0 * * * *"]

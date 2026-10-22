@@ -10,8 +10,10 @@ const PLAN = {
 };
 
 const TOOLS = [
-  { name: 'get_plan', description: 'Read a plan and its outcomes/actions by id' },
-  { name: 'search', description: 'Search the workspace knowledge graph' },
+  { name: 'get_plan', description: 'Read a plan and its outcomes/actions by id',
+    inputSchema: { type: 'object', properties: {} } },
+  { name: 'search', description: 'Search the workspace knowledge graph',
+    inputSchema: { type: 'object', properties: {} } },
 ];
 
 function jsonRes(body: unknown, sid?: string) {
@@ -33,7 +35,7 @@ function mockFetch(mode: 'json' | 'sse'): McpFetch {
   return async (_url, init) => {
     const req = JSON.parse(String(init.body)) as { method: string; id?: number; params?: { name?: string; arguments?: unknown } };
     calls.push({ method: req.method, args: req.params?.arguments });
-    if (req.method === 'initialize') return jsonRes({ jsonrpc: '2.0', id: req.id, result: { protocolVersion: '2025-06-18' } }, 'sess-1');
+    if (req.method === 'initialize') return jsonRes({ jsonrpc: '2.0', id: req.id, result: { protocolVersion: '2025-06-18', capabilities: {}, serverInfo: { name: 'oneplanet-test', version: '0.0.0' } } }, 'sess-1');
     if (req.method === 'notifications/initialized') return new Response(null, { status: 202 });
     if (req.method === 'tools/list') {
       return mode === 'sse'

@@ -10,6 +10,7 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.25.2",
     "@springforth/agent": "workspace:*",
     "@springforth/artizen-adapter": "workspace:*",
     "@springforth/atlas-adapter": "workspace:*",
@@ -30,7 +31,11 @@
     "@springforth/silvi-adapter": "workspace:*",
     "@springforth/treegens-adapter": "workspace:*",
     "@springforth/vf-adapter": "workspace:*",
+    "graphology": "0.26.0",
+    "graphology-layout-forceatlas2": "0.10.1",
+    "graphology-types": "0.24.7",
     "h3-js": "^4.2.1",
+    "minisearch": "7.2.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

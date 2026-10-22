@@ -23,6 +23,9 @@ export { renderCommunityPage, type CommunityPageInput,
   type ActorRow, type MutualEdge } from './community.ts';
 export { renderHowItWorksPage } from './howitworks.ts';
 export { renderMapPage, worldMapSvg, type MapMarker, type MapPageInput } from './map.ts';
+export { renderSearchPage, type SearchHit, type SearchPageInput } from './search.ts';
+export { renderNetworkSvg, type NetworkGraph, type NetVertex, type NetEdge } from './network.ts';
+export { renderPlansPage, renderPlanPage, type PlansPageInput, type PlanPageInput, type PlanSummary } from './plans.ts';
 export {
   pageHeader, hubNav, hubSection, howItWorks, statGrid, emptyState,
   pager, displayName, hubScript,

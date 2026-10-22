@@ -21,23 +21,17 @@ const NOW = new Date().toISOString();
 const PLAN = '4c45107b-b551-413a-b47f-26af21785248'; // Sustainable Finance Live 2025 Event
 const SITE = 'https://springforth.widespread.workers.dev';
 
-// ── MCP client (same as adapter: Streamable HTTP + session echo) ────────
-let sid;
-const rpc = async (method, params) => {
-  const r = await fetch('https://mcp.oneplanet.com/mcp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream',
-      'Authorization': `Bearer ${KEY}`, ...(sid ? { 'mcp-session-id': sid } : {}) },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  });
-  sid = r.headers.get('mcp-session-id') ?? sid;
-  const line = (await r.text()).split('\n').filter((l) => l.startsWith('data:')).pop();
-  return line ? JSON.parse(line.slice(5)) : null;
-};
+// ── MCP client — official SDK (resolved from edge's deps) ───────────────
+import { Client } from '../packages/edge/node_modules/@modelcontextprotocol/sdk/dist/esm/client/index.js';
+import { StreamableHTTPClientTransport } from '../packages/edge/node_modules/@modelcontextprotocol/sdk/dist/esm/client/streamableHttp.js';
+const client = new Client({ name: 'springforth', version: '1.0' });
+await client.connect(new StreamableHTTPClientTransport(
+  new URL('https://mcp.oneplanet.com/mcp'),
+  { requestInit: { headers: { authorization: `Bearer ${KEY}` } } }));
 const call = async (name, args) => {
-  const r = await rpc('tools/call', { name, arguments: args });
-  const c = r?.result?.content?.[0]?.text;
-  if (r?.result?.isError) {
+  const r = await client.callTool({ name, arguments: args });
+  const c = r?.content?.[0]?.text;
+  if (r?.isError) {
     if (c?.includes('FORBIDDEN') || c?.includes('Insufficient permissions')) {
       console.error(`${name}: FORBIDDEN — this API key is read-only. ` +
         'Write ops need a write-scoped key from OnePlanet (request via ' +
@@ -48,8 +42,6 @@ const call = async (name, args) => {
   }
   try { return JSON.parse(c); } catch { return c; }
 };
-await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {},
-  clientInfo: { name: 'springforth', version: '1.0' } });
 
 // ── Live data from the prod worker ──────────────────────────────────────
 const poss = (await (await fetch(`${SITE}/possibilities?format=json`)).json()).possibilities;

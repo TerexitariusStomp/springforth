@@ -32,6 +32,10 @@ export const PlanNode = z.object({
   placeId: z.string().optional(),                   // link to a 'place' node or H3 cell
   h3: z.string().optional(),                        // resolved cell when known
   parentOutcomeId: z.string().optional(),           // action→outcome edge
+  // set when parentage was reconstructed by inference (OnePlanet's customer
+  // API withholds links) rather than declared by the source — rendered as
+  // inferred, never as source truth.
+  parentInferred: z.boolean().optional(),
   orgIds: z.array(z.string()).default([]),          // responsible organisations
   tags: z.array(z.string()).default([]),
   timeframe: z.object({ from: z.string().optional(), to: z.string().optional() }).default({}),

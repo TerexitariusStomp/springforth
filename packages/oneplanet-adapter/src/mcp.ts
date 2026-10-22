@@ -1,76 +1,39 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { ExternalPlan } from '@springforth/coordination';
 import { normalizePlan } from './index.js';
 
-// OnePlanet MCP client — Streamable HTTP transport.
-// Server accepts JSON-RPC POSTs; responds with application/json OR
-// text/event-stream (one SSE `data:` JSON-RPC message per line block).
-// A `mcp-session-id` response header must be echoed on later requests.
-// Endpoint: https://mcp.oneplanet.com/mcp · auth: Bearer <opk_…>
-
-const PROTOCOL_VERSION = '2025-06-18';
+// OnePlanet MCP client — official SDK over Streamable HTTP transport.
+// The SDK handles protocol-version negotiation, mcp-session-id echo, and
+// SSE/JSON response framing. Endpoint: https://mcp.oneplanet.com/mcp ·
+// auth: Bearer <opk_…>
 
 type Json = Record<string, unknown>;
 export type McpFetch = (url: string, init: RequestInit) => Promise<Response>;
 
-async function rpc(url: string, key: string, method: string, params: Json | undefined,
-  sessionId: { id?: string }, fetchFn: McpFetch): Promise<Json> {
-  const isNotif = method.startsWith('notifications/');
-  const body = { jsonrpc: '2.0', ...(isNotif ? {} : { id: 1 }), method, ...(params ? { params } : {}) };
-  const res = await fetchFn(url, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${key}`,
-      'content-type': 'application/json',
-      accept: 'application/json, text/event-stream',
-      ...(sessionId.id ? { 'mcp-session-id': sessionId.id } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-  const sid = res.headers.get('mcp-session-id');
-  if (sid) sessionId.id = sid;
-  if (!res.ok) throw new Error(`mcp ${res.status} ${method}`);
-  if (isNotif || res.status === 202) return {};
-  const ct = res.headers.get('content-type') ?? '';
-  const text = await res.text();
-  if (ct.includes('text/event-stream')) {
-    // collect every JSON-RPC message in the stream; result = the one with an id
-    let out: Json = {};
-    for (const m of text.matchAll(/^data:\s*(\{.*\})\s*$/gm)) {
-      const msg = JSON.parse(m[1]!) as Json;
-      if (msg.id !== undefined) out = msg;
-    }
-    if (Object.keys(out).length) return out;
-    throw new Error(`mcp empty stream ${method}`);
-  }
-  return JSON.parse(text) as Json;
-}
-
 export interface McpTool { name: string; description?: string; inputSchema?: Json }
 
 export class OnePlanetMcp {
-  private session: { id?: string } = {};
   private ready: Promise<void>;
-  constructor(private url: string, private key: string, private fetchFn: McpFetch = fetch) {
-    this.url = url.replace(/\/$/, '');
-    this.ready = rpc(this.url, key, 'initialize', {
-      protocolVersion: PROTOCOL_VERSION,
-      capabilities: {},
-      clientInfo: { name: 'springforth', version: '0.1.0' },
-    }, this.session, fetchFn).then((r) =>
-      rpc(this.url, key, 'notifications/initialized', undefined, this.session, fetchFn).then(() => void r));
+  private client: Client;
+  constructor(url: string, key: string, fetchFn: McpFetch = fetch) {
+    const transport = new StreamableHTTPClientTransport(
+      new URL(url.replace(/\/$/, '')), {
+        requestInit: { headers: { authorization: `Bearer ${key}` } },
+        fetch: (u, i) => fetchFn(String(u), i ?? {}) as Promise<Response>,
+      });
+    this.client = new Client({ name: 'springforth', version: '0.1.0' });
+    this.ready = this.client.connect(transport).then(() => undefined);
   }
   async listTools(): Promise<McpTool[]> {
     await this.ready;
-    const r = await rpc(this.url, this.key, 'tools/list', {}, this.session, this.fetchFn);
-    return ((r.result as Json | undefined)?.tools as McpTool[] | undefined) ?? [];
+    return ((await this.client.listTools()).tools ?? []) as McpTool[];
   }
   async callTool(name: string, args: Json): Promise<unknown> {
     await this.ready;
-    const r = await rpc(this.url, this.key, 'tools/call', { name, arguments: args }, this.session, this.fetchFn);
-    const result = r.result as Json | undefined;
-    if (result?.isError) throw new Error(`mcp tool error: ${JSON.stringify(result.content).slice(0, 200)}`);
-    // MCP content blocks → unwrap text payloads; JSON-looking text parsed
-    const content = (result?.content as { type: string; text?: string }[] | undefined) ?? [];
+    const result = await this.client.callTool({ name, arguments: args }) as Json;
+    if (result.isError) throw new Error(`mcp tool error: ${JSON.stringify(result.content).slice(0, 200)}`);
+    const content = (result.content as { type: string; text?: string }[] | undefined) ?? [];
     const texts = content.filter((c) => c.type === 'text' && c.text).map((c) => c.text!);
     const joined = texts.join('\n');
     try { return JSON.parse(joined); } catch { return joined || result; }

@@ -3,13 +3,14 @@
 // portfolio, the resource commons, and the cited agent reader.
 // Everything degrades to plain links/forms; hubScript only polishes.
 import { isNeed, triScore, type ExternalPlan, type OverlapRecord, type PlanNode } from '@springforth/coordination';
-import type { Signal } from '@springforth/core';
+import type { AssuranceCredit, OracleCheck, Signal } from '@springforth/core';
 import { pageShell } from './theme.ts';
 import { t, type Lang } from './i18n.ts';
 import {
   pageHeader, hubNav, hubSection, howItWorks, emptyState, pager,
   displayName, hubScript,
 } from './ui.ts';
+import { renderNetworkSvg, NETWORK_CSS, type NetworkGraph } from './network.ts';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -32,6 +33,31 @@ function correctForm(n: PlanNode | undefined, id: string, lang: Lang): string {
   <input name="note" placeholder="${esc(t(lang, 'form.whyCorrection'))}" aria-label="${esc(t(lang, 'form.whyCorrection'))}">
   <button>${esc(t(lang, 'form.submitCorrection'))}</button>
 </form></details>`;
+}
+
+// Linked-evidence card for the focused node: its plan, inferred/explicit
+// parentage, child actions, oracle checks and verification credits —
+// the attachments OnePlanet hides behind its app surface.
+function focusEvidence(f: NonNullable<CollaboratePageInput['focus']>,
+  parentInferred: boolean, lang: Lang): string {
+  const rows: string[] = [];
+  if (f.plan)
+    rows.push(`<tr><th scope="row">${esc(t(lang, 'hub.collaborate.focus.plan'))}</th><td>${esc(f.plan.title)}</td></tr>`);
+  if (f.parent)
+    rows.push(`<tr><th scope="row">${esc(t(lang, 'hub.collaborate.focus.parent'))}</th><td><a href="/collaborate?node=${encodeURIComponent(f.parent.id)}">${esc(f.parent.label)}</a>${parentInferred ? ` <span class="badge">${esc(t(lang, 'hub.collaborate.focus.inferred'))}</span>` : ''}</td></tr>`);
+  if (f.children.length)
+    rows.push(`<tr><th scope="row">${esc(t(lang, 'hub.collaborate.focus.children'))}</th><td>${f.children.map((c) => `<a href="/collaborate?node=${encodeURIComponent(c.id)}">${esc(c.label)}</a>`).join('<br>')}</td></tr>`);
+  if (f.credits.length)
+    rows.push(`<tr><th scope="row">${esc(t(lang, 'hub.collaborate.focus.credits'))}</th><td>${f.credits.length}</td></tr>`);
+  rows.push(`<tr><th scope="row">${esc(t(lang, 'hub.collaborate.focus.overlaps'))}</th><td>${f.overlaps.length}</td></tr>`);
+  const checkRows = f.checks.map((c) =>
+    `<tr><td>${esc(c.source)}</td><td><span class="badge ${c.result === 'match' ? 'lime' : c.result === 'mismatch' ? 'coral' : ''}">${esc(c.result)}</span></td><td>${c.score.toFixed(2)}</td><td>${esc(c.detail.slice(0, 80))}</td><td>${esc(c.at.slice(0, 10))}</td></tr>`).join('');
+  return `<div class="card">
+<span class="kicker">${esc(t(lang, 'hub.collaborate.focus.k'))}</span>
+<table>${rows.join('')}</table>
+${checkRows ? `<h4>${esc(t(lang, 'hub.collaborate.focus.checks'))}</h4>
+<table><tr><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.result'))}</th><th scope="col">${esc(t(lang, 'col.score'))}</th><th scope="col">${esc(t(lang, 'col.detail'))}</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${checkRows}</table>` : ''}
+</div>`;
 }
 
 const KIND_BADGE: Record<string, string> = {
@@ -241,6 +267,16 @@ export interface CollaboratePageInput {
   page?: number;             // ?page=n — 12 per page
   outcomesAll?: boolean;     // ?outcomes=all — lift the 12-cap
   ask?: { q: string; out?: AgentOut };
+  network?: NetworkGraph;    // #network — cross-plan overlap graph
+  // ?node=<id> — the focused node's linked evidence bundle.
+  focus?: {
+    plan: ExternalPlan | null;
+    parent: PlanNode | null;
+    children: PlanNode[];
+    checks: OracleCheck[];
+    credits: AssuranceCredit[];
+    overlaps: OverlapRecord[];
+  };
 }
 
 // Below this confidence a machine flag doesn't reach the default queue —
@@ -285,7 +321,9 @@ ${howItWorks(lang, 'how.collaborate.needs', 's4')}`;
   if (o.nodeFocus) {
     recs = recs.filter((r) => r.nodeIds.includes(o.nodeFocus!));
     focusNote = `<p class="res">${esc(t(lang, 'hub.collaborate.overlaps.focus'))} <strong>${esc(byId.get(o.nodeFocus)?.label ?? o.nodeFocus)}</strong> — <a href="/collaborate#overlaps">${esc(t(lang, 'hub.collaborate.overlaps.all'))}</a></p>`
-      + correctForm(byId.get(o.nodeFocus), o.nodeFocus, lang);
+      + correctForm(byId.get(o.nodeFocus), o.nodeFocus, lang)
+      + (o.focus ? focusEvidence(o.focus,
+        byId.get(o.nodeFocus)?.parentInferred ?? false, lang) : '');
   } else if (!o.overlapsAll) {
     recs = recs.filter((r) =>
       r.confidence >= MIN_CONFIDENCE || r.status === 'confirmed' || r.status === 'coordinated');
@@ -347,7 +385,12 @@ ${out ? `<div class="card">
 <span class="kicker">${esc(out.intent)}</span>
 <p>${esc(out.answer)}</p>
 ${out.citedNodeIds.length || out.citedOverlapIds.length ? `<p class="muted">${esc(t(lang, 'hub.collaborate.ask.cited'))} ${[...out.citedOverlapIds, ...out.citedNodeIds].map((id) => `<code>${esc(id)}</code>`).join(' ')}</p>` : ''}
-</div>` : ''}`;
+</div>` : ''}
+<p class="muted" style="margin-top:1rem">${esc(t(lang, 'hub.collaborate.search.lede'))}</p>
+<form method="get" action="/search" class="val" style="max-width:40rem">
+  <input type="search" name="q" placeholder="${esc(t(lang, 'hub.collaborate.search.placeholder'))}" aria-label="${esc(t(lang, 'hub.collaborate.search.t'))}" style="flex:1">
+  <button type="submit">${esc(t(lang, 'hub.collaborate.search.button'))}</button>
+</form>`;
 
   const sections: Array<[string, string, number | undefined, string, string | undefined]> = [
     ['needs', t(lang, 'hub.collaborate.needs.t'), o.commitments.length, needsBody, t(lang, 'hub.collaborate.needs.lede')],
@@ -357,6 +400,10 @@ ${out.citedNodeIds.length || out.citedOverlapIds.length ? `<p class="muted">${es
       t(lang, 'hub.collaborate.outcomes.lede')],
     ['plans', t(lang, 'hub.collaborate.plans.t'), o.plans.length, plansBody, undefined],
     ['commons', t(lang, 'hub.collaborate.commons.t'), o.resources.length, commonsBody, t(lang, 'hub.collaborate.commons.lede')],
+    ['network', t(lang, 'hub.collaborate.network.t'), o.network?.edges.length ?? 0,
+      o.network?.edges.length
+        ? `<p class="muted">${esc(t(lang, 'hub.collaborate.network.lede'))}</p>${renderNetworkSvg(o.network, lang)}`
+        : emptyState(t(lang, 'hub.collaborate.network.none')), undefined],
     ['ask', t(lang, 'hub.collaborate.ask.t'), undefined, askBody, t(lang, 'hub.collaborate.ask.lede')],
   ];
 
@@ -375,5 +422,5 @@ ${sections.map(([id, title, count, secBody, lede], i) => hubSection({
 </div>${hubScript}`;
 
   return pageShell({ title: `${t(lang, 'nav.collaborate')} — Springforth`,
-    htmx: false, lang }, body);
+    htmx: false, lang, extraCss: NETWORK_CSS }, body);
 }

@@ -1,0 +1,698 @@
+very good so just want to check can you see the slide sustainable for finance live 2026
+on your screen yeah brilliant okay just a question would you be sharing these afterwards
+richard yeah absolutely perfect thank you yeah will do and and i'll be sharing the notes with
+everybody as well the recording so you should get the recording and track at least the transcript
+which will probably be probably more useful
+hello everybody welcome welcome
+you've got your phone on thank you you knew exactly what i was going to say
+so everyone's piling in so we'll wait a few seconds till we get a group coming in
+got notifications coming at me i'm playing whack-a-mole here if i look like i'm confused
+we're helping out as well
+right
+uh last check i've got everybody there amazing
+okay so you so you can just see a full screen view of of my slide yeah yeah great okay perfect all
+right well look let's uh let's kick off oh there we go right so rich appears sustainable finance dot
+live and extra welcome everybody um we're here for the sustainable finance dot live hackathon boot camp
+so if you thought you something else should be going on um now's the time to leave uh i'm going to run
+through uh the agenda uh we'll have various speakers uh we'll show you some of the um resources that are
+available to you um etc etc so without further ado i shall go through that process we are recording um
+so if you can stay on mute um try and put your hand up if you want to ask questions we will have 15
+minutes at the end for q a uh but if you want to ask a question you know as we go that's fine but we
+will try and breeze through and then have a good lengthy question session and obviously feel free to put
+your um questions into the um chat facility in uh teams as well um so this is what it's all about
+uh we've got the conference on the 20th with the hackathon which is starting off today so let's
+describe it um we kind of uh call this lean back lean in and learn by doing it's a bit like learning
+to drive a car um you need to observe what's going on sit by the passenger and then eventually once
+you've done the theory get behind the wheel and the hackathon is the real getting behind the wheel
+of the of the learn by doing but the benefit of the conference i think is that you can see from a
+lot of experts um and people that have got understanding of the issues uh you know facing um
+developing thriving communities they'll be sharing a lot of their deep wisdom and experience so as
+there's people designing solutions it's really great uh if you can listen into that you've been made of
+uh uh you've been made uh a registrant of the conference so you can watch it uh remotely but
+also on the day if you are in london uh we will welcome you there um and it's a great opportunity
+we'll have some breakout rooms if you want to go off and and sort of talk uh and work with each other
+but also you have a chance to meet talk with people um that are experts in in the space appreciating
+obviously that we've got people joining from all over the world so not everyone can make it
+um to london so either way that works very well but that's your schedule um you should be aware of that
+but um the information uh particularly in purple there um when we will be the dates for the submissions
+the pitches the judging and the awards we'll go over this numerous times but you should have that in
+your diary but if there's a lot of people joined at the last minute and if i've missed anyone just
+let me know by email or or in the notes here uh and uh we will make sure you're added to those
+deadlines um so here's our agenda for today um sort of 15 minutes or so from me that's built in a bit of
+uh tolerance uh then we're going to hear from um puran uh a lot of you may have joined the original
+webinar that we did on september the first there will be a little bit of repetition because a lot
+of people miss that and so we want to give everyone the opportunity to understand what one planet are
+bringing what grassroots are bringing what the satellite application catapult um and the earth
+observation data hub uh and the partners are bringing um and then obviously we'll be talking
+about the teams uh platform and just so you know the i haven't provisioned anybody onto the teams
+hackathon platform yet and we'll be doing that this afternoon as many of you will have received
+an email from me we're settling down your teams um and that is just i'm going to wait till that's
+settled a bit and then we'll then we'll provision you onto the platform so that's our agenda um and
+first of all i wanted to um just highlight uh the judges and mentors that will be able to help you
+during the course of the event um so um here you've got one one list uh of folks who've been working
+with me pretty much through the whole of sustainable finance.live which started in 2019 we've run a
+whole series of these there's workshops through covid online and then we you know moving in person
+as we've been doing it stadia was with me at microsoft that was my background um and is with deloitte
+now running their innovation chrissy um covers an enormous range of areas working with the iso
+committee on various things uh richard and dashner at a quora um having founded elasticloud they're a
+cloud service provider and a microsoft most valued partner uh garrett uh working with the green uh
+digital finance alliance out of switzerland running that group looking at things like digital bonds etc
+uh annamarie uh just pop yourself on mute if you could
+if you just join pop yourself on mute thank you annamarie uh ashurst uh there she is she's just
+popped up on the screen uh for me anyway um legal uh eagle is the as i suppose the cliche but now
+running transition family value partners david uh microsoft uh an architect uh for microsoft many many
+years donna who will be jumping in and out largely judging she's kind of the queen of space i think
+is the way i described her from ordinate survey to space for climate and much more uh then we have
+more more goodies for you faran who will be introducing himself in a moment uh sarah who
+looks really at the rate tech space but runs a series of hackathons uh muhammad from grassroots
+economics uh louisa uh andrew and isabel are all from uh these um satellite application catapult so
+sorry i'll abbreviate that to sac there but very a range of expertise uh liz who is also in that uh in
+that group as well leading that team and uh danielle who is a tech support from cloudscaler and they're
+kindly providing some aws credits for you so that you actually will have some uh cloud uh credits um
+if you require those if you're if that's the area you're working on so really we're here um to help
+you i i don't know if you've heard the phrase storm form norm perform but the storm is usually how do we
+get started who are we what are we focused on um forming that team helping you find you you know
+your team your idea your direction and then obviously moving you through as you as you sort of you know
+get your mojo and get motivated and then turning it into obviously you know the great delivery that i'm
+sure you'll all deliver so that's who we are what are we here to address um well we're here to address
+this problem i think very much reduced and simplified but how do you build a thriving
+community well we we kind of need to think about what is broken today and and simplified uh what
+we really looked at is communities they're not broken completely but there are challenges
+and one of the problems is that they're underfunded um and and disconnected quite often you know many
+sort of a a mosaic of of different interests uh but struggling with things like the essentials of life
+which are becoming unaffordable and so communities though are really where the rubber hits the road
+they are where um you know all great plans uh actually need to uh need to happen so we know how
+important they are and that funding is what an organization is really a lot of what we're going to talk about
+about local initiatives though there are many and brilliant people doing brilliant things but many
+of them yes being recorded for the question there um uh and uh sorry local initiatives underbanked
+and treated as small maybe a bit too risky for banks to fund um a bit commercially challenging uh to get
+involved with now there are specialist banks who would deal with this but if you think about the scale
+that's often the reaction so what can we do to activate locally they just sort of you know think
+about waiting for a bank to come along and change its policy or government to change its policy what
+can we do locally that's what we're going to focus on what can we do to activate help ourselves
+and those banks you know they may be uh struggling with um you know valuing uh the risk or the
+structure or the revenue flows of of things like sports clubs etc but there are new techniques
+and and we'll be hearing from them at the conference from people like sporter and others
+using techniques like better risk data regenerative finance um daos and so forth but i know many of
+you have got expertise in this area which is what i'm excited about um society you know quite often
+people view that you know it's not serving the public good so how do we create a shared resource model
+with trust built in and that's really where we're going to hear from people like black grassroots
+economics and then the government central policy etc feeling distant feeling perhaps uh mistrusted what
+can we do just to look after ourselves local empowerment but then think about you know the
+great examples how do we scale them so that's really the kind of big picture in a nutshell very
+quickly and that we're dealing with and i wanted to share a slide um about this hackathon which is
+obviously a mark maybe one of the uber thoughts you can have as you work on your problem statement
+is how could this fit into a marketplace of marketplaces what do i mean by marketplace well
+we all know the likes of the uber and the airbnbs etc have been ways of connecting people together
+um and uh yeah i'm just checking i've had yeah okay david's checking that you can hear me
+um so we have had people um building marketplaces and they're very locally like neighborly communify
+and obviously one planet that we're going to hear from is a way of integrating lots of different bits
+of information in lots of different places this is one of the big unlocks that we think technology
+can bring uh giving a sort of a holistic systems view the program we'll talk about um so i've got a
+slide here which i'll share with you um but what does a marketplace do um simplistically it brings
+together a liquidity a liquidity of the opportunities in the community of the volunteers perhaps the
+assets the funding that's available from grants all the way through to commercial revenue the assets
+as i've mentioned uh but what about the liquidity of the ecological and well-being outcomes how do you
+measure and manage what happens and where and how do we then replicate what's good and stop what's bad
+and then there's stewardship how can you then leave something in perpetuity with a community
+and others inherit and learn from what works well so there's some thoughts there um about
+what a marketplace of marketplaces might do using modern technology to look across all the best things
+that are available from finance to assets to nature to high streets to homes to well-being
+and then maybe provide a sort of a pool which allows for some of the scale to happen so we'll
+talk about this more in the conference this is just a high speed heads up to think that as you focus on
+maybe it's uh any any one of those problem statements there is a bigger system that all this
+could be feeding into as as always just conscious of time got a few minutes to go you know the problem
+statements you've seen them you've signed up to them and as you know i've been in touch with you and
+i'm trying at the moment to make sure everybody's matched in teams to the right area so i'll be
+keeping focusing on those problem statements and with that um i'm going to stop my introduction
+and i'm going to hand over to paran paran i've got your slides here and so if you'd like to just uh
+either you can either take over or you can ask me to move it on for you but paran i'd like to introduce
+you now as the founder of one planet and one of the original designers of the un sdgs paran over to
+you thank you very much richard and uh yeah if you uh um move on slides when i say yeah so next slide
+please thank you uh so so what will i do today i'll i'll introduce one planet and why we've we've built
+it please do go do go to oneplanet.com you can find out more there and then i'll go through the
+challenge that we've put forward the context of the challenge your your hypothetical client which
+is almost a real client um and uh the task uh or the tasks that you might do and then uh you know
+finish with some hackathon instructions so next slide just for the uh for context look as a society
+we are tearing our hair out trying to deal with issues in silos so we try and deal with say the cost of
+loon crisis in a way that makes a climate emergency worse now 100 we are not going to solve the
+problems in our society working in that way and there's a really deep fundamental reason why we are
+incapable in our society for solving um solving complex problems um instead of that can we get out of the
+weeds look at the bigger picture um can we identify a set of outcomes that we want to achieve what we
+call shared outcomes in our system which are more or less joined up and then can we collaborate on those
+shared outcomes across traditional silos silos of different sectors public sector private sector
+voluntary sector silos of different organizations silos of different departments within the same
+organization so can we be more joined up um so that we can deliver a set of more or less joined up
+shared outcomes so next slide
+yeah thank you richard so why won't the way we try and deal problem with deal with problems work why we
+why we can't deal with issues in silos is because those issues do not exist in silos in the real world so
+reality is massively interconnected of course interconnected is not even a strong enough word
+we know it's ultimately uh indivisible so what we build determines how much we use our cars if they're
+internal combustion engine cars they're creating pollutants damaging our health contributing climate
+change supporting the oil industry which also creates single-use plastics ending up in the oceans
+filling our fish up with plastics if we choose to eat those fish we fill ourselves up with even more
+microplastics every cell in our body has microplastics in it now evidence coming in uh how that's damaging our
+health so for example if you've got high levels of microplastics in the walls of your blood vessels
+you're four times as likely to get a stroke but those and the single largest source of microplastics is now
+from car tires we breathe we breathe in masses of microplastics from the dust from car tires um
+but those plastics are also killing penguins on the other side as well so reality is massively
+interconnected but we don't have the tools um to deal with that interconnectedness start breaking
+down the bad connections and start fostering the good ones so that we can create a healthier more
+regenerative future so next slide uh and for example the world economic forum every year survey the
+members and uh come up with um you know what are the key um risks uh that we face don't worry about the
+detail of this just the general idea they look at economic you know they get people's ideas of the
+importance how important is economic risk environmental risk geopolitical risk societal risk and technological
+risk now i think this shows for example that you can't look at say economic risk without
+understanding uh the probable impacts uh the probable impacts on geopolitics society environment technology
+and that's what's known as a truly wicked problem is a problem that cannot be broken down into separate
+parts you literally have to deal with the whole problem all at once or have a way of dealing with it
+so that you are most likely say if you're tackling economic problems to have positive environmental
+outcomes and geopolitical outcomes and societal uh outcomes and um and how does that link to
+technological innovation so next slide uh so we take a systems approach um we talk about saying we need
+to work in systems not silos to solve complex interconnected problems and i like to talk about a system of
+systems so people are starting to talk about or have been talking about systems thinking applying
+say a systems thinking approach in health or in food or in climate that won't cut the mustard we have to take
+a system of systems approach um because we cannot solve any of those problems ultimately within the system of health
+within the system of climate within the system of economy we have to look at how all those systems work together
+and that links to the marketplace idea you know marketplaces where we can bring these things together
+um and um i think richard mentioned a marketplace of marketplaces so how do we really start joining
+all the dots across all the sectors so next slide uh so one planet has been built on practical experience
+so a lot of academic work on systems thinking but we've come from a very practical background i won't get into details
+of this but um i built the world's first zero carbon urban village development called bed said in south london and then
+created framework one planet living which we applied around the world and which directly informed
+the un sustainable development goals so um you know the sort of approach us taking was always looking at the bigger picture
+one planet living how can lead happy healthy lives within the resources of our one planet
+so let's look at the bigger picture the biggest picture possible uh whenever we're trying to solve problems
+uh next slide so that's why we built one planet um we can take any um strategy policy plan project
+convert it into outcomes what you want to achieve actions how you're going to achieve them
+indicators what you might track you can link them up so we call that the sort of the outcomes actions indicators the atomic structure
+or building blocks of any plan policy strategy um but then once we've got it in that common structured
+data format we can connect any number of these together so to collaborate in ecosystems across sectors
+across supply chains um you know across departments and any number of these infinitely interconnectable
+identify the shared outcomes and then collaborate on those and so pull together uh rather than at the
+moment you know pulling apart so next slide uh but my background is actually in neuroscience uh i was
+involved in the very early days of neural network modeling back in the 1980s and of course most people
+will be familiar with that um uh as underpinning most of what we call ai uh but there's a really really
+fundamental uh neuroscience reason why we have created a society which cannot uh deal with complexity
+and that's because the brain for a very good reason is divided into two the left half of the brain
+sees the world of separate parts but literally cannot put those parts together uh so it might know
+what a head is what an arm is what a leg is if you ask that half of the brain to to put those parts
+together it might stick the leg on top of the head it doesn't know it's got it wrong worse than that
+it can't be persuaded it's got it wrong yet our whole culture and educational system focuses
+on the left half of the brain which sees the world as separate parts but we've already said the world
+does not exist in those separate parts uh the right side of the brain much more intelligent under
+developed in in our culture um uh and so can we start using uh stimulating that part of the brain
+building that so that we can tackle the sorts of issues that we have today and i don't think
+it's coincidence that in fact um in in computing two fundamentally different types of databases
+uh the sequel type databases very much parallel excel type very much parallel to how the left brain
+sees reality and the graph databases which see um uh see the interconnectedness based on interconnectedness
+so next
+yeah and so you know we've been winning the platform for a while very different way of
+understanding how to work with data and we've got customers and users across all different sectors and
+next slide so and it's being used for organizations to be more internally joined up uh uh join up with
+stakeholders customers suppliers managing complex partnerships uh and linking to local regional
+national policies so just bringing all of that together in a way that people can really start saying
+okay how can we be how can we solve these complex problems in a more joined up way so the challenge
+and probably i'm taking too long mass reality is massively interconnected health jobs climate food
+all inextricably linked we spent for example over 240 billion dollars a year on the nhs but 80 of
+that is on avoidable disease so we're literally delusional when we say we need to spend more of the nhs to
+improve health outcomes we won't um if we were more joined up could we save billions or tens of
+billions as well as being happier and healthier and community groups are fantastic at delivering
+benefits every one pound we spend on the community group saves the national health service nhs our health
+service about 10 pounds so next slide so your challenge statement i live in brighton we're setting up
+a brighton resilience partnership this is me as a working in the community it's a citizen-led group
+aiming to build resilient and sustainable city across health food water jobs renewable energy community
+ownership so we're looking at using one planet to help brighton resilience partnership we've already
+we've created a sandbox for you so we've uploaded a number of policies strategies
+converted them into outcomes actions indicators and we want to use this to help brighton resilience
+partnership contribute to a set of joined up city-wide outcomes which are in line with creating a more
+sustainable planet and then can we use one planet to help identify different strategies the synergies
+conflicts opportunities gaps next slide uh and your mission is to help brighton resilience partnership
+so uh help them design and and fund joined up projects which deliver as many co-benefits as possible
+so we might take for example any uh um take a disused car park convert it into a community orchard
+and the co-benefits are of course to food to community engagement reducing flooding better air quality
+uh place for nature uh community ownership um so yeah how can we help uh brighton resilience
+partnership create and fund those projects can it link can we link to local sustainable suppliers
+contractors could could this be a community land trust uh can we quantify co-benefits and then if for
+example we're saving the national health service lots of money or insurance companies for not paying out
+on flood damage can we harvest some of those savings for the community groups to expand and fund what
+they're doing can we use satellite data to help and uh um uh there will be links to earth observation
+hub and satellite application catapult next slide so um uh yeah uh um this presentation will be uploaded
+and then we've got more detailed instructions but the steps you can do explore one planet.com
+background and case studies set up a free account email me and then we'll connect you to the sandbox you
+can then explore the brighton resilience uh outcomes that we want to achieve in various plans look at the
+interconnections uh using the the connections um uh function you can connect your ai agent via our mcp so
+we'll provide some instructions for that um so i've got all those uh in screen grabs in slides below and
+always free feel free to contact me and and or connect with me on linkedin and always happy to hop on a
+quick call me or one of my colleagues and uh show you a bit more so good luck with the hackathon
+and looking forward to seeing what you come up with brilliant thanks paran um with the any quick
+questions before we move on to i mean there'll be a lot of questions right so but these are the ways to
+get into the detail but if there's any general questions i think there was one there was one
+the chat yeah richard um please could you just call it out david it was the uh can you explain the
+system of systems again i'm not sure i fully understand that part okay so people are talking
+about needing to solve problems in systems you know to think more um how things relate to each
+other but they're tending to do that within one particular industry so they or one particular sector
+so they might look uh be doing looking at say a systems approach within the health sector
+or a systems approach within climate or within um uh you know local economic development but actually
+you still need to connect those different systems together that's why we need to take
+a system of systems approach if that makes sense so hopefully that's clear
+um if it's not just let me um you know just message me and happy to explain a bit more
+um john i see your hands up yeah hi this is great so far um two quick thoughts was um i don't really
+pretend to understand attribution science where it comes to like climate change damage
+and trying to really model that and and maybe also how that might turn um be linked into like
+insurance companies because it seems to me that insurance companies handling trillions of dollars
+have a huge interest if we can demonstrate i was just coming out of an ecological group and it was
+about kind of like wildfire damage yeah and quantifying natural services and yeah getting the insurance
+company's money uh yeah just to say yeah the uh particularly the reinsurance industry just saying
+how um uh difficult it is uh going to be in future and that um you know it is threatening the whole
+insurance industry uh climate change wildfires flood flooding so uh there are some good reports from the uh
+uh international faculty of uh of actuaries um uh with some reports on that so if you if you message me
+i can send you uh some links to those reports or just look it up so yeah it's becoming a very big issue for
+them so yeah if we can start uh helping them reduce or if we you know because we're the whole economy is
+dependent on uh having insurance so if we can uh um you know help protect the insurance industry uh
+then of course um that that will help all of us yeah and john anthony hobbly who will end the conference
+on tuesday comes from howdens in the insurance industry and he's talking explicitly about that
+um to end the conference so tune into that thank you okay brilliant um so i will uh move on now to uh
+our next speaker and i don't know if they're there so uh let's just see if will and uh and also hail are
+there guys are you there
+that sounds like a no will also hail are you there okay if not uh put your hand up if you are only
+just struggling to get to the uh to the thing but otherwise we'll we'll move on liz and danielle are you
+there hello um yes we are so we're going that's always very reassuring liz we've got a little slide
+deck from the catapult um if it's okay yeah lovely so my colleague louise is going to um do an introduction
+first of all thank you for around and thanks liz thank you um so we'll just try and do our um slide
+sharing if louise is there can you see that yeah yes and we can hear you as well perfect and i can hear
+you um yeah so hi everyone my name is lisa i'm from the satire applications catapult i work alongside
+liz um and also isabel who unfortunately is not feeling well today so hasn't been able to join
+but you will see isabel throughout this process um so we're from the satire applications catapult
+a uk-based organization um we're one of nine catapults in the uk and we exist to stimulate
+innovation and growth within specific sectors of uh industry in the uk and ours is the satire
+applications so we deal with everything space technology space data um space innovation
+and we really exist to kind of support companies within the space ecosystem in the uk to grow and
+scale and meet the demands of other sectors for their products and services specifically liz and i
+work within what we call our resilient earth mission where we're looking to help infrastructure
+energy natural capital and supply chain markets move from using fragmented space data
+and slower decisions to trusted operational services anchored in space technology and data
+we do we support companies in multiple ways so we help to prove the value of the types of technology
+and data that we use um we help businesses reach the right customers and understand the demand within
+those customer markets and the problems that those customers are looking to solve um which links
+really tightly to this hackathon um we help build the trust so through kind of stronger evidence
+validation and clearer routes to adoption we help demonstrate how kind of strong data can lead to
+stronger decisions and therefore more risk mitigation stronger resilience etc um and we help create the
+conditions for companies to scale so we do a lot of work kind of around the enabling environment for
+the companies to grow and scale and meet the demands of of other markets
+um we are we do that through kind of four different routes of um support we do research to real world so
+that's supporting companies with their trl progression specific technological challenges they might have
+um we then also look at the kind of startup to scale up support um it's a real challenge for companies to
+to kind of overcome that scale up so we do things like looking at return on investment and how it can
+be evidence we look at business case development adoption playbooks business model innovation to
+support kind of different challenges within different markets that enabling ecosystem i spoke
+about so we do policy and advocacy we understand regulation and what that means specifically for the
+types of data that we work with um so looking at kind of standards regulation setting
+and then we do market opportunity market impact and that's things like supporting with challenge
+led accelerators but also creating an educated customer um base for the companies that we work with to
+sell into and kind of doing matchmaking to use a modern term um and then finally before i hand over to
+liz who'll talk you through the earth observation data hub which is a great initiative that we're a part of
+um we kind of support businesses in multiple ways across the space ecosystem and that can be kind of
+upstream new sense of development through to the adoption part which is more what my role focuses on so
+how can we use the great products and services that already exist and get them sold into markets quicker um so we do that
+through customer access so we can connect we speak a lot to problem or challenge owners um so understanding what that challenge is and what needs to be so how he's going to be the
+needs to be so how things need to be kind of pitched to them um validation so proving the value of the data strengthening the evidence and building that trust looking at commercial readiness as well as technological readiness
+um and supporting with deployment pathways if you have any questions i'll pop um our email address is in the chat please feel free to reach out or ask them um at the end of this presentation i'm now going to hand over to liz
+so maybe if you do have a question hold it until liz is presented on the odh and then we can get to them
+thanks ever so much louisa um so i'm going to talk a bit about one of these deployment pathways um and
+this is a program that the catapult has been working on for the last couple of years the earth observation
+data hub um so this is a uk operational national capability that allows easier access to um earth
+observation data um for multiple different sorts of users um so we actually um describe them as being
+explorers who are who are early stage users and maybe just having a look at data analysts um who may
+be using software to help them and then developers and i would expect that a lot of you on the call
+today will be in that third section so i'm just going to give a brief overview to um the eo data hub but
+the program itself um is run by the national center for earth observation and the center for environmental data
+analysis which is part of the science and technology facilities council sponsored by ukri and the
+program overall is actually um funded and sponsored by uk space agency us as the catapult um we are doing
+our catapulty things that louisa has described already um and doing a lot of user engagement and
+looking at how those barriers can be lowered um can you go to the next slide louisa thanks so here's just a
+quick um overview of some of the open data that's available on the hub at the moment we've got um
+easy access to um sentinel data sentinel 2 data especially um and a number of derived data sets um
+which you'll be able to explore on the hub too we also have some access to commercial data um that's a
+little bit trickier to get hold of um but for the purposes of the hackathon the open data is
+is um super easy next slide please um so if you just press um play on the video this will take us
+through and whilst i'm talking how easy it is to go straight from our um browsing window and to um
+look up um to see what's available for a particular area um it's always been it's been um historically
+quite difficult to get um hold of um of earth observation data images um and generally um
+users have had to have um software knowledge of where to go um and the idea with earth observation
+data hub is that we're lowering that barrier of entry to make it easier for someone who's got
+absolutely no clue at all who's just starting out in eo um to get access not only to images but quick
+access to images and then to be able to process data online you can see here we're looking at the
+difference between um land cover over this very very dry summer we've had um and looking at the
+difference in vegetation and how that's been affected by this very hot summer um next slide please
+um i mentioned about analysts so we've got various plugins um that are available to use as well
+if you're not a coder so if you're using something like qgis or esri software we have plugins to help
+you get easy access from the from the environments that you're used to working with um and we also
+have them a workflow for using fme if anyone's available i'm using that too next slide please
+um finally what you'll probably be most interested in is we have a jupiter notebook hub
+so you can go straight from viewing um imagery online for the for the area that you're analyzing
+to be able to um actually run processes um on the on the facilities and capabilities that the hub provides
+what you can actually do and the likelihood is that if you're going to be using any earth observation
+data for your um analysis this may be where pre-processing happens perhaps you will be looking at
+getting hold of data run algorithms on earth observation data hub and then using this jupiter
+hub part and then take the output from that to do further processing um on another cloud platform
+or run output through some sort of um ai next slide please um if you want a bit of inspiration
+here's a load of case studies that are also available we'll put all the various links to these
+um in the teams area so you can get access to them all um but there's a load of case studies here
+that will help show some of the things that um organizations have already done using the hub so
+we've got some things to do with um land use cover um looking at land use change shoreline detection
+and also um pollution detection as well and i think i've got one more slide after that we'll hand over to
+um daniel um this is just to let you know there's a whole documentation library as well online and
+again we'll put um the details for that in in the uh teams area so thanks very much i think my last slide
+is just to thank you and um any questions just drop them in the chat and i will now hand over to daniel from cloud scaler
+scala amazing cheers cheers um so hey everyone um richard you can feel free to flip back to your
+original um slide deck um i don't have any slides it's just meant to be a quick intro so thank you um
+oh yeah whilst you're whilst you're doing that so everyone i'm daniel i'm from uh cloud scala i'm a
+cloud engineer and we build cloud platforms and landing zones on aws uh we provision some sandbox accounts
+for you to use and these uh sandbox accounts have access to generative ai um you'll get access to
+these accounts uh uh you'll get access to aws at some point today but you'll get access to the
+accounts at some point on monday so you'll see some credentials come through on your email and feel
+free to log in but i don't think you'll be able to see any accounts but on monday you will um and also
+a bonus and cool thing is uh winning teams will get cloud scala funded days from aws to help build
+their system so that's very cool and exciting and if you need any technical help from me you can get
+that from either teams which is a team channel that richard has set up or via email and i'll drop my
+email in a second and finally uh good luck to everyone and i'm really looking forward to seeing
+what everybody else gets up to fantastic um we've got a little bit of slack in the system um so there's
+a few questions i think so david if you've managed to spot anything i'll have a look myself now
+uh there was a question from john john do you want to ask that out loud
+yeah i guess it was really about um direct agent kind of access um and i suppose it was a similar
+question for the one with the mcp if um how at what level can the kind of ai's crawl these sites
+and interact and draw stuff down let's start with the cat we'll go back to parana um so you can access
+data from the hub via various apis um so what we can do is um we can have a look at what type of apis
+you would need to be able to run it from claude so um um there might be something different that
+daniel might be able to add i'm not sure yeah so any data that you're able to get from the hub or
+any data at all you'll be able to bring into aws and run some models on that but you just need to
+be a bit cautious cautious of the data size and the model type that you're using to manage expense
+but you should be able to run models on any data that you bring into aws
+or your account specifically okay i hope that answers your question yeah well i suppose it was
+mainly around the difference when clothes kind of going in directly versus sort of operating a web
+page or something like that right um i think liz you might be able to give more information in terms
+of what the ai stuff does on your end of the system and then from my side at least it's just uh
+processing but i'll hand over to liz yeah i i don't know the answer to that i'm afraid john so i
+think given in this in the spirit of hackathon we'll just have to try it and see okay thanks
+uh paran do you want to pick up on the mcp yeah i think i might have to get my uh uh tech person on
+to to answer that but very happy to arrange a time uh to to do that so very good okay all right um so
+uh for some reason we haven't got the grassroots economics guys there unless
+push out um we'll we'll sort that out but let's talk about um the platform and uh resources uh david
+and i will handle this so what have we been talking about um we've been talking about data apis
+and mentors uh from these various organizations um grassroots economics i'll come back to you
+uh and show you in a minute some of the detail that they've got available as well which is
+is very important um the key thing i think is is is when we're doing this boot camp you know you'll
+be going oh my goodness there's a lot of information you know tons of stuff a little bit complicated
+maybe haven't under heard what that is before questions not answered fully you know fair enough but
+that's what these guys are have put their time down for over the next couple of weeks they're
+not available every minute of every day they've got day jobs to do um but if you filter through
+the tools i'm going to show you in a moment we'll get those folks to be able to kind of help you
+through and that i think is one of the great joys of a hackathon is you've got this wonderful range
+of expertise um available to you to help you learn and experiment um so that's really what this is all
+about you don't have to be deeply technical i know you've got people here that are good at
+presenting that are good at the subject matter of you know community and social issues environmentalists
+um don't know what all this data stuff is all about and then there's tons of people that are
+really good at the tech this is about all of us learning together there's no right or wrong answers
+there is no you have to have this skill or not this skill we're all here to help each other and you
+as you can see a big array of people um i'll also show you that there's this quite a we've also
+tried to do a filter uh to provide you quite a big range of data sets and apis um that might suit you
+from a different range and i'll show you that um and then as you know i've been sending out an email
+uh to people to try and make sure we mix and match and get the right teams together so that'll carry
+on over the course of the next um you know probably the next couple of days but probably the bulk of
+it this afternoon and then once we've got all those sort of teams landed uh i'll be putting it into the
+teams platform that i'm going to show you now uh and then you will have a space for your team to be
+collaborating uh and obviously that's where we'll want uh the presentation of your uh final materials to be
+submitted to etc but i'll show you that in a second um there will be two classes um of teams that we
+will judge and we learned this some time ago um that there are some you know big established companies
+you know uh involved uh with with with teams there are also some very small um you know folk who are
+networking together but they've actually been perhaps bringing some intellectual property that they've been
+working on for some time and so we thought it fair to separate the the classes of established be that
+with you know a predefined idea or a pre-existing team from those that have just literally you know
+rocked up met somebody from scratch at this hackathon and developing a new idea so we so you'll be
+filtered into the two classes and that will i'll be able to identify that as we move forward
+uh and we'll reward the awards based on those two different classes um the uh as a you know you
+probably know already what happens from this um i think the key thing is you're already winners
+because you've got off your backsides you've engaged your brain uh and you are working on
+developing that left and right brain as baran said to solve some of these big challenges so you're
+all really winners in my eyes but the key thing is that we will uh make sure that you get uh
+editorial coverage on for next door which is you know big big publicity there will be a report that's
+produced that you will be embedded into and then there will be an interview on for next to tv and
+you can see the ones we did last year on for next to tv uh which will be about you know the journey
+that you've been on and what it is you're doing and you can use that obviously uh however you see fit for
+your cv or for your you know internal career or just you know part of your collateral etc and then we
+also want to try and introduce you where possible to as we've heard you know accelerators like the
+satellite like geovation you know and others who could maybe if you want to sort of take your idea
+and develop it further with you know commercial support technical support um you know specialist or
+general um so that you've actually get onto a flywheel of support for what you're doing here
+so we're early stages top of the funnel uh but you can find it hopefully we'll find you a route into
+uh supporting you know the efforts that you've done here we certainly don't want to just do this as a one
+and done um the pitch day um is the time will vary a little bit based on how many teams we have
+uh and um you know therefore the time that will fit but think about it now you're going to end up with
+a sort of and we'll and we'll talk about this more as we go forward but it would be about an eight minute
+um pitch as per the schedule and as per the meeting that should be in your calendar
+and i'll sort out the order of who's doing that so you know nearer the time um that should be in
+your calendar um and you will be given that time and it will be you know very much drop dead now what
+are the um sort of judging criteria it's worth knowing at the beginning what we're thinking about
+um so we are looking broad spectrum we are looking at you know the business the community idea we are
+looking at the technical implementation that you've managed to achieve how well you've been able to use
+the different data sets the quality of the presentation i mean it does matter to getting
+money and funding and and customers the feasibility is the idea of something that's that's possibly you
+know going to get traction in the market with its scale you know we're looking for things that will
+scale and of course we want to know what that impact potential is so that's our big set of criteria
+that you need to be thinking about uh and that's what we'll do what we will do as judges
+is that we will have a spreadsheet we'll have all of those we'll have a waiting we will judge that as
+the pitches go we'll then think about uh that in a subsequent discussion and before we do the awards
+um we'll have assessed all of that now we will tell you we won't tell you the final scores um but we will
+tell you um the if you like a constructive critique of why you won and maybe why you were the runner-up
+um just so that may help you um for improvement it's really not about you know judging you in this
+in any sense it's about helping you sharpen your saw um what are we looking at things there are tools
+and resources that we quite look for so uh the business model canvas for those of you that have
+heard of it there will be a copy of of one sort of semi-populated to give you an indication over and
+above uh what you see on the business model canvas uh website but it's a way of articulating you know
+who your customers are what your product is who your suppliers are what your costs are etc think about
+that as maybe a way of presenting also we quite like a logical architecture this is one from last year
+looking at agents uh and um uh gentic ai but a logical architecture a big picture view of how your
+system will interact and we've got a some briefing notes on that as well for you on the resources
+site um and as i say you know investing in thriving communities is about working with you know the
+catapult people like geovation and so forth so what i'll do now is i will uh share the this is always the
+tricky bit i will now share the team site that you will get provisioned onto um shortly so tell me if you
+can see a team site thumbs up from somebody yeah okay cool so uh basically i'm going to try and take
+you through it so when you go into it the way i we try to put this together is that you will have
+have access to this sort of lobby home page um and here this is basically your sort of place to go to
+the signposting to to resources so the kind of resources api data etc very explicit go to the
+resources channel i'll go there in a minute dates and deadlines go to the notes the notes in the
+lobby channel and you'll see the way it's ordered is posts shared uh page and notes we're mainly using
+posts shared and notes pitch day and all the stuff i've just spoken about will be in the resources
+channel and then if you want to reach out for help you know press 9-1-1 kind of thing then go to the
+help desk so here uh you can just post and say you know team three we're interested in somebody to help
+us from you know one planet or whatever and we'll be monitoring that and getting people back to you
+so those are your sort of two starting points then the big page really is the resources page and here if
+you go to notes uh one note basically will refresh in a second it's a bit slower when you're on a
+big conference call and here hopefully what you're seeing um does that refresh for you uh is the data
+and api resources so let me talk about this for a minute so in addition to what we've just heard from
+uh the gang uh that we've just spoken um at grassroots who haven't spoken um we've done a
+search for apis and data sets that will be useful using copilot researcher so this was an ai search we
+don't say that it's any more than that and all of this uh the results of this have been posted in a
+pdf i'll show you it in a minute but what we did was a a criteria of would it be easy for you to
+onboard is it free of use what's the technical complexity the richness and how relevant is is it
+to all of the challenges that we've got and then there's various criteria and you can see here we've
+got things like um indices of deprivation food hygiene uh companies house land registry so there's
+a whole range of things that a community could use and then we've even given it a sort of what are
+the best choices for each of the topics community rent regeneration blood risk etc so there's a few
+things there to help you if you're looking for data and that's a bit of a top level guide and then when
+you go back to um shared you will see in here the actual documents and you'll see there that there
+is a sf live hackathon api data set um and there is uh detail on the on the cloud credits from uh from
+cloud scalar there's the open public data catalog etc there there's also the one planet how to connect to
+the one planet mcp um and then there's these things i mentioned before the the business model
+canvas canvas etc so essentially you're going into resources you're going into notes uh you are seeing
+you know what's what's available in a sort of high level picture and then flipping back into the shared
+pages for the for the substance and if we go to to one more um the um microsoft planetary computer i don't
+know if you know what that is but that is a a very big uh set of data and catalogs and apis uh that i've
+just provided an overview of what it is and then obviously the links to that uh you can in addition to
+the and i i think the aw credit aws credits with cloud scalar with the resources available from
+cloud scalar is what you want to focus on but if you have if you're a microsoft guy there is
+um some basic information on some simple credits from them uh we have uh again if we go to cloud
+scalar you've got the it references the pdf i just showed you now let's talk about grassroots
+basically um so njambi will be at the conference um muhammad is the technical lead who will be with
+us they're based out in south africa so there may be some sort of other time or connectivity issues
+um and will is the founder um uh these guys are focused on um commitments pooling so a couple of the
+teams i know are very interested in getting involved in this area there's quite a lot of information here
+and there will be more being posted um about um how you can do uh regenerative financing um and uh
+what things like commitment based pooling are and then actually what how it works technically
+so there's some sort of top level pictures there and then as you get into it you can his what will
+has done is said how it could be used for each of the challenges he's given a sort of sense of how it
+could integrate with one planet or how it could integrate with um uh the geospatial work from the
+satellite um he's then also provided some specific links to resources here and some live data and so
+forth so so you've got a bunch of stuff just to give you a top level picture there go back to shared um
+and i haven't put it in there yet but i i will put in a document he sent me this morning as
+well with a bit more substance so there'll be a lot of stuff there from uh grassroots slash sour food
+and you will have so hail available um as a mentor so again lots of information on that
+um judging criteria i spoke to you about business idea etc etc um how to build maybe if you think about
+how do i build i want to do a clickable demo there's some simple ideas on how to create a single a clickable
+demo um in logical architecture i spoke about that what is a logical architecture i mean i know lots
+of you will know this but if you don't it's here you know we're just here to help um and then the
+final thing i wanted to to share before i asked david to just chat we spoke about marketplace design
+and so we spoke to an architect friend of ours from microsoft who's built a lot of marketplaces
+and he shared with us um some insights um really from a commercial perspective
+about building a marketplace uh and so these uh reflect ideas are here about you know don't build
+a marketplace build a community operating system well what does he mean and so there's a lot of
+substance about um that you know really interesting ways to think about marketplace design
+um the slide that i showed at the beginning there just to give you that as a reference is there
+um and then we spoke about a marketplace of marketplaces and so this talks about ontologies
+um it talks about a knowledge graph you know and the graph based system that brand spoke about speaks
+about connectors and the mcps and talks about maybe the rag layer so there's quite a lot of marketplace kind of
+thinking uh there just at a superficial level really but it just gets your you know your brain going
+it's a bit of reading about the marketplace side of uh of things um david just uh jump in while i uh
+just get my uh screen back in order and on other thoughts david has run hundreds of hackathons
+at microsoft thanks david i see you there over to you yeah so um hi richard and i worked together for
+many years at microsoft did lots of hacks in this structure that we're showing you with the teams
+and stuff like that is something we've evolved uh over the years and it's proved very successful although
+we obviously welcome any feedback and please think of this as the interface between you busy working
+and the mentors and the hack team judges stuff like that please actively use it to post questions and stuff
+like that now we realize some of you will be working as teams that are already formed and may be using
+whatever mechanisms you want similarly if you're remote you may be using you know zoom or start
+another mechanism to accumulate that's great but please consider using the teams as your interface
+with the hack because that way we can track what's going on if you've got a question as richard said you've
+got a place to post those we as mentors will be keeping an eye on that and we can um jump back in
+and uh get back to you the way things are set up as you can see on the screen here each of the teams
+has a little padlock next to it which means it's locked and the only people who can access it are the
+team itself and us as mentors so that we can then drop in and check all's okay or if you say we're having a problem
+with xyz we can pop into uh your team thing and start the dialogue with the rest of you so hopefully
+that's like us walking into the room and chatting uh with you so please feel free to invite anyone in
+to help with that process so please use it it's pretty simple even if you're not a teams user
+hopefully to get up and going and there is that general help desk where you go uh what am i doing so
+that may not be a technical question may not be an environmental question it may just be a
+i'm struggling with teams i don't know where to go so um it's tried and tested hopefully it'll be
+your way and that way we can streamline uh the way we interact with you because as people say you've got
+jobs we've got jobs this way we have a persistent mechanism to have the dialogue with you any questions
+from john thanks david yeah so so basically it says teammate there's nothing in it in the minute
+what what i've been doing with the emails i've been sending everybody and just sort of you know
+landing the teams is that i'm going to pre-populate you into these teams so you will be sent a link
+this afternoon so you know teammate a group of people will be in there and then that's yours to
+work on it as david just described now um uh john's asked me perfect questions i have to send you the
+check of the post john for those um in terms of team formation what we did is to take obviously the
+results of the um questionnaire that you filled in saying what you wanted to do what your skill sets
+were um you know and whether you were already a team or whether you were looking for someone to work
+with and so what i've done there is um i've been using that it's it's imprecise it's you know it's
+classic um as i said sort of storm form norm before uh and i'm uh people are saying yeah that's the one
+i want to be in or could i know could i move to another now you will definitely take a few days and
+i think what john's just said there's perfect sharing what it is you want to achieve what your
+skills are what you can bring to the party this is what this space um this team space could be used
+for i mean if you want to use something else whatsapp slack you know it's up to you um but if you
+want to interface with us as mentors that's where i suggest you know you you use this but the point
+of it is once i've done an introduction i've seen a lot of you doing it already you are saying i i
+want to go this way i suggest you do that um and so forth so do that you know question and answer of
+each other sharing and if it doesn't fit with what you're trying to achieve come back to me i'll find
+you i'll find you another team right so don't give up um in the first sort of you know
+48 hours uh because you think you know it's not quite fitting with you and and also do not be
+intimidated by thinking you don't know enough of somebody else because i guarantee everybody
+and we've seen this every year everybody has something to bring and everybody will learn from
+the experience and and come out better and hopefully have a lot of friends and connections
+around the world as well so think about this as a bit of fun as well right so don't feel intimidated
+next question for john was around uh is there a sort of a wayfinding function or agent no there isn't
+it's microsoft teams um but think of me as your as your wayfinding agent john so if you want if you get
+lost come to me what i suppose i'm saying is is go to the lobby which is your which there's home page
+on screen now uh that kind of tells you where everything is so that's your that's your best wayfinding
+idea um and then after that go to the help desk and scream and i'll jump
+okay uh aurelia is asking how do you get onto the teams environment aurelia i've got all your
+details and i as i just said i've been getting everybody sorted into their teams which is why
+i've held back uh when it settles which i think will be by the end of today i will then provision
+you onto the onto the platform now if for whatever reason you can't you know you can't get on that's
+fine we can use you know uh the next few days uh to get you sorted but wait for something from me
+and if you don't get anything by um the end of play today and then shout um okay so what i want
+to do is to open up more formally to to questions and answers there's a lot there that we've just said
+um and so uh you know we we we're very happy now to sort of you know unpack your questions there's
+no stupid questions there's no no worries about asking what we've already said and asking for it
+again we know we've said a lot in a short period of time so just feel free now to either write a
+question or um open your mic and chat to us we'd love to see you thanks for the feedback sarah um
+there sarah runs a lot of hackathons uh stuart yes hi thank you very much richard um i'm sorry we
+couldn't get to hear from will um but thank you for sharing where is data is coming from and so on
+and then it's inside the teams environment um uh one bit of um housekeeping for me i've joined with with
+with a personal email because this is teams and i've joined from my work laptop um i'm now logged
+in through my work laptop and i couldn't add into the chat for example so i've just sent a message to
+lily just to to share um i think my my question then is um if we receive um the teams this this uh
+platform invite this afternoon yeah um and you were saying you know work through what is it you
+want to achieve and understand who you are inside the groups and so on over the next 48 hours
+that implies over the weekend and i guess i you know i just want to find ways of making sure that
+we get a chance of connecting with people i think that's what i'm getting to yeah and so and how we
+then get to connect with you yeah so there is a sort of time thing i guess just just well so the
+reason um the reason that we made it because hackathons traditionally were sort of 24 hour sprint you know
+all in the same room and and obviously we did a lot of this through covid actually so the pattern we
+learned was that it was best to be um two weeks as as we have here and that means that you know you can
+be doing you know living your life and doing your work um and coming to this you know whatever suits
+you an hour a day or you know for a couple of couple of you know a couple of days over the whole period
+so i think the theory is um is that you know you we put you onto this platform obviously this gives you
+the ability then to ask those questions of your team and chat with them and obviously i'll be
+uh and david and others will be monitoring it so we can dip in and out as you see fit so i nobody's
+saying you have to work over the weekend or at nights um it is about you know just um working to
+suit you as best as we can provide it within these sort of circumstances no no that's fine that's really
+useful and i think that the sort of follow-on then is obviously um uh skills that main we may need
+as a team in order to achieve the challenge may be present or they may not be present and so there
+is that sort of um shuffling i guess yeah exactly um yeah and so if you just talk about how you can
+see that might work because that's getting into monday and tuesday or sort of next week then yeah no
+exactly so as i say the what we did was we asked you a questionnaire um excuse me and the questionnaire
+asked what you know the different skills that you had so a lot of people filled that in
+um we then filtered that so that we tried to get a balance um of skills versus challenge um versus
+people wanted to just be in their own teams as opposed to being individuals so it's not a perfect
+uh distribution um and so the emails that i have sent out i still have more to come because we had a big
+bulk of registrations at the end of yesterday uh is hopefully i've got a good balance now what we've
+found is is that people have already immediately come back and said you know oh actually you know
+i'd like to be in another group because i've changed my mind i want to be you know focused on this
+we will have people saying actually the group have got a you know great idea but it's not my idea so i
+want to go somewhere else and we'll have other people going sorry we're really missing you know
+somebody on x and and so can you find us someone so so this that is what i expect you know when i say the
+next 48 hours whatever it is the next period uh we will be doing as opposed to really charging on
+the idea and sort of you know turning it into an mvp i think it's going to be about sorting ourselves
+out for a few days okay that that makes a lot of sense thank you uh john i guess i have a follow-up
+question around the teams formation um i'm pretty sure it's my involvement with grassroots that got me
+on the radar of this whole thing um but but in a sort of systems of systems kind of spirit um
+and i kind of glossed over the bit where there was kind of prizes i i guess what i'm wondering is is
+there an opportunity for people to kind of float around and help out in different places because i
+imagine there might be a few individuals with very specialized knowledge who might be very useful for
+all the different teams uh yeah i think so i think so i think some people will say you know
+we're and i've already had this kind of we're very singular we've got an idea we want to deliver it we
+want to use these resources to accelerate our idea and we want to be you know us uh we've got other
+people who are saying exactly what you just said john and you know my view is it's an abundance right we
+we are here to kind of help uh society community you know and obviously ourselves now whichever way
+that works for you um it's about reciprocity so so if you say yeah i want to be the guy that moves
+across teams um and i i will introduce you to other teams if they want to welcome you in they will right
+so so yes in the spirit and and obviously in the deed we will just um we'll transact it as we see fit
+nor as you chat to people but it's more i guess i'll facilitate that i don't think there's any other
+way of doing it really uh cleanly well it's funny it's really unfortunate that will's not here because
+it's almost an opportunity for something like commitment pooling where we could have our own
+kind of little vouchers and you know yeah we try to keep it simple um uh you know for for this
+immediate uh purpose but um yeah i i take your point um we'll we'll we'll maybe what we'll do is
+i'll do a quick recording with uh will or something when they surface and we'll send out to everybody
+as well but uh so we don't miss their content um but yeah there's a lot on the website already and i've
+got more to post but uh yeah really good point john i i wish i kind of thought of that earlier but
+too late now um anybody else
+okay um i'll let you i'll let you think on that for a second so so what what do we learn i think
+basically teams are being formed keep working at it right that will be a bit messy um the the then
+we'll make the um uh teams platform available to you to continue that discussion if you want to move
+no problem we'll facilitate that once you get going you've got all these great mentors available
+to you and all the great resources that i've shown uh as you as you get as you get to the
+conference if uh on the on the 20th if you get a chance i really really really recommend that you
+either attend or you attend online because the the richness of what these people are talking about
+you know the political economic social technical legal environmental lessons they've learned will
+help you come up with a better solution and thereafter you know it's about iteration so uh
+uh we'll just get to know each other and we'll interact and we'll and we'll have a bit of fun
+uh when it goes wrong as it inevitably will it's a hackathon just reach out we'll try and fix it
+any other last questions i was sort of tap dancing there a bit to see if anybody wants to put their hand
+up didn't see anything anybody on the team if you like the extended mentor team that wants to sort
+of put a last comment in as the auctioneer would say going going gone fantastic well look thanks all
+for your amazing feedback sarah's put her hand up just there last bitch just uh she's just bought the
+yeah so in terms of uh like general questions or um or ideas uh like so for example someone might
+uh say uh say oh uh this is my idea but i've got a question about it or is someone else doing this
+uh you know obviously with confidentiality in mind is is there one tab or area in the teams where you know
+there can be that running list of q and a yeah that's the help desk um that's um there as um on the screen
+i think now can you see it still i'm still sharing i think uh help um posting here will be public
+and that is a thread so i've designed that so it's a one place to go yeah right okay so that can be
+anything like to do with team formation resources or uh subject matter questions anything you anything
+you like that's your general shout out to everybody yeah perfect thanks and if you want to ask a question
+you know within your team so it's discrete to your team then do that within your team got it
+thanks good clarification okay i'm going to stop there uh get lots of work to do from me uh getting
+all these things that we've sent out to you uh so brilliant stuff thanks for joining send me an email
+do whatever you like send me a pigeon and we'll be in touch but speak to you soon okay thank you thank you
+thank you thank you thank you
+you

@@ -19,7 +19,8 @@ no login required. Two paths: 3 minutes or 8 minutes.
 
 ## 8-minute path (adds)
 
-5. **`/possibilities`** — the deck: quorum mechanics live.
+5. **`/possibilities`** — the deck: quorum mechanics live; feed learns
+   yes/no (pass/interest POSTs), reason lines, since-engagement badges.
    `poss-you-in-this-room-…` sits at 2/3 — join and watch it flip.
 6. **`/collaborate#outcomes`** — who else is pursuing the same outcome,
    across OnePlanet, Treegens, Silvi, community cards.
@@ -37,20 +38,27 @@ no login required. Two paths: 3 minutes or 8 minutes.
 12. **`/collaborate#ask`** (POST `/agent` `{"q":"who else is pursuing
     mangrove planting"}`) — cited answers over the live graph — the
     idea-starter's agentic lane.
+13. **`/map`** — h3-pinned cards across Kenya + UK; per-card minimaps in
+    overlays.
+14. **Quorum card overlay** — auto-seated council, council-gated forum,
+    participant reviews, verifier-replay disclosures on every £ figure.
 
 ## Criteria map
 
-| Criterion | Where it shows |
+| Criterion (verbatim, slide 38) | Where it shows |
 |---|---|
-| Deliverables | `BMC.md`, live demo, `ARCHITECTURE.md` + `demo-assets/architecture.svg` |
-| Business idea | `BMC.md`, `/impact#data` (data revenue), round settlement lane |
-| Technical implementation | `/docs`, test suite, ledger+OTS, 1.72% custom code |
-| UX / first-time user | `/` triage, `/how-it-works` walkthrough, mobile-ready pages |
-| Use of datasets | `/impact#evidence` (endorsed matrix: `DATA-SOURCES.md`), card verified-context, oracle lane, OnePlanet/Treegens/Silvi plans → `/collaborate#overlaps` |
-| Presentation | the pairwise side-by-side + live quorum flip |
-| Feasibility | deployed + seeded + ledger-verified now |
-| Scalability | edge-native, adapter lanes, trust graph compounds |
-| Impact potential | coordinations/week north star + per-currency coordinated value at `/impact#results`; "Coordinated value (est.)" on each card (`VALUATION.md`) |
+| Demo | live site throughout; `DEMO-SCRIPT.md` legs; `/tour` self-serve path |
+| Business Idea | `BMC.md` (canvas + Benefits Dependency Network + GTM work-back), `/impact#data` data-revenue lane, round settlement lane |
+| Technical Implementation | `/docs`, test suite, ledger+OTS anchor, ~2% custom code, non-custodial tx builders |
+| Use of Datasets | `/impact#data` endorsed-sources block, `/impact#evidence` readings w/ methodology refs, OnePlanet MCP + Sarafu/Treegens/Silvi imports, key-gated lanes honestly marked (`DATA-SOURCES.md`) |
+| Presentation | `PITCH-LIVE.md` 8-min script, pairwise side-by-side, live quorum flip |
+| Feasibility | deployed + seeded + ledger-verified now; `?actor=` feed live |
+| Scalability | edge-native worker, adapter lanes, trust graph compounds |
+| Impact potential | coordinations/week north star + per-currency, per-capital coordinated value at `/impact#results`; avoided-loss lane (`VALUATION.md`) |
+
+Deliverables: **BMC** (`BMC.md`) · **logical architecture**
+(`ARCHITECTURE.md` + `demo-assets/architecture.svg`) · clickable demo (live
++ `/tour`). Mentor map: `MENTORS.md`.
 
 Repo: github.com/TerexitariusStomp/springforth (MIT-clean provenance,
 `docs/PROVENANCE.md`).

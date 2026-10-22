@@ -1,0 +1,2748 @@
+.jpeg
+Video web content titled: Cosmo-Local Credit Visualizer: Five Pools, Commitments & Shared Liquidity
+The video here is a nice high level intro
+HYPERLINK "https://docs.cosmolocal.credit/"https://docs.cosmolocal.credit 
+and here is a deeper video
+HYPERLINK "https://youtu.be/Kh4yCvJWc40"Cosmo-Local Credit Visualizer: Five Pools, Commitments & Shared Liquidity
+1111111111111
+https://youtu.be/Kh4yCvJWc40
+Segoe UI
+Segoe UI
+Segoe UI
+Richard Peers
+{9599b42f-3683-4ed3-9bb3-e3b3f38f1e7b}
+davidgristwood
+{8d97f08b-5c0b-d10b-4882-8b0ea16c61fe}
+davidgristwood
+.png
+.png
+Marketplace
+ Manuel Carmona
+One Planet
+One Planet
+Richard Peers
+{3b1ea022-65bf-4f14-9613-a6c6ecb79c76}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+15:11
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Richard Peers
+Planetary Computer Pro is an enterprise-focused extension that allows organizations to ingest, manage, and analyze private geospatial datasets on Azure 
+HYPERLINK "https://learn.microsoft.com/en-us/azure/planetary-computer/microsoft-planetary-computer-pro-overview"Microsoft+1. It provides:
+1111111
+Integration with AI and analytics workflows, including Microsoft Foundry and GeoAI applications 
+HYPERLINK "https://azure.microsoft.com/en-us/products/planetary-computer-pro"Microsoft+1.
+11111
+Rapid deployment and scalability, handling workloads from gigabytes to tens of petabytes 
+HYPERLINK "https://learn.microsoft.com/en-us/azure/planetary-computer/microsoft-planetary-computer-pro-overview"Microsoft.
+11111
+Applications in Conservation: Partners like The Nature Conservancy use the platform for spatial planning, biodiversity protection, and ecosystem management 
+HYPERLINK "https://devblogs.microsoft.com/premier-developer/the-microsoft-planetary-computer/"Microsoft.
+11111
+Interoperability with GIS tools like ArcGIS for seamless access to private datasets
+Cloudscaler
+davidgristwood
+{8d97f08b-5c0b-d10b-4882-8b0ea16c61fe}
+Image download failed.
+.png
+Microsoft
+.png
+Microsoft
+.png
+Microsoft
+.png
+Microsoft
+Inserting image...
+Inserting image...
+Inserting image...
+Inserting image...
+Inserting image...
+Inserting image...
+Inserting image...
+Inserting image...
+Inserting image...
+Like
+roboto
+Dislike
+Microsoft Planetary Computer is a cloud-based platform that combines global environmental data with computational tools to enable geospatial analysis, sustainability insights, and AI-driven environmental decision-making.
+roboto
+Overview
+The Microsoft Planetary Computer is designed to support environmental sustainability and conservation efforts by providing access to a multi-petabyte catalog of global geospatial and environmental data in analysis-ready formats, accessible via APIs and Azure Storage 
+11111
+roboto
+roboto
+HYPERLINK "https://planetarycomputer.microsoft.com/"Microsoft+1. It allows scientists, researchers, policymakers, and developers to measure, monitor, and model ecosystems, helping to answer complex questions about the Earth
+s environment 
+11111
+roboto
+HYPERLINK "https://devblogs.microsoft.com/premier-developer/the-microsoft-planetary-computer/"Microsoft+1. The platform emphasizes open standards and interoperability, using Python-based tools like xarray, rasterio, geopandas, and the SpatioTemporal Asset Catalog (STAC) standard for data cataloging 
+1111111
+HYPERLINK "https://atlas.co/data-sources/microsoft-planetary-computer/"atlas.co+1.
+Data Access and Cataloging: Hosts over 140 publicly available geospatial datasets, including satellite imagery, climate data, biodiversity records, and building footprints, totaling more than 80 petabytes 
+Calibri
+Calibri
+HYPERLINK "https://azure.microsoft.com/en-us/products/planetary-computer-pro"Microsoft+1.
+APIs and Tools: Provides APIs for searching, streaming, and analyzing data without downloading full datasets, enabling efficient cloud-based workflows 
+Calibri
+Calibri
+HYPERLINK "https://atlas.co/data-sources/microsoft-planetary-computer/"atlas.co.
+Open-Source Integration: Supports open-source Python libraries and STAC standards, making scripts portable across local machines, Azure VMs, or other cloud environments 
+Calibri
+Calibri
+HYPERLINK "https://atlas.co/data-sources/microsoft-planetary-computer/"atlas.co.
+Applications in Conservation: Partners like The Nature Conservancy use the platform for spatial planning, biodiversity protection, and ecosystem management 
+Calibri
+Calibri
+HYPERLINK "https://devblogs.microsoft.com/premier-developer/the-microsoft-planetary-computer/"Microsoft.
+Key Features
+Microsoft Planetary Computer Pro
+Planetary Computer Pro is an enterprise-focused extension that allows organizations to ingest, manage, and analyze private geospatial datasets on Azure 
+1111
+GeoCatalogs for scalable data management using STAC standards.
+Calibri
+Calibri
+Integration with AI and analytics workflows, including Microsoft Foundry and GeoAI applications 
+Calibri
+HYPERLINK "https://azure.microsoft.com/en-us/products/planetary-computer-pro"Microsoft+1.
+Rapid deployment and scalability, handling workloads from gigabytes to tens of petabytes 
+Calibri
+Calibri
+HYPERLINK "https://learn.microsoft.com/en-us/azure/planetary-computer/microsoft-planetary-computer-pro-overview"Microsoft.
+Interoperability with GIS tools like ArcGIS for seamless access to private datasets 
+Calibri
+Calibri
+HYPERLINK "https://azure.microsoft.com/en-us/products/planetary-computer-pro"Microsoft.
+HYPERLINK "https://learn.microsoft.com/en-us/azure/planetary-computer/microsoft-planetary-computer-pro-overview"Microsoft+1. It provides:
+Comparison with Other Platforms
+Unlike Google Earth Engine, which uses a proprietary API, Microsoft Planetary Computer emphasizes open-source tools and standards, allowing greater portability and integration with existing enterprise workflows 
+HYPERLINK "https://mapscaping.com/microsofts-planetary-computer-vs-google-earth-engine-a-compare-and-contrast/"mapscaping.com. This makes it particularly suitable for organizations that need to combine geospatial data with AI and enterprise analytics.
+Environmental monitoring and climate modeling
+Calibri
+Calibri
+Conservation planning and biodiversity management
+Calibri
+Urban planning and infrastructure analysis
+Calibri
+AI-driven geospatial analytics for business and research decisions
+Microsoft Planetary Computer thus serves as a comprehensive platform for global environmental data and geospatial intelligence, enabling both public and private organizations to make data-driven decisions for sustainability and ecosystem management 
+1111111
+Calibri
+HYPERLINK "https://planetarycomputer.microsoft.com/"Microsoft+2.
+Use Cases
+Subject to Microsoft T's and C's
+Microsoft Planetary computer
+Microsoft Planetary computer
+Richard Peers
+{6408b9a0-1fcf-4674-ba4f-a042bd6cc20a}
+Calibri Light
+PageTitle
+Richard Peers
+10 October 2026
+Calibri
+PageDateTime
+12:20
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Open source and subject to Microsoft T's and C's
+Environmental monitoring and climate modeling
+Conservation planning and biodiversity management
+Urban planning and infrastructure analysis
+roboto
+Geovation will be happy to help hackers from SF.Live after the event.  See the Shared PDF in shared fold
+Geovation will be happy to help hackers from SF.Live after the event.  See the Shared PDF in shared folder
+Presentation 
+Business 
+Client Tier 
+Access Tier 
+Tier 
+Service Tier 
+Data Tier 
+Portal 
+Server 
+Integration 
+Browser 
+Portlets 
+Services 
+and 
+Applications 
+SRA 
+Gateway 
+Security 
+Java 
+Access 
+and Policy 
+Client 
+Netlet and 
+Manager 
+Services 
+Rewriter 
+Proxies 
+Application 
+Message 
+Runtime 
+Server 
+Queue 
+Services 
+Directory 
+Persistence 
+HADB 
+Server 
+Services 
+Java DB 
+Presentation 
+Business 
+Client Tier 
+Access Tier 
+Tier 
+Service Tier 
+Data Tier 
+Portal 
+Server 
+Integration 
+Browser 
+Portlets 
+Services 
+and 
+Applications 
+SRA 
+Gateway 
+Security 
+Java 
+Access 
+and Policy 
+Client 
+Netlet and 
+Manager 
+Services 
+Rewriter 
+Proxies 
+Application 
+Message 
+Runtime 
+Server 
+Queue 
+Services 
+Directory 
+Persistence 
+HADB 
+Server 
+Services 
+Java DB 
+One example of  many
+External Integrations: Highlight connections to external systems, APIs, or services to show interdependencies.
+These examples provide a foundation for creating logical architecture diagrams that are clear, scalable, and useful for communication among developers, architects, and stakeholders.
+1111
+A Marketplace
+A Marketplace
+A Marketplace  for Community Li
+A Marketplace
+ for Community Li
+A Marketplace  for Community Liquidity
+A Marketplace
+ for Community Liquidity
+Request 
+Azure free account 
+Best for proof of concept and exploring capabilities. 
+Available only to new Azure customers 
+Free monthly amounts of 20+ popular services for 12 months (new Azure 
+customers only) 
+Free monthly amounts of 65+ always-free services 
+Access to full catalog of services up to free amounts and $200 credit 
+Spending protection-credit card won't be charged" 
+No upfront commitment-cancel anytime 
+Move to pay-as-you-go pricing to continue beyond 30 days or after credit 
+is used up 
+$200 credit 
+to use on Azure services within 30 days 
+Try Azure for free 
+Azure free account 
+Best for proof of concept and exploring capabilities. 
+Available only to new Azure customers 
+Free monthly amounts of 20+ popular services for 12 months (new Azure 
+customers only) 
+Free monthly amounts of 65+ always-free services 
+Access to full catalog of services up to free amounts and $200 credit 
+Spending protection-credit card won't be charged" 
+No upfront commitment-cancel anytime 
+Move to pay-as-you-go pricing to continue beyond 30 days or after credit 
+is used up 
+$200 credit 
+to use on Azure services within 30 days 
+Try Azure for free 
+.png
+For  new customers only and secondly not all services are covered, so if you
+re building an AI solution you may find yourself having to dip into your pocket.
+Calibri
+Microsoft is still running their classic $200 credit to get you started on the platform - 
+HYPERLINK "https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account"https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account
+Segoe UI
+Segoe UI
+Microsoft credits 
+Microsoft credits
+Richard Peers
+{14102de4-4f93-4e2a-b13e-86a4d371442b}
+Calibri Light
+PageTitle
+Richard Peers
+09 October 2026
+Calibri
+PageDateTime
+17:53
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Navaneeth Vijayan
+{c5bc8271-5bb8-45cf-9e6d-48e05b041e4c}
+Problem statement One
+veklomdev
+{39dbf44c-5e8a-45fb-bbbf-c2e6ffa4edce}
+Dhillon Shah
+{ecd1edd2-d83a-4ae5-94ea-0fb8f92b3dd2}
+Navaneeth Vijayan
+Dhillon Shah
+{ecd1edd2-d83a-4ae5-94ea-0fb8f92b3dd2}
+A market place of marketplaces
+Richard Peers
+A market place of marketplaces
+Richard Peers
+{bbedab4e-afe6-4cdb-88fe-566e62ffe903}
+Calibri Light
+PageTitle
+Richard Peers
+19 October 2026
+Calibri
+PageDateTime
+10:26
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Resources
+Alpha Kilme
+Alpha Kilme
+Alpha-Klima
+Calibri
+Physical climate risk data and analytics to assess, price and report climate exposure on assets and portfolios.
+Calibri
+Alpha-Klima is the climate-risk unit of Arfima Financial Services, based in Madrid. Our platform links climate hazard data to asset-level impacts and then to financial and regulatory metrics, built on OS-Climate's open-source physrisk library, where we are active contributors along with BNP Paribas. See 
+HYPERLINK "https://alpha-klima.com/"https://alpha-klima.com for more information.
+1111
+Calibri
+Calibri
+Datasets on offer:
+Hazard indicators for flood, heat, wildfire, wind, hail and snow, drought, water stress, landslide, subsidence and earthquake, under historical and future climate scenarios to 2050-2085, together with asset impact, and portfolio loss metrics. Synthetic example portfolios are included to get started.
+Calibri
+ Manuel Carmona - 
+HYPERLINK "mailto:jmcarmona@arfimaconsulting.com"jmcarmona@arfimaconsulting.com
+Segoe UI
+Segoe UI
+Calibri
+Eduardo Mateos Gonz
+lez - 
+HYPERLINK "mailto:emateos@arfimaconsulting.com"emateos@arfimaconsulting.com
+Mentors (Alpha-Klima team):
+Calibri
+Calibri
+We provide hackathon teams with a platform account and API usage for the duration of the event. Email 
+HYPERLINK "mailto:contacto@alpha-klima.com"contacto@alpha-klima.com with your team name and we will set you up.
+1111
+Access:
+Calibri
+Calibri
+Platform 
+HYPERLINK "https://platform.alpha-klima.com/"https://platform.alpha-klima.com 
+1111
+Calibri
+Documentation (methodology, dataset catalogue, API Handbook), available from the platform once signed in
+Calibri
+API reference 
+HYPERLINK "https://platform.alpha-klima.com/prapi/docs"https://platform.alpha-klima.com/prapi/docs 
+1111
+Calibri
+Example notebooks in Python, from first API call to full portfolio workflows 
+HYPERLINK "https://github.com/Alpha-Klima/alpha-klima-notebooks"https://github.com/Alpha-Klima/alpha-klima-notebooks 
+1111
+Calibri
+OS-Climate's Physical Risk & Resilience repository: 
+HYPERLINK "https://github.com/os-climate/physrisk/"https://github.com/os-climate/physrisk/
+Resources:
+Calibri
+Alpha Kilmer
+Alpha Kilmer
+veklomdev
+{665e7c5e-268a-4a07-8110-1639e76286f1}
+veklomdev
+veklomdev
+Cloudscaler
+Cloudscaler
+Richard Peers
+{3b1ea022-65bf-4f14-9613-a6c6ecb79c76}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+15:15
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+ Manuel Carmona
+{1bfe2690-f154-42b9-bea6-aa0c4cb71e21}
+Alpha Kmer
+ Manuel Carmona
+Alpha Kmer
+Alpha Klima
+Alpha Klima
+Richard Peers
+.png
+.png
+Problem Statement Four
+Problem Statement Four
+Richard Peers
+{b410fb36-5927-42e0-9fb2-43e6397e591a}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+16:19
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+davidgristwood
+Richard Peers
+{69eac241-cb95-404c-a746-6e271ab8a4e0}
+See the deck that Po
+Hackathon NGO reverse challenge  from One Planet
+Richard Peers
+{58f57a50-644d-47dc-bbcb-fcd314ede1fc}
+HYPERLINK "mailto:pooran.desai@oneplanet.com"pooran.desai@oneplanet.com
+See the Shared channel above for a PDF of:
+veklomdev
+{75f37451-6341-4e54-b99f-bd96aed92b31}
+veklomdev
+Problem Statements
+Richard Peers
+ Manuel Carmona
+{1bfe2690-f154-42b9-bea6-aa0c4cb71e21}
+hepworks
+{f843950f-2bb1-4684-9d31-6e07aa6e8171}
+terexmaps
+{b69f44a5-1451-4924-a403-c3599bb089d0}
+terexmaps
+{c262b156-c08b-462a-b54f-40a8b3828980}
+Problem Statements
+Problem Statements
+Richard Peers
+{b410fb36-5927-42e0-9fb2-43e6397e591a}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+16:13
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Richard Peers
+Richard Peers
+Richard Peers
+veklomdev
+{665e7c5e-268a-4a07-8110-1639e76286f1}
+Data Access and Cataloging: Hosts over 140 publicly available geospatial datasets, including satellite imagery, climate data, biodiversity records, and building footprints, totaling more than 80 petabytes 
+HYPERLINK "https://azure.microsoft.com/en-us/products/planetary-computer-pro"Microsoft+1.
+11111
+Problem Statement Two
+veklomdev
+{39dbf44c-5e8a-45fb-bbbf-c2e6ffa4edce}
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+From Underbanked to Understood - Community 
+Idea Starter 
+Credit and Commitment Pools 
+. The Sarafu Network enables communities to issue 
+Community organisations - such as sports clubs, 
+redeemable vouchers for goods, services, and 
+charities, housing groups, and local producers - hold 
+labour, creating transparent and auditable 
+real value through relationships, skills, and local demand. 
+commitment pools. 
+However, traditional financial systems often see them as 
+low value or high risk because of their fragmented 
+ Could you build on Sarafu, or design a compatible 
+records, limited collateral, and volatile cash flow. 
+solution, to help communities coordinate resources, 
+route support, and make local capacity visible? 
+How might we make these assets, commitments, and 
+. Could this data also help banks, councils, and 
+histories visible to support fair finance, mutual credit, and 
+investors identify which projects are resilient, 
+better coordination? 
+trustworthy, and investable? 
+Can we build tools that help banks and funders 
+understand place-based organisations, while enabling 
+communities and meet local needs without relying 
+solely on cash? 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+From Underbanked to Understood - Community 
+Idea Starter 
+Credit and Commitment Pools 
+. The Sarafu Network enables communities to issue 
+Community organisations - such as sports clubs, 
+redeemable vouchers for goods, services, and 
+charities, housing groups, and local producers - hold 
+labour, creating transparent and auditable 
+real value through relationships, skills, and local demand. 
+commitment pools. 
+However, traditional financial systems often see them as 
+low value or high risk because of their fragmented 
+ Could you build on Sarafu, or design a compatible 
+records, limited collateral, and volatile cash flow. 
+solution, to help communities coordinate resources, 
+route support, and make local capacity visible? 
+How might we make these assets, commitments, and 
+. Could this data also help banks, councils, and 
+histories visible to support fair finance, mutual credit, and 
+investors identify which projects are resilient, 
+better coordination? 
+trustworthy, and investable? 
+Can we build tools that help banks and funders 
+understand place-based organisations, while enabling 
+communities and meet local needs without relying 
+solely on cash? 
+HYPERLINK "https://www.sustainablefinance.live/hackathon"SustainableFinance.Live Hackathon 2026
+Calibri
+veklomdev
+Microsoft is still running their classic $200 credit to get you started on the platform - https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account 
+veklomdev
+For  new customers only and secondly not all services are covered, so if you
+re building an AI solution you may find yourself having to dip into your pocket. 
+Microsoft is still running their classic $200 credit to get you started on the platform - 
+HYPERLINK "https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account"https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account
+Segoe UI
+Segoe UI
+veklomdev
+For  new customers only and secondly not all services are covered, so if you
+re building an AI solution you may find yourself having to dip into your pocket.
+Calibri
+Azure free account 
+Best for proof of concept and exploring capabilities. 
+Available only to new Azure customers 
+Free monthly amounts of 20+ popular services for 12 months (new Azure 
+customers only) 
+Free monthly amounts of 65+ always-free services 
+Access to full catalog of services up to free amounts and $200 credit 
+Spending protection-credit card won't be charged" 
+No upfront commitment-cancel anytime 
+Move to pay-as-you-go pricing to continue beyond 30 days or after credit 
+is used up 
+$200 credit 
+to use on Azure services within 30 days 
+Try Azure for free 
+Azure free account 
+Best for proof of concept and exploring capabilities. 
+Available only to new Azure customers 
+Free monthly amounts of 20+ popular services for 12 months (new Azure 
+customers only) 
+Free monthly amounts of 65+ always-free services 
+Access to full catalog of services up to free amounts and $200 credit 
+Spending protection-credit card won't be charged" 
+No upfront commitment-cancel anytime 
+Move to pay-as-you-go pricing to continue beyond 30 days or after credit 
+is used up 
+$200 credit 
+to use on Azure services within 30 days 
+Try Azure for free 
+.png
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+Collaboration Reverse Challenge 
+Idea Starter 
+Communities involve many stakeholders and 
+. Use the One Planet system. which creates a digital 
+overlapping plans, often stored in different systems and 
+representation of socio-economic-ecological 
+formats. While objectives may align, strategies can 
+systems. Here, plans become interconnected nodes 
+conflict or duplicate efforts - wasting time and 
+within a living network rather than static documents. 
+resources. 
+Its graph database connects outcomes, actions, 
+organisations, places, and frameworks into a unified 
+This problem statement will be introduced by an 
+knowledge graph. 
+established 'actor'. outlining their goals, constraints, and 
+opportunities. Hackathon teams will apply fresh thinking 
+ Could you use Agentic Al to create autonomous 
+and tools to design a clear vision and practical solution 
+agents that query this system via APIs. combine 
+for successful delivery. 
+insights, and take next action? 
+. How might these tools be applied to solve the 
+The briefing will be shared at the bootcamp. 
+actor's challenge? 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+Collaboration Reverse Challenge 
+Idea Starter 
+Communities involve many stakeholders and 
+. Use the One Planet system. which creates a digital 
+overlapping plans, often stored in different systems and 
+representation of socio-economic-ecological 
+formats. While objectives may align, strategies can 
+systems. Here, plans become interconnected nodes 
+conflict or duplicate efforts - wasting time and 
+within a living network rather than static documents. 
+resources. 
+Its graph database connects outcomes, actions, 
+organisations, places, and frameworks into a unified 
+This problem statement will be introduced by an 
+knowledge graph. 
+established 'actor'. outlining their goals, constraints, and 
+opportunities. Hackathon teams will apply fresh thinking 
+ Could you use Agentic Al to create autonomous 
+and tools to design a clear vision and practical solution 
+agents that query this system via APIs. combine 
+for successful delivery. 
+insights, and take next action? 
+. How might these tools be applied to solve the 
+The briefing will be shared at the bootcamp. 
+actor's challenge? 
+.png
+.png
+.png
+atlas.co
+.png
+Microsoft
+.png
+mapscaping.com
+.png
+atlas.co
+.png
+Microsoft
+.png
+Microsoft
+.png
+Microsoft
+.png
+atlas.co
+.png
+Microsoft
+These are the criteria by which we will be scoring the pi
+This challenge is to describe the value drivers, the business model and the architecture that would enable your vision to be realized with deliverable in the form of a
+Business Idea
+Calibri
+Technical Implementation
+Use of data sets
+Presentation
+Feasibility
+Scalability
+Impact potential
+Examples are in the Notes pages below or in the shared tab
+Logical architecture
+Demonstrator such as a clickable demo and a 
+Business Model Canvas 
+Judging criteria
+Judging criteria
+Arial
+Richard Peers
+{98ac1309-9d3d-4758-bf82-8bb9bcee6074}
+Calibri Light
+PageTitle
+Richard Peers
+12 October 2026
+Calibri
+PageDateTime
+16:34
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Richard Peers
+{2a35af1b-a2f2-420f-98d7-f4198ef2d0d5}
+Luisa Doughty
+{a5a56cae-1cf8-4c76-bb1e-ddb4f11ef1e6}
+The Satellite Application Catapult and Earth Observation Data Hub (see separate tab)
+Luisa Doughty
+davidgristwood
+{fddff089-7b4b-429f-a67a-966efd42b03e}
+Dhillon Shah
+{749b90be-147d-42e5-9887-6ef3760aa62c}
+ernestoqv
+veklomdev
+Liz Scott
+davidgristwood
+Luisa Doughty
+bumjoo
+Richard Peers
+Some example live data
+network data: 
+HYPERLINK "https://viz.sarafu.network/"https://viz.sarafu.network/ 
+report and offer data 
+HYPERLINK "https://sarafu.network/map"https://sarafu.network/map 
+11111111111
+Segoe UI
+Richard Peers
+{bcf75213-4a87-4d8f-8de8-35639fa00f8b}
+Segoe UI
+Segoe UI
+Mentors
+Hackathon Resources
+Grassroots Economics/Sarafu 
+Grassroots Economics/Sarafu
+Here is an article on a Regenerative Bonds paper: 
+HYPERLINK "https://willruddick.substack.com/p/can-we-finance-regeneration-without"https://willruddick.substack.com/p/can-we-finance-regeneration-without 
+And here is the paper: 
+HYPERLINK "https://arxiv.org/abs/2606.23922"https://arxiv.org/abs/2606.23922
+11111111
+Njmabi Njoroge, Operations Director, will be at the conference. 
+Mohamed Sohail, Tech Lead. Mohamed is the best person to discuss how to provision Sarafu for the hackathon, including published data, API or export options, sandbox access, agentic AI access, and what can safely be made available to teams. 
+Will Ruddick  Founder 
+Back up mentoring online during the hack.
+Who and what:
+Can We Finance Regeneration Without Extracting From Communities
+Segoe UI
+Segoe UI
+How do we use our resources together to achieve our visions?
+Segoe UI
+Communities often have real capacity in the form of people, skills, spaces, relationships, local demand, future production, food, land, care, trust and shared purpose. But this capacity is often fragmented across plans, spreadsheets, conversations, grant reports, bank records and informal networks. The challenge is to build tools that help communities see what they have, define what they need, make credible commitments, route support, and track fulfilment.
+In that framing:
+One Planet can help map plans, actors, places, outcomes, actions and indicators.
+Sarafu can help map offers, requests, redeemable commitments, pools, limits, exchanges, fulfilment histories and settlement flows.
+Together, this gives hackers a way to move from static plans to actionable coordination.
+For the four live problem statements, I would frame Sarafu
+s role like this:
+1. Collaboration Reverse Challenge
+One Planet can map the plans, stakeholders, places, outcomes and possible conflicts. Sarafu can help express who is committing what, under what conditions, and whether those commitments are fulfilled. This turns coordination from a planning exercise into a delivery and accountability layer.
+2. From Underbanked to Understood (Community Credit and Commitment Pools)
+This is the most direct fit for Sarafu. The platform can help make community capacity visible through commitment pools, voucher flows, participation records, redemption, fulfilment and settlement histories. This can help banks, councils and funders understand community reliability and investability through richer evidence than cash flow alone.
+3. From Satellite to Community Space
+Geospatial and satellite data can identify risks such as flooding, drought, pollution or land-use pressure. Sarafu can help communities coordinate the response: local labour, materials, food, transport, repairs, stewardship, mutual support and follow-up commitments.
+4. Resolving Food and Energy Insecurity
+Sarafu can help coordinate producers, households, schools, hospitals, councils, community hubs and local businesses through offers, requests, procurement commitments, demand signals, local food flows and fulfilment records. This could support work on reducing the healthy food penalty, improving logistics and linking local producers with community demand.
+A curated published dataset or anonymised sample dataset. (latest 
+HYPERLINK "https://zenodo.org/records/20120190"https://zenodo.org/records/20120190 )
+1111
+Segoe UI
+Calibri
+Calibri
+Clear guidance on what public Sarafu data can be used.
+Calibri
+API documentation or structured exports where available.
+Calibri
+A sandbox or demo environment for teams.
+Calibri
+A small set of example scenarios such as a community kitchen, local food procurement, sports club repair, housing retrofit, flood response, or community hub.
+Calibri
+A short mentor pack explaining offers, requests, vouchers, commitment pools, limits, fulfilment and settlement in plain language.
+Segoe UI
+Segoe UI
+Segoe UI
+.png
+.png
+Marketplace
+Marketplace
+Richard Peers
+{b410fb36-5927-42e0-9fb2-43e6397e591a}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+16:14
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+veklomdev
+{665e7c5e-268a-4a07-8110-1639e76286f1}
+veklomdev
+See the deck that Pooran pitched at the B
+See the deck that Pooran pitched at the Bootcamp in the 
+See the deck that Pooran pitched at the Bootcamp in the shared channel abov
+See the deck that Pooran pitched at the Bootcamp in the shared channel above
+See the deck that Pooran pitched at the Bootcamp in the shared channel above
+See the deck that Pooran pitched at the Bootcamp in the shared channel.  See  above
+See the deck that Pooran pitched at the Bootcamp in the shared channel.  See menu  above
+Earth Observation and Geospatial data to help map your community and more.
+The Satellite Applications Catapult is an independent innovation and technology company, created by Innovate UK to grow the UK economy by supporting our best companies to accelerate the invention and adoption of space data and technology. 
+Mentors 
+ The Catapult team:
+Based in Harwell, Oxfordshire, the Catapult was established in May 2013 as one of a network of centres to accelerate the take-up of emerging technologies and drive economic impact for the UK. 
+We are a not-for-profit research organisation which is registered as a private company limited by guarantee and controlled by its Board. See 
+HYPERLINK "https://www.sa.catapult.org.uk/"www.sa.catapult.org.uk for more information.
+1111
+Richard Peers
+{2cd6200d-b0cd-4e17-8492-1a8573d559c1}
+Liz-  
+HYPERLINK "mailto:liz.scott@sa.catapult.org.uk"liz.scott@sa.catapult.org.uk 
+1111
+Calibri
+Calibri
+Isabelle - 
+HYPERLINK "mailto:Isabelle.CrozierMorris@sa.catapult.org.uk"Isabelle.CrozierMorris@sa.catapult.org.uk
+Calibri
+Luisa - 
+HYPERLINK "mailto:Luisa.Doughty@sa.catapult.org.uk"Luisa.Doughty@sa.catapult.org.uk
+Calibri
+Anu - 
+HYPERLINK "mailto:Anuradha.DamaleDay@sa.catapult.org.uk"Anuradha.DamaleDay@sa.catapult.org.uk
+Resources:
+Calibri
+EO Data Hub site 
+HYPERLINK "https://eodatahub.org.uk/"https://eodatahub.org.uk/
+Segoe UI
+Segoe UI
+Calibri
+YouTube channel 
+HYPERLINK "https://www.youtube.com/@eodatahub"https://www.youtube.com/@eodatahub
+Calibri
+Documentation hub 
+HYPERLINK "https://docs.eodatahub.org.uk/"https://docs.eodatahub.org.uk/
+Calibri
+To help get started in using the platform for doing EO analysis, we have
+Calibri
+Copernicus datasets including Sentinel 2 imagery, EOCIS Land Surface Temperature, EOCIS Land Cover
+Calibri
+Datasets on offer:
+Segoe UI
+Calibri
+Calibri
+Calibri
+Satellite Application Catapult and Earth Observation data Hub
+Satellite Application Catapult and Earth Observation data Hub
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+15:11
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+ernestoqv
+{fc5b4873-92d5-49dc-9b07-b68f59aadac1}
+Richard Peers
+Richard Peers
+veklomdev
+{665e7c5e-268a-4a07-8110-1639e76286f1}
+Video web content titled: Cosmo-Local Credit Visualizer: Five Pools, Commitments & Shared Liquidity
+4,606 
+--- 
+.... 
+A marketplace for community liquidity 
+from a visible local problem to a community-owned asset, with liquidity at every stage 
+1. Surface 
+2. Match 
+3. Fund 
+4. Deliver 
+5. Measure 
+6. Steward 
+Liquidity of opportunities 
+Liquidity of contribution 
+Liquidity of funding 
+Liquidity of assets 
+Liquidity of ecological and 
+well being outcomes 
+Liquidity of stewardship 
+Local needs and 
+People and organisations 
+Capital flows to verified 
+Nature-based solutions 
+Restoration is measured, 
+Land, housing and high 
+underused assets are 
+are matched to micro- 
+activity. A community bank 
+are built: reed beds and 
+attributed and made 
+street assets transition 
+made visible in one place: 
+activities - volunteer 
+improves lending to the 
+wetlands filter 
+tradeable as nature and 
+into community 
+the flooded pitch, sewage 
+time, wildlife trust 
+club, aggregates 
+contamination and buffer 
+carbon credits. 
+ownership, stewardship or 
+overflow, spare fields, 
+expertise, technical skills, 
+fragmented payments and 
+flooding; marginal pitch 
+Participation and impact 
+shared governance. Value 
+allotments, rooms, 
+building, planning, 
+prices governance and risk 
+becomes allotments 
+are tracked transparently. 
+created is reinvested 
+kitchens, tools, distressed 
+nutrition, legal etc. Small 
+appropriately. 
+feeding the community 
+locally. 
+assets such as homes and 
+acts aggregate into 
+kitchen. 
+high streets. 
+systemic outcomes. 
+Community marketplace . 
+Volunteers . Wildlife Trusts . 
+for local clubs, residents 
+Community banks . local 
+Wildlife Trusts . 
+CreditNature 
+ Stabiliti . 
+Community Land Trusts . 
+Sports coaches, Charities local 
+government, technical partners 
+government . philanthropy 
+contractors. sports teams . 
+Hants & loW Wildlife Trust. 
+high street partnerships. 
+and stakeholders 
+community kitchen 
+Sporta Bank 
+Local Government 
+Continuous circular flow: value created at each stage is reinvested, so the chain restarts with a stronger community balance sheet. 
+Start 
+Stop 
+Continue 
+Banking community assets. Sharing data across the marketplace. Pricing 
+Scoring clubs and charities as high risk, low value. Funding fragmented one- 
+Focusing on value, speed and measurable outcomes. Growing continuous 
+ecosystem risk with better metrics, Al, DeFi and tokenisation. 
+off projects. Making communities integrate services manually. 
+deal flow. Building trust, cohesion and the local SME economy. 
+A marketplace for community liquidity 
+from a visible local problem to a community-owned asset, with liquidity at every stage 
+1. Surface 
+2. Match 
+3. Fund 
+4. Deliver 
+5. Measure 
+6. Steward 
+Liquidity of opportunities 
+Liquidity of contribution 
+Liquidity of funding 
+Liquidity of assets 
+Liquidity of ecological and 
+well being outcomes 
+Liquidity of stewardship 
+Local needs and 
+People and organisations 
+Capital flows to verified 
+Nature-based solutions 
+Restoration is measured, 
+Land, housing and high 
+underused assets are 
+are matched to micro- 
+activity. A community bank 
+are built: reed beds and 
+attributed and made 
+street assets transition 
+made visible in one place: 
+activities - volunteer 
+improves lending to the 
+wetlands filter 
+tradeable as nature and 
+into community 
+the flooded pitch, sewage 
+time, wildlife trust 
+club, aggregates 
+contamination and buffer 
+carbon credits. 
+ownership, stewardship or 
+overflow, spare fields, 
+expertise, technical skills, 
+fragmented payments and 
+flooding; marginal pitch 
+Participation and impact 
+shared governance. Value 
+allotments, rooms, 
+building, planning, 
+prices governance and risk 
+becomes allotments 
+are tracked transparently. 
+created is reinvested 
+kitchens, tools, distressed 
+nutrition, legal etc. Small 
+appropriately. 
+feeding the community 
+locally. 
+assets such as homes and 
+acts aggregate into 
+kitchen. 
+high streets. 
+systemic outcomes. 
+Community marketplace . 
+Volunteers . Wildlife Trusts . 
+for local clubs, residents 
+Community banks . local 
+Wildlife Trusts . 
+CreditNature 
+ Stabiliti . 
+Community Land Trusts . 
+Sports coaches, Charities local 
+government, technical partners 
+government . philanthropy 
+contractors. sports teams . 
+Hants & loW Wildlife Trust. 
+high street partnerships. 
+and stakeholders 
+community kitchen 
+Sporta Bank 
+Local Government 
+Continuous circular flow: value created at each stage is reinvested, so the chain restarts with a stronger community balance sheet. 
+Start 
+Stop 
+Continue 
+Banking community assets. Sharing data across the marketplace. Pricing 
+Scoring clubs and charities as high risk, low value. Funding fragmented one- 
+Focusing on value, speed and measurable outcomes. Growing continuous 
+ecosystem risk with better metrics, Al, DeFi and tokenisation. 
+off projects. Making communities integrate services manually. 
+deal flow. Building trust, cohesion and the local SME economy. 
+Grassroots Economics/Sarafu  (see separate tab)
+Richard Peers
+{b410fb36-5927-42e0-9fb2-43e6397e591a}
+Cloudscaler 
+Data and API resource ( See shared tab)
+Data and API resource ( See shared tab)
+The attached PDF in "Shared tab" above
+I ran a search for API's and Datasets for the hackathon using Co Pilot Researcher and it generated:
+Segoe UI
+In addition to the specialist help from:
+One Planet (see separate tab)
+Segoe UI
+Important
+The Satellite Application Catalogue and Earth Observation Data Hub (see separate tab)
+Hi All
+This combination maximises impact, simplicity, public availability and storytelling value.
+Key Recommendation for the Hackathon
+Grassroots/Sarafu ecosystem data
+Tier C 
+ Specialist
+Tier B 
+ Valuable Enrichment
+Top-Ranked APIs & Datasets
+All criteria were equally weighted for a maximum score of 25.
+I then used Co Pilot Analyst to prioritise the list and it generated the attached XLS in "Shared tab" above with ranking as explained below.
+It reviewed the uploaded catalogue and produced a scored ranking workbook:
+Scoring Framework
+Calibri
+Segoe UI
+Calibri
+Each source was scored 1
+5 across:
+Segoe UI
+Criterion
+Meaning
+Ease of onboarding
+Documentation quality, signup friction, time-to-first-result
+Free access
+Availability without fees and licence restrictions
+Technical complexity
+Higher score = easier to work with in a hackathon
+Data richness
+Coverage, granularity, freshness, metadata quality
+SF.Live relevance
+Alignment with sustainable finance and community regeneration challenges
+Rank
+API / Dataset
+Total Score
+English Indices of Deprivation 2025
+EA Flood Monitoring API
+Climate TRACE API
+GBIF API
+Food Hygiene Rating Scheme API
+Our World in Data Grapher API
+GLEIF LEI API
+Companies House API
+ONS Beta API
+HM Land Registry Price Paid / UK HPI
+OS Data Hub OpenData
+EA Water Quality Explorer API
+geoBoundaries gbOpen
+data.gov.uk CKAN API
+Open-Meteo API
+Best Choices by SF.Live Challenge Theme
+ Community Regeneration
+English Indices of Deprivation
+Calibri
+Calibri
+ONS API
+Calibri
+HM Land Registry
+Calibri
+Companies House
+Calibri
+Ordnance Survey OpenData
+Recommended stack:
+Why: Strong geographic granularity, excellent public access, rich socioeconomic indicators, and easy visualisation.
+ Climate Resilience & Flood Risk
+EA Flood Monitoring API
+Calibri
+Calibri
+Open-Meteo
+Calibri
+Copernicus datasets
+Recommended stack:
+Why: Real-time and forecast data with immediate relevance to local risk and investment decisions.
+ Nature Finance & Environmental MRV
+GBIF
+Calibri
+Calibri
+EA Water Quality
+Calibri
+Natural England datasets
+Recommended stack:
+Why: Biodiversity, species occurrence, habitat and environmental condition data are highly relevant for impact measurement.
+ Industrial Transition & Carbon Reduction
+Climate TRACE
+Calibri
+Calibri
+Companies House
+Calibri
+GLEIF
+Recommended stack:
+Why: Combines emissions intelligence with corporate ownership and entity-resolution data.
+ Local Food & Community Economies
+Food Hygiene Rating Scheme
+Calibri
+Calibri
+Companies House
+Recommended stack:
+Why: Quick-to-use local business intelligence with direct community relevance.
+Overall Assessment
+Tier A 
+ Prototype First
+English Indices of Deprivation
+Calibri
+Calibri
+EA Flood Monitoring
+Calibri
+Climate TRACE
+Calibri
+GBIF
+Calibri
+Calibri
+Companies House
+Calibri
+Land Registry
+Calibri
+Food Hygiene Rating Scheme
+Calibri
+Open-Meteo
+Calibri
+OS OpenData
+These should form the backbone of most hackathon projects:
+Copernicus
+Calibri
+Calibri
+Natural England
+Calibri
+CKAN / Data.gov.uk
+Calibri
+Additional geospatial boundary services
+Useful once a basic MVP is working:
+ERA5
+Calibri
+Calibri
+ESA Climate datasets
+Calibri
+NGFS scenarios
+Calibri
+USGS resources
+Calibri
+More powerful but harder to integrate quickly:
+These tend to require deeper geospatial, climate-science or modelling expertise.
+ONS + IMD 2025 + Companies House (community insights)
+Segoe UI
+Calibri
+Calibri
+Flood Monitoring + Open-Meteo (resilience)
+Calibri
+Climate TRACE (sustainability metrics)
+If teams have only 1
+2 days to build, the highest probability of success is a stack combining:
+The full scoring matrix and methodology are available in the workbook above.
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+15:01
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Richard Peers
+{635b6cf4-9a80-4ac8-91b7-2cafd6be4e2f}
+Satellite Application Catapult and Earth Observation data Hub
+Richard Peers
+Problem Statement Three
+Problem Statement Two
+Problem Statements
+Resources
+Satellite Application Catapult and Earth Observation data Hub
+Demo
+Logical Architecture
+Judging criteria
+Business Model Can
+Microsoft credits
+Microsoft Planetary computer
+Data and API resource ( See shared tab)
+A market place of marketplaces
+Cloudscaler
+One Planet
+Grassroots Economics/Sarafu
+Problem Statement Four
+Problem statement One
+A Marketplace
+ for Community Liquidity
+Marketplace design
+David Gristwood
+Resources
+Image download failed.
+Times New Roman
+If you need a coaching session on how to use it, just ask.
+Business Model Canvas
+Richard Peers
+{98ac1309-9d3d-4758-bf82-8bb9bcee6074}
+Richard Peers
+{7342ca37-3048-4506-aa27-a532031a64a0}
+.png
+.png
+Geovation from Ordnance Survey
+Geovation from Ordnance Survey
+Richard Peers
+{4decc432-8092-4699-b8af-17e949a55bce}
+Calibri Light
+PageTitle
+Richard Peers
+16 October 2026
+Calibri
+PageDateTime
+13:19
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Image download failed.
+veklomdev
+{665e7c5e-268a-4a07-8110-1639e76286f1}
+See the PDF in Shared  from Cloudscaler re AWS credits  available to you
+Richard Peers
+{4d60a47c-ed4f-4a95-8c35-79ddd9529803}
+.png
+Creately
+.png
+EDUCBA
+.png
+iexcelarc.com
+.png
+tpointtech.com
+Logical architecture diagrams visually represent system components, their interactions, and relationships without specifying technology or physical deployment.
+roboto
+IT Infrastructure Logical Diagram
+This type maps software, hardware, and network components, showing how they interact within an organization. It highlights dependencies and relationships between systems, helping plan, deploy, and manage IT resources efficiently. Components often include servers, databases, applications, and network devices, arranged to show logical connections rather than physical placement (Creately) 
+roboto
+roboto
+Calibri
+Calibri
+HYPERLINK "https://creately.com/diagram/example/ilx6bww31/logical-architecture-diagram"Creately+1.
+roboto
+Calibri
+Presentation Layer: User interfaces and client applications
+Calibri
+Business Logic Layer: Core processing and rules
+Calibri
+Data Access Layer: Interaction with databases or external services
+Calibri
+External Systems: APIs, third-party services, or integrations
+Dependencies and communication protocols are clearly represented to guide design and ensure scalability (Tpoint Tech) 
+1111
+Calibri
+HYPERLINK "https://www.tpointtech.com/logical-architecture-diagram"tpointtech.com.
+Software System Logical Architecture
+Used in software development, these diagrams illustrate high-level organization and relationships between modules, layers, and interfaces. Typical layers include:
+Calibri
+Calibri
+Client Tier: Applications used by end-users
+Calibri
+Access Tier: Secure communication between client and system
+Calibri
+Presentation Tier: Interfaces delivering results to users
+Calibri
+Business Service Tier: Backend processing and logic
+Components are often arranged horizontally to represent logical tiers, providing clarity on system operations without specifying technology (EDUCBA) 
+1111
+Calibri
+HYPERLINK "https://www.educba.com/logical-architecture/"EDUCBA.
+Logical Component Diagram
+Focuses on the abstraction of physical components, showing how logical components interact to fulfill system functionality. Examples include:
+Calibri
+Logical Functions Breakdown Diagram (LFBD)
+Common in model-based systems engineering (MBSE), this diagram refines system functions into logical functions, grouping related functions such as monitoring or control. It helps ensure all system capabilities are represented and linked to logical actors, supporting traceability and design consistency (iExcelArc) 
+Calibri
+Calibri
+HYPERLINK "https://iexcelarc.com/logical-architecture/"iexcelarc.com.
+Key Examples
+Abstraction and Simplification: Focus on key components and interactions, avoiding unnecessary details.
+Calibri
+Calibri
+Standardization: Use consistent symbols, colors, and layout conventions for clarity.
+Calibri
+Layering: Organize components into logical tiers or layers to show functional separation.
+Calibri
+Interfaces and Dependencies: Clearly indicate communication paths and dependencies between components.
+Calibri
+External Integrations: Highlight connections to external systems, APIs, or services to show interdependencies.
+These examples provide a foundation for creating logical architecture diagrams that are clear, scalable, and useful for communication among developers, architects, and stakeholders.
+1111
+Best Practices for Logical Architecture Diagrams
+Logical Architecture
+Logical Architecture
+Richard Peers
+{98ac1309-9d3d-4758-bf82-8bb9bcee6074}
+Calibri Light
+PageTitle
+Richard Peers
+12 October 2026
+Calibri
+PageDateTime
+16:21
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+See the Shared channel for a PDF of:
+Richard Peers
+{7dfdf12e-a7ce-49d9-bbc3-7e4b16bf234f}
+Richard Peers
+{69eac241-cb95-404c-a746-6e271ab8a4e0}
+Richard Peers
+.png
+.png
+HYPERLINK "https://www.sustainablefinance.live/hackathon"SustainableFinance.Live Hackathon 2026
+Calibri
+Problem Statement Three
+Problem Statement Three
+Richard Peers
+{b410fb36-5927-42e0-9fb2-43e6397e591a}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+16:18
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Richard Peers
+Build around a single, painful transaction and grow both sides together.
+Segoe UI
+Once enough communities are doing this, liquidity naturally becomes the next problem.
+Build tools that help communities understand and unlock local wealth.
+Segoe UI
+Build a marketplace and attract communities.
+Segoe UI
+Rather than treating conferences as marketing, treat them as onboarding.
+Phase 5
+Phase 4
+Phase 3
+Phase 2
+Don't Build a Marketplace
+One of the biggest lessons from marketplace history is that almost nobody successfully builds supply first and demand later.
+Calibri
+Calibri
+The graveyard is full of marketplaces that spent years building inventory and then discovered no one was transacting.
+Likewise, building demand first often creates disappointment because there is nothing useful available.
+The real answer is usually:
+Segoe UI
+Airbnb didn't start with "global accommodation supply."
+Uber didn't start with "millions of riders."
+LinkedIn didn't start with a complete professional network.
+They all began with a very small, highly valuable interaction.
+For your community liquidity marketplace, the challenge is even harder because you're not creating a marketplace for one asset class. You're creating a marketplace for multiple forms of capital.
+That means you need a different growth strategy.
+Build a Community Operating System
+This sounds counterintuitive.
+A marketplace only becomes valuable once enough people participate.
+But a tool can be valuable with a single user.
+The first question should therefore be:
+What can a community do on day one that creates value even if nobody else has joined?
+Create a digital asset register
+Calibri
+Calibri
+Map community assets
+Calibri
+Record stewardship activity
+Calibri
+Identify underutilised land
+Calibri
+Track social impact
+Calibri
+Catalogue local skills
+For example:
+If one community council or CLT gets value immediately, you have something deployable.
+The marketplace emerges later.
+Start With "Discovery" Not "Trading"
+Discover
+Calibri
+Calibri
+Match
+Calibri
+Trade
+Most founders assume:
+must happen simultaneously.
+Discover
+Calibri
+Calibri
+Calibri
+Verify
+Calibri
+Measure
+Calibri
+Match
+Calibri
+Trade
+Actually:
+is often the real sequence.
+Many communities don't even know what assets exist locally.
+What assets do we have?
+Calibri
+Calibri
+Who manages them?
+Calibri
+What condition are they in?
+Calibri
+What opportunities exist?
+Imagine the first version simply answers:
+That's useful before a marketplace exists.
+Focus On One Community
+A mistake I often see in regeneration and fintech innovation is attempting to launch nationally.
+One town
+Calibri
+Calibri
+One community network
+Calibri
+One local authority
+Calibri
+One CLT
+Calibri
+One housing association
+I would deliberately start with:
+The objective is not scale.
+The objective is proving:
+liquidity can be created where none previously existed.
+Once proven locally, replication becomes easier.
+Find The "Beachhead Asset"
+The marketplace likely needs one dominant asset class first.
+Possible candidates:
+Community Energy
+Clear cashflows
+Calibri
+Calibri
+Strong investor interest
+Calibri
+Tangible outcomes
+Pros:
+Community Property
+Existing CLT movement
+Calibri
+Calibri
+Clear valuation methods
+Calibri
+Visible community benefit
+Pros:
+Nature Projects
+Growing demand
+Calibri
+Calibri
+Alignment with your network
+Pros:
+Revenue streams often uncertain
+Calibri
+Cons:
+Stewardship Credits
+Highly differentiated
+Calibri
+Pros:
+Entirely new market
+Calibri
+Calibri
+Requires behavioural change
+Cons:
+Personally, I'd start with property or energy.
+Then layer stewardship on top.
+Create Demand Before Calling It Demand
+One thing I've noticed from your SF.Live and community wealth work:
+You already have demand.
+It just doesn't look like marketplace demand.
+Local authorities
+Calibri
+Calibri
+Community finance practitioners
+Calibri
+Nature restoration groups
+Calibri
+CLTs
+Calibri
+Impact investors
+Calibri
+Housing organisations
+You have:
+all trying to solve related problems.
+The task isn't acquiring users.
+The task is organising an existing network.
+The first hundred users may already be in your contacts.
+Think Like LinkedIn
+LinkedIn didn't begin as a recruitment marketplace.
+It began as a professional identity network.
+Recruitment emerged later.
+Similarly:
+Phase 1
+Asset identity
+Who owns what?
+Asset visibility
+Who needs what?
+Asset matching
+Who can help whom?
+Capital allocation
+Who will fund it?
+Marketplace liquidity
+Trading and investment.
+Most projects try to jump straight to Phase 5.
+The Lowest-Cost Growth Model
+If marketing budget is near zero, I would avoid paid acquisition entirely.
+Instead:
+Cohort Growth
+5 communities
+Calibri
+Calibri
+5 investors
+Calibri
+5 delivery partners
+Recruit:
+Run them together.
+Create visible success stories.
+Conference Network Effects
+Assets
+Calibri
+Calibri
+Challenges
+Calibri
+Projects
+Calibri
+Capital needs
+Calibri
+Expertise
+Every participant contributes:
+Suddenly the event itself becomes the seed marketplace.
+Agent-Based Growth
+A future differentiator may be AI agents.
+Assets
+Calibri
+Calibri
+Funding opportunities
+Calibri
+Partners
+Calibri
+Grants
+Calibri
+Investors
+Each community gets an agent that helps identify:
+People engage with the agent before they engage with the marketplace.
+Over time the marketplace grows organically underneath.
+The Critical Insight
+I suspect the winning strategy is not:
+It is:
+At that point the marketplace is no longer a speculative idea. It becomes the obvious infrastructure layer connecting communities, investors, stewardship providers and local assets.
+In other words, the first product may not actually be a marketplace at all. It may be a community wealth discovery and stewardship platform, with the marketplace emerging as the second act. That approach dramatically reduces the chicken-and-egg problem and is probably the lowest-cost route to adoption and scale.
+In his experience, adoption is the issue.  Here I reveal some insights and 
+If you are thinking of tackling the marketplace design, message Richard Peers and I have the CEO of a tech firm that has architected many marketplaces and I can arrange a meeting.
+Marketplace design
+Marketplace design
+Richard Peers
+{3d026d2e-74c9-46eb-9fc2-16b5334801ae}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+16:04
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Richard Peers
+Richard Peers
+{d68e63ba-6d0d-44ee-ae8e-e55802042ef1}
+The attached PDF in "Shared tab" above
+Segoe UI
+Liz Scott
+{bc7cfcf5-c980-49e0-a5be-a3238f783f56}
+Richard Peers
+Image download failed.
+Times New Roman
+If you need a coaching session on how to use it, just ask.
+This business template is one way that we would like to see the Solution mapped out.  from a business point of view this lets  us know you have considered the business model carefully and the stakeholders etc.
+Check out the shared tab 
+Business Model Canvas
+Business Model Canvas
+Richard Peers
+{99c71158-231c-442e-8397-4898526ca252}
+Calibri Light
+PageTitle
+Richard Peers
+12 October 2026
+Calibri
+PageDateTime
+16:16
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+.png
+.png
+"I want to regenerate High Street."
+Marketplace of Marketplaces.
+The architecture is probably much simpler than most people initially imagine.
+Segoe UI
+The mistake many marketplace builders make is to think they need to build a giant marketplace database first. Five years ago that was largely true. Today, with vector search, RAG, knowledge graphs, agents and MCP-style connectors, you can federate existing marketplaces rather than replace them.
+Segoe UI
+Level 1: The Existing Ecosystem
+Grant marketplaces
+Calibri
+Calibri
+Innovation challenge platforms
+Calibri
+Community finance providers
+Calibri
+Impact investment platforms
+Calibri
+Crowdfunding sites
+Calibri
+Carbon marketplaces
+Calibri
+Nature credit platforms
+Calibri
+Community Land Trust projects
+Calibri
+Local authority opportunities
+Calibri
+Corporate sustainability programmes
+Calibri
+Accelerator programmes
+Calibri
+OnePlanet and similar graph systems
+You already have:
+opportunities
+Calibri
+Calibri
+applications
+Calibri
+funding
+Calibri
+organisations
+Calibri
+projects
+Calibri
+places
+Calibri
+outcomes
+Most of these already contain:
+The problem is they all describe these differently.
+Level 2: A Common Ontology
+This is the critical piece.
+Instead of integrating systems technically, integrate them conceptually.
+Everything becomes one of:
+Actor
+Person
+Organisation
+Community
+Resource
+Money
+Land
+Buildings
+Skills
+Data
+Technology
+Opportunity
+Grant
+Tender
+Project
+Hackathon
+Challenge
+Outcome
+Carbon
+Nature
+Employment
+Wellbeing
+Resilience
+Location
+Place
+Region
+Catchment
+Community
+Consolas
+This is essentially what OnePlanet is doing with graph concepts.
+Underneath, every marketplace keeps its own database.
+You only map their concepts to your ontology.
+Level 3: Knowledge Graph
+You then create a graph:
+Tesco
+  provides
+Community Grant
+Community Grant
+  funds
+Community Garden
+Community Garden
+  improves
+Biodiversity
+Biodiversity
+  contributes_to
+Nature Recovery
+Nature Recovery
+  supports
+Surrey Nature Strategy
+The graph starts to connect previously disconnected marketplaces.
+This is where the magic begins.
+Level 4: Marketplace Connectors
+Each marketplace gets a connector.
+These can be:
+Easy
+Website scraping
+Better
+APIs
+Best
+MCP servers
+(MCP = Model Context Protocol)
+Increasingly marketplaces will expose MCP endpoints designed for AI agents.
+Your system doesn't have to own the data.
+It simply indexes and understands it.
+Level 5: RAG Layer
+This is where things have changed dramatically in the last two years.
+Traditionally you would need:
+Marketplace A schema
+Marketplace B schema
+Marketplace C schema
+and then manually harmonise them.
+Now:
+Marketplace A
+     |
+Marketplace B
+     |-----> Embeddings
+Marketplace C
+All content gets vectorised.
+The AI can understand that:
+community resilience fund
+place-based adaptation grant
+may be conceptually similar.
+RAG does not replace ontology.
+But it makes mapping far easier.
+Think:
+Ontology = structure
+RAG = understanding
+You need both.
+Level 6: Agent Layer
+This is where the user experience changes.
+Instead of:
+Search
+Browse
+Apply
+The user says:
+"I'm a village hall in Surrey looking for 
+50k to add solar panels and improve biodiversity."
+Searches all marketplaces
+Calibri
+Calibri
+Finds grants
+Calibri
+Finds local authority schemes
+Calibri
+Finds community lenders
+Calibri
+Finds volunteers
+Calibri
+Finds suppliers
+Calibri
+Creates a shortlist
+Calibri
+Helps complete applications
+The agent:
+Potentially:
+Opportunity Agent
+Funding Agent
+Nature Agent
+Community Agent
+Skills Agent
+Volunteer Agent
+working together.
+Level 7: Marketplace Orchestrator
+This is the part most people miss.
+The future isn't one AI.
+It's many specialist agents.
+Imagine:
+User
+   |
+Marketplace Concierge
+   |
+-------------------------
+|      |      |      |
+Funding Nature Skills Data
+Agent   Agent Agent Agent
+Each specialises.
+The Concierge combines results.
+This is exactly where agentic architectures are heading.
+Why I Think SustainableFinance.Live Could Be Different
+Most marketplaces answer:
+"What opportunities exist?"
+I think your opportunity is answering:
+"What combination of opportunities will achieve my goal?"
+For example:
+High street grants
+Calibri
+Calibri
+Community bonds
+Calibri
+Vacant property schemes
+Calibri
+Biodiversity finance
+Calibri
+Volunteer groups
+Calibri
+Local businesses
+Calibri
+Planning support
+Calibri
+University partners
+The system could discover:
+No single marketplace has all of these.
+A graph-plus-agent architecture can.
+The Architecture I Would Build in 2026
+                   USER
+                     |
+              AI CONCIERGE
+                     |
+          ---------------------
+          |         |        |
+      Funding   Community  Nature
+       Agent      Agent    Agent
+          |         |        |
+          -------------------
+                    |
+             KNOWLEDGE GRAPH
+                    |
+         -----------------------
+         |         |          |
+      VECTOR     ONTOLOGY   RAG
+       INDEX                 INDEX
+         |         |          |
+   ------------------------------
+   |      |      |      |      |
+ Platforms APIs   Portals etc.
+My strong view is that you do not want to build "an LLM of all the marketplaces".
+Build a shared ontology.
+Calibri
+Calibri
+Build a graph.
+Calibri
+Use RAG to connect disparate content.
+Calibri
+Put a multi-agent conversational layer on top.
+Instead:
+The LLM becomes the interface, not the database.
+That's a much cheaper, faster, and more future-proof architecture than trying to consolidate every marketplace into one giant platform. In many ways it's very close to the original vision you described months ago around community liquidity: connecting opportunities, assets, finance, skills, land, projects, and outcomes into a single discoverable ecosystem rather than creating yet another isolated marketplace.
+A market place of marketplaces
+A market place of marketplaces
+Richard Peers
+{5e4543a5-67eb-49e5-8c7a-b5043cd45180}
+Calibri Light
+PageTitle
+Richard Peers
+09 October 2026
+Calibri
+PageDateTime
+10:18
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+Collaboration Reverse Challenge 
+Idea Starter 
+Communities involve many stakeholders and 
+. Use the One Planet system. which creates a digital 
+overlapping plans, often stored in different systems and 
+representation of socio-economic-ecological 
+formats. While objectives may align, strategies can 
+systems. Here, plans become interconnected nodes 
+conflict or duplicate efforts - wasting time and 
+within a living network rather than static documents. 
+resources. 
+Its graph database connects outcomes, actions, 
+organisations, places, and frameworks into a unified 
+This problem statement will be introduced by an 
+knowledge graph. 
+established 'actor'. outlining their goals, constraints, and 
+opportunities. Hackathon teams will apply fresh thinking 
+ Could you use Agentic Al to create autonomous 
+and tools to design a clear vision and practical solution 
+agents that query this system via APIs. combine 
+for successful delivery. 
+insights, and take next action? 
+. How might these tools be applied to solve the 
+The briefing will be shared at the bootcamp. 
+actor's challenge? 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+Collaboration Reverse Challenge 
+Idea Starter 
+Communities involve many stakeholders and 
+. Use the One Planet system. which creates a digital 
+overlapping plans, often stored in different systems and 
+representation of socio-economic-ecological 
+formats. While objectives may align, strategies can 
+systems. Here, plans become interconnected nodes 
+conflict or duplicate efforts - wasting time and 
+within a living network rather than static documents. 
+resources. 
+Its graph database connects outcomes, actions, 
+organisations, places, and frameworks into a unified 
+This problem statement will be introduced by an 
+knowledge graph. 
+established 'actor'. outlining their goals, constraints, and 
+opportunities. Hackathon teams will apply fresh thinking 
+ Could you use Agentic Al to create autonomous 
+and tools to design a clear vision and practical solution 
+agents that query this system via APIs. combine 
+for successful delivery. 
+insights, and take next action? 
+. How might these tools be applied to solve the 
+The briefing will be shared at the bootcamp. 
+actor's challenge? 
+Problem statement One 
+Problem statement One
+HYPERLINK "https://www.sustainablefinance.live/hackathon"SustainableFinance.Live Hackathon 2026
+Calibri
+Calibri
+terexmaps
+If you are thinking of tackling the marketplace design, message Richard Peers. and I have the CEO of a tech firm that has architected many marketplaces and I can arrange a meeting.
+If you are thinking of tackling the marketplace design, message Richard Peers.  I have the CEO of a tech firm that has architected many marketplaces and I can arrange a meeting.
+In his experience, adoption is the issue.  Here I reveal some insights from 
+In his experience, adoption is the issue.  Here I reveal some insights from my 
+In his experience, adoption is the issue.  Here I reveal some insights from my AI 
+In his experience, adoption is the issue.  Here I reveal some insights from my AI based discussions o
+In his experience, adoption is the issue.  Here I reveal some insights from my AI based discussions on this issue.
+Request hgh definition fi
+Request hgh definition file
+Request high definition file
+veklomdev
+{39dbf44c-5e8a-45fb-bbbf-c2e6ffa4edce}
+Geovation will be happy to help hackers from SF.Live after the event.  See the Shared PDF in shared TAB for details
+Richard Peers
+Requested of David
+One Planet
+Richard Peers
+{30567ada-0b67-42cc-9df6-f7f4ddaa4a08}
+Richard Peers
+Richard Peers
+hannah.skeates
+{fa5e34b9-ee63-4e34-b314-cd55d634a7fb}
+Marketplace design
+Marketplace design
+veklomdev
+veklomdev
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+From Underbanked to Understood - Community 
+Idea Starter 
+Credit and Commitment Pools 
+. The Sarafu Network enables communities to issue 
+Community organisations - such as sports clubs, 
+redeemable vouchers for goods, services, and 
+charities, housing groups, and local producers - hold 
+labour, creating transparent and auditable 
+real value through relationships, skills, and local demand. 
+commitment pools. 
+However, traditional financial systems often see them as 
+low value or high risk because of their fragmented 
+ Could you build on Sarafu, or design a compatible 
+records, limited collateral, and volatile cash flow. 
+solution, to help communities coordinate resources, 
+route support, and make local capacity visible? 
+How might we make these assets, commitments, and 
+. Could this data also help banks, councils, and 
+histories visible to support fair finance, mutual credit, and 
+investors identify which projects are resilient, 
+better coordination? 
+trustworthy, and investable? 
+Can we build tools that help banks and funders 
+understand place-based organisations, while enabling 
+communities and meet local needs without relying 
+solely on cash? 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+From Underbanked to Understood - Community 
+Idea Starter 
+Credit and Commitment Pools 
+. The Sarafu Network enables communities to issue 
+Community organisations - such as sports clubs, 
+redeemable vouchers for goods, services, and 
+charities, housing groups, and local producers - hold 
+labour, creating transparent and auditable 
+real value through relationships, skills, and local demand. 
+commitment pools. 
+However, traditional financial systems often see them as 
+low value or high risk because of their fragmented 
+ Could you build on Sarafu, or design a compatible 
+records, limited collateral, and volatile cash flow. 
+solution, to help communities coordinate resources, 
+route support, and make local capacity visible? 
+How might we make these assets, commitments, and 
+. Could this data also help banks, councils, and 
+histories visible to support fair finance, mutual credit, and 
+investors identify which projects are resilient, 
+better coordination? 
+trustworthy, and investable? 
+Can we build tools that help banks and funders 
+understand place-based organisations, while enabling 
+communities and meet local needs without relying 
+solely on cash? 
+.png
+.png
+veklomdev
+{39dbf44c-5e8a-45fb-bbbf-c2e6ffa4edce}
+Problem Statement Three
+Richard Peers
+Grassroots Economics 
+Grassroots Economics
+Richard Peers
+{3b1ea022-65bf-4f14-9613-a6c6ecb79c76}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+15:12
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Business Model Canvas
+Check out the shared tab 
+Richard Peers
+{98ac1309-9d3d-4758-bf82-8bb9bcee6074}
+Calibri Light
+PageTitle
+Richard Peers
+12 October 2026
+Calibri
+PageDateTime
+16:37
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Demo
+Demo
+Sure! Let
+s imagine you
+ve built an MVP for a meal-planning app called QuickBite.
+11111
+roboto
+roboto
+roboto
+Here
+s what a clickable demo example could look like:
+Landing Screen
+Calibri
+Calibri
+Logo and tagline: "Plan. Shop. Eat. Easy."
+Calibri
+Get Started
+ button that takes the user to the sign-up flow.
+Calibri
+Onboarding Walkthrough (3 quick slides)
+Calibri
+Slide 1: Choose your dietary preference (Vegan, Keto, Balanced).
+Calibri
+Slide 2: Select your weekly meal count.
+Calibri
+Slide 3: Preview a sample meal plan.
+Calibri
+Interactive Meal Plan Screen
+Calibri
+Click on a meal card to see ingredients and cooking steps.
+Calibri
+Swap a meal by clicking a 
+Replace
+ button, which opens a mini recipe library.
+Calibri
+Shopping List Generator
+Calibri
+Click 
+Generate List
+ instantly see a categorized grocery list.
+Calibri
+Toggle items on/off to customize before exporting.
+Calibri
+Checkout Simulation (optional for demo)
+Calibri
+Click 
+Order Ingredients
+ shows a mock checkout page (no real payment).
+ Clickable MVP Demo Flow 
+ QuickBite
+No backend needed 
+s just linked screens in a tool like Figma, Storylane, or Supademo.
+roboto
+roboto
+Calibri
+Calibri
+Guided flow 
+ users can click through the core value proposition without distractions.
+1111
+Calibri
+Safe sandbox 
+ they can explore without risk of breaking anything or spending money.
+ Why this works as a clickable demo:
+s imagine you
+ve built an MVP for a meal-planning app called QuickBite.
+11111
+ GEOVATION 
+Apply 
+Community 
+Tech & Data 
+Events 
+News & Insights 
+From 
+ AN OS, MMLR, DEFRA & SAC INITIATIVE 
+Build the future on location, land 
+& property data. 
+The award-winning Geovation Accelerator helps early-stage 
+founders bring well-validated, data-driven solutions to market, with 
+funding, the deepest geospatial data in Britain, and a 2,000-strong 
+community behind you. 
+Join the accelerator waitlist -> 
+How we help 
+Ordnance 
+HM Land 
+CATAPULT 
+Survey 
+Registry 
+UK Government 
+Satellite Applications 
+ GEOVATION 
+Apply 
+Community 
+Tech & Data 
+Events 
+News & Insights 
+From 
+ AN OS, MMLR, DEFRA & SAC INITIATIVE 
+Build the future on location, land 
+& property data. 
+The award-winning Geovation Accelerator helps early-stage 
+founders bring well-validated, data-driven solutions to market, with 
+funding, the deepest geospatial data in Britain, and a 2,000-strong 
+community behind you. 
+Join the accelerator waitlist -> 
+How we help 
+Ordnance 
+HM Land 
+CATAPULT 
+Survey 
+Registry 
+UK Government 
+Satellite Applications 
+Geovation will be happy to help hackers from SF.Live after the event.  See the 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+From Satellite to Community Space 
+Idea Starter 
+We all live within water catchment areas, yet it is difficult 
+ With increasing access to satellite and drone data, 
+to understand upstream activity and its downstream 
+geospatial insights can transform how communities 
+impact, such as flooding or pollution. 
+plan and act. 
+How can communities better understand and respond to 
+. Can you design a solution that can give citizens the 
+these risks? 
+agency to map and propose solutions to resolve 
+and deliver local planning, pollution mitigation, 
+cultural and sporting scenarios that take into 
+consideration the increased risk of flooding. 
+drought, and pollution in a community? 
+. Work on the One Planet or Sarafu system, identify. 
+and build an add on that would enhance their 
+system with richer geospatial capabilities. 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+From Satellite to Community Space 
+Idea Starter 
+We all live within water catchment areas, yet it is difficult 
+ With increasing access to satellite and drone data, 
+to understand upstream activity and its downstream 
+geospatial insights can transform how communities 
+impact, such as flooding or pollution. 
+plan and act. 
+How can communities better understand and respond to 
+. Can you design a solution that can give citizens the 
+these risks? 
+agency to map and propose solutions to resolve 
+and deliver local planning, pollution mitigation, 
+cultural and sporting scenarios that take into 
+consideration the increased risk of flooding. 
+drought, and pollution in a community? 
+. Work on the One Planet or Sarafu system, identify. 
+and build an add on that would enhance their 
+system with richer geospatial capabilities. 
+HYPERLINK "https://www.sustainablefinance.live/hackathon"SustainableFinance.Live Hackathon 2026
+Calibri
+Richard Peers
+{9599b42f-3683-4ed3-9bb3-e3b3f38f1e7b}
+These are the criteria by which we will be scoring your s
+These are the criteria by which we will be scoring your submissions on pitch day.
+These are the criteria by which we will be scoring your submissions on pitch day.
+.png
+.png
+Problem Statement Two
+Problem Statement Two
+Richard Peers
+{b410fb36-5927-42e0-9fb2-43e6397e591a}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+16:17
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+.png
+.png
+Richard Peers
+{b410fb36-5927-42e0-9fb2-43e6397e591a}
+Calibri Light
+PageTitle
+Richard Peers
+05 October 2026
+Calibri
+PageDateTime
+16:16
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+Calibri
+cite
+Calibri
+blockquote
+Consolas
+code
+Richard Peers
+{6408b9a0-1fcf-4674-ba4f-a042bd6cc20a}
+Microsoft credits
+Microsoft credits
+Open source and subject to Microsoft T's and C's
+Richard Peers
+Richard Peers
+Richard Peers
+Problem statement One
+.png
+Richard Peers
+{7c1e9788-aa98-4c76-8159-f5f680e5c7c9}
+iexcelarc.com
+Logical Architecture
+Key Examples
+Mentor
+HYPERLINK "mailto:pooran.desai@oneplanet.com"pooran.desai@oneplanet.com
+A guide explains how to connect an AI assistant to OnePlanet using MCP. Create an API key once, then follow the section
+See the resources/posts channel for a PDF of:
+Richard Peers
+{9a2a5b9a-bb33-4427-becb-e101171fe146}
+davidgristwood
+Microsoft Planetary computer
+The Microsoft Planetary Computer is designed to support environmental sustainability and conservation efforts by providing access to a multi-petabyte catalog of global geospatial and environmental data in analysis-ready formats, accessible via APIs and Azure Storage 
+HYPERLINK "https://planetarycomputer.microsoft.com/"Microsoft+1. It allows scientists, researchers, policymakers, and developers to measure, monitor, and model ecosystems, helping to answer complex questions about the Earth
+s environment 
+1111111111
+The Microsoft Planetary Computer is designed to support environmental sustainability and conservation efforts by providing access to a multi-petabyte catalog of global geospatial and environmental data in analysis-ready formats, accessible via APIs and Azure Storage 
+HYPERLINK "https://planetarycomputer.microsoft.com/"Microsoft+1. It allows scientists, researchers, policymakers, and developers to measure, monitor, and model ecosystems, helping to answer complex questions about the Earth
+s environment 
+HYPERLINK "https://devblogs.microsoft.com/premier-developer/the-microsoft-planetary-computer/"Microsoft+1. The platform emphasizes open standards and interoperability, using Python-based tools like xarray, rasterio, geopandas, and the SpatioTemporal Asset Catalog (STAC) standard for data cataloging 
+11111111111111111
+Microsoft Planetary Computer Pro
+The Microsoft Planetary Computer is designed to support environmental sustainability and conservation efforts by providing access to a multi-petabyte catalog of global geospatial and environmental data in analysis-ready formats, accessible via APIs and Azure Storage 
+HYPERLINK "https://planetarycomputer.microsoft.com/"Microsoft+1. It allows scientists, researchers, policymakers, and developers to measure, monitor, and model ecosystems, helping to answer complex questions about the Earth
+s environment 
+HYPERLINK "https://devblogs.microsoft.com/premier-developer/the-microsoft-planetary-computer/"Microsoft+1. The platform emphasizes open standards and interoperability, using Python-based tools like xarray, rasterio, geopandas, and the SpatioTemporal Asset Catalog (STAC) standard for data cataloging 
+HYPERLINK "https://atlas.co/data-sources/microsoft-planetary-computer/"atlas.co+1.
+11111111111111111111
+Richard Peers
+Richard Peers
+Business Model Canvas (BMC) 
+. The business model canvas illustrates the fundamental building blocks of a business, providing a high-level, comprehensive view of the various strategic details required to 
+successfully bring a product to market and how the business creates, delivers and captures value. 
+. Example template below explains the nine key canvass segments which ideally should be viewed from right (Customer Segments) to left (Key Partners) 
+KEY PARTNERS 
+KEY ACTIVITIES 
+VALUE PROPOSITIONS 
+CUSTOMER RELATIONSHIPS 
+CUSTOMER SEGMENTS 
+WHAT OTHER COMPANIES / 
+WHAT MUST HAPPEN INTERNALLY 
+WHAT IS THIS GOING TO DO FOR 
+WHAT IS THE SUPPORT STRATEGY 
+FOR NEW CUSTOMERS? 
+WHO IS GOING TO USE THE 
+INDIVIDUALS ARE PART OF THE 
+THE CUSTOMER TO IMPROVE THEIR 
+PRODUCT? 
+DEVELOPMENT AND GO-TO- 
+TO RELEASE THIS PRODUCT? 
+KEY 
+MARKET STRATEGY? 
+BUSINESS / JOB / LIFE? 
+STAKEHOLDERS 
+DIRECT CLIENTS 
+Build dient 
+fading value 
+Marketing and 
+prop, Integrate 
+Into consulting 
+COLLABORATIVE 
+REMOTE- 
+Lead 
+Comm's 
+offerings a 
+REDUCED CREDIT 
+PASS STRESS 
+e.g. Website 
+Banidng 
+GTM 
+RISK 
+TEST 
+Portals, Self- 
+Support 
+and Capita 
+Markets 
+service Saas 
+Connect and 
+pass 
+Tech platform 
+KEY RESOURCES 
+CHANNELS 
+WHAT PEOPLE, SKILLS, MATERIALS, 
+DIRECT 
+BUDGET ARE REQUIRED TO DELIVER THE 
+HOW WILL THE PRODUCT / SERVICE BE 
+CUSTOMER 
+PRODUCT? 
+SOLD / DISTRIBUTED? 
+INDIRECT CLIENTS 
+INDIRECT 
+CUSTOMER 
+MANPOWER 
+MGMT 
+CONSULTING 
+Part of a solution 
+managed service 
+marketplace 
+CLIENT PIPELINE 
+MARKETING 
+COST STRUCTURE 
+REVENUE STREAMS 
+WHAT COSTS WILL BE INCURRED TO DEVELOP, DISTRIBUTE AND SUPPORT THE PRODUCT? 
+HOW WILL THE BUSINESS STAKEHOLDERS MAKE MONEY FROM THIS PRODUCT (FOR PROFIT or NOT)? 
+ LEGAL FEES 
+. . 
+PROFESSIONAL SERVICES 
+ADDITIONAL CLOUD 
+USAGE / SUBSCRIPTION 
+ ADVISORS 
+SERVICE RENT 
+CONSULTING, AUDIT AND 
+SUPPORT FUNCTIONS 
+SUBSCRIPTIONS 
+FEES FOR FINAL SERVICE 
+INTEGRATION FEES 
+Business Model Canvas (BMC) 
+. The business model canvas illustrates the fundamental building blocks of a business, providing a high-level, comprehensive view of the various strategic details required to 
+successfully bring a product to market and how the business creates, delivers and captures value. 
+. Example template below explains the nine key canvass segments which ideally should be viewed from right (Customer Segments) to left (Key Partners) 
+KEY PARTNERS 
+KEY ACTIVITIES 
+VALUE PROPOSITIONS 
+CUSTOMER RELATIONSHIPS 
+CUSTOMER SEGMENTS 
+WHAT OTHER COMPANIES / 
+WHAT MUST HAPPEN INTERNALLY 
+WHAT IS THIS GOING TO DO FOR 
+WHAT IS THE SUPPORT STRATEGY 
+FOR NEW CUSTOMERS? 
+WHO IS GOING TO USE THE 
+INDIVIDUALS ARE PART OF THE 
+THE CUSTOMER TO IMPROVE THEIR 
+PRODUCT? 
+DEVELOPMENT AND GO-TO- 
+TO RELEASE THIS PRODUCT? 
+KEY 
+MARKET STRATEGY? 
+BUSINESS / JOB / LIFE? 
+STAKEHOLDERS 
+DIRECT CLIENTS 
+Build dient 
+fading value 
+Marketing and 
+prop, Integrate 
+Into consulting 
+COLLABORATIVE 
+REMOTE- 
+Lead 
+Comm's 
+offerings a 
+REDUCED CREDIT 
+PASS STRESS 
+e.g. Website 
+Banidng 
+GTM 
+RISK 
+TEST 
+Portals, Self- 
+Support 
+and Capita 
+Markets 
+service Saas 
+Connect and 
+pass 
+Tech platform 
+KEY RESOURCES 
+CHANNELS 
+WHAT PEOPLE, SKILLS, MATERIALS, 
+DIRECT 
+BUDGET ARE REQUIRED TO DELIVER THE 
+HOW WILL THE PRODUCT / SERVICE BE 
+CUSTOMER 
+PRODUCT? 
+SOLD / DISTRIBUTED? 
+INDIRECT CLIENTS 
+INDIRECT 
+CUSTOMER 
+MANPOWER 
+MGMT 
+CONSULTING 
+Part of a solution 
+managed service 
+marketplace 
+CLIENT PIPELINE 
+MARKETING 
+COST STRUCTURE 
+REVENUE STREAMS 
+WHAT COSTS WILL BE INCURRED TO DEVELOP, DISTRIBUTE AND SUPPORT THE PRODUCT? 
+HOW WILL THE BUSINESS STAKEHOLDERS MAKE MONEY FROM THIS PRODUCT (FOR PROFIT or NOT)? 
+ LEGAL FEES 
+. . 
+PROFESSIONAL SERVICES 
+ADDITIONAL CLOUD 
+USAGE / SUBSCRIPTION 
+ ADVISORS 
+SERVICE RENT 
+CONSULTING, AUDIT AND 
+SUPPORT FUNCTIONS 
+SUBSCRIPTIONS 
+FEES FOR FINAL SERVICE 
+INTEGRATION FEES 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+Resolving Food and Energy Insecurity 
+Idea Starter 
+Pre-paid meters, limited access to decent quality 
+. Could you create a solution that reduces the 
+ingredients, lack of time and cooking skills to prepare 
+"healthy food penalty" by connecting farmers and 
+meals contribute to food insecurities. This, in turn, 
+consumers more directly, ensuring fair value 
+causes people to miss essential nutrition and deprive 
+distribution? 
+them of emotional well-being that comes from sharing 
+meals with family and friends, both of which are vital for 
+. How might councils use procurement to link local 
+a happy and healthy individual and community. 
+producers with schools, hospitals and communities? 
+. Can systems be developed to forecast demand, 
+reduce waste, and optimise logistics? 
+. Could community hubs revitalise high streets - 
+combining food, skills, and social connection? 
+Problem Statement 1 
+Problem Statement 2 
+Problem Statement 3 
+Problem Statement 4 
+Resolving Food and Energy Insecurity 
+Idea Starter 
+Pre-paid meters, limited access to decent quality 
+. Could you create a solution that reduces the 
+ingredients, lack of time and cooking skills to prepare 
+"healthy food penalty" by connecting farmers and 
+meals contribute to food insecurities. This, in turn, 
+consumers more directly, ensuring fair value 
+causes people to miss essential nutrition and deprive 
+distribution? 
+them of emotional well-being that comes from sharing 
+meals with family and friends, both of which are vital for 
+. How might councils use procurement to link local 
+a happy and healthy individual and community. 
+producers with schools, hospitals and communities? 
+. Can systems be developed to forecast demand, 
+reduce waste, and optimise logistics? 
+. Could community hubs revitalise high streets - 
+combining food, skills, and social connection? 
+hepworks
+Data and API resource ( See shared tab)
+bumjoo
+{df1fb025-a574-44d8-8572-9fa8828355b9}
+Richard Peers
+Richard Peers

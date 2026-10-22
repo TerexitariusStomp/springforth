@@ -18,12 +18,17 @@ the monorepo itself; this maps it.
 
 | Package | Responsibility |
 |---|---|
-| `coordination` | Possibility lifecycle (declare → opt-in → quorum → expire), plan-graph needs/offers, overlap detection + human validation, appreciation → pairwise trust (EigenTrust), dominant-assurance pledges |
+| `coordination` | Possibility lifecycle (declare → opt-in → quorum → expire), plan-graph needs/offers, overlap detection + human validation, appreciation → pairwise trust (EigenTrust), dominant-assurance pledges, interest/pass feed signals, gazetteer + h3 geo resolution |
 | `funding` | Quadratic allocation (Liberal Radicalism), pairwise mode with clique discount via the trust graph, conviction weighting, evidence→allocation multiplier, retro rounds, stream intents |
-| `oracle` | Source registry, hourly readings per action node, baseline-aware checks, trajectory scoring, measure-to-earn credits |
+| `oracle` | Source registry, hourly readings per action node, baseline-aware checks, trajectory scoring, measure-to-earn credits; live/keyless + key-gated source lanes kept distinct |
 | `attest` | Impact claims, attestation requests, EAS-shaped outcomes |
 | `agent` | Agent-facing endpoints for the plan graph and overlap proposals |
-| `core` | Entity schemas (zod) + the hash-chained audit ledger |
+| `core` | Entity schemas (zod) + the hash-chained audit ledger; entities include `CouncilSeat` (auto-seated at quorum) and `ForumPost` (council-gated), `Interest`/`Pass` feed signals |
+
+Maps to the organizer's "marketplace for community liquidity" slide:
+**Surface** = declare · **Match** = commit/quorum · **Fund** = pledges+rounds ·
+**Deliver** = reports · **Measure** = oracle + valuation · **Steward** =
+councils + endowment.
 
 ## Data-access layer
 

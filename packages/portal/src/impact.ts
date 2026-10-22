@@ -166,8 +166,21 @@ ${howItWorks(lang, 'how.impact.ledger', 's6')}`;
 </tr>`).join('\n');
   const sliceList = Object.entries(o.slices)
     .map(([k, d]) => `<li><code>${esc(k)}</code> — ${esc(d)}</li>`).join('\n');
+  /* Endorsed-source registry — visible provenance for the dataset
+     criterion: name, license, methodology, and honest live/key-gated
+     status. Same rows as /sources JSON. */
+  const srcRows = o.sources.map((s) => `<tr>
+<td><strong>${esc(s.name)}</strong></td>
+<td class="muted">${esc(s.license)}</td>
+<td class="muted"><small>${esc(s.methodology ?? '—')}</small></td>
+<td>${s.configured
+  ? `<span class="badge lime">${esc(t(lang, 'hub.impact.data.src.live'))}</span>`
+  : `<span class="badge">${esc(t(lang, 'hub.impact.data.src.gated'))} <code>${esc(s.needs ?? '')}</code></span>`}</td>
+<td class="muted">${esc(s.lastFetch ? s.lastFetch.slice(0, 10) : '—')}</td>
+</tr>`).join('\n');
   const dataBody = `
-${relRows ? `<table><tr><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.records'))}</th><th scope="col">sha256</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${relRows}</table>`
+${srcRows ? `<table><tr><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.license'))}</th><th scope="col">${esc(t(lang, 'col.method'))}</th><th scope="col">${esc(t(lang, 'col.status'))}</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${srcRows}</table>` : ''}
+${relRows ? `<h3>${esc(t(lang, 'hub.impact.data.releases'))}</h3><table><tr><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.records'))}</th><th scope="col">sha256</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${relRows}</table>`
     : `<p class="muted">${esc(t(lang, 'hub.impact.data.none'))}</p>`}
 ${sliceList ? `<h3>${esc(t(lang, 'hub.impact.data.available'))}</h3><ul>${sliceList}</ul>` : ''}`;
 

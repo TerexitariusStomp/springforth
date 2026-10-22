@@ -89,6 +89,25 @@ describe('portal renderers', () => {
       'id="evidence"', 'id="proof"', 'id="data"'])
       expect(html).toContain(id);
   });
+  it('impact #data renders the source registry with live/key-gated status', () => {
+    const html = renderImpactPage({
+      lang: 'en', metrics: {}, checks: [], nodes: [],
+      sources: [
+        { key: 'ea-flood', source: 'iot', name: 'EA Flood Monitoring',
+          license: 'Open Government Licence', methodology: 'active warnings',
+          needs: null, configured: true, lastFetch: '2026-10-22T00:00:00Z' },
+        { key: 'eo-data-hub', source: 'remote-sensing', name: 'EO Data Hub',
+          license: 'Copernicus/EOCIS open', methodology: 'Sentinel-2 L2A',
+          needs: 'EODATAHUB_KEY', configured: false, lastFetch: null },
+      ],
+      claims: [], attestations: [], releases: [], slices: {},
+      verify: { ok: true, events: 0 }, events: [], possibilities: [],
+    });
+    expect(html).toContain('EA Flood Monitoring');
+    expect(html).toContain('EO Data Hub');
+    expect(html).toContain('EODATAHUB_KEY');
+    expect(html).toContain('Signed releases');
+  });
   it('community hub renders H1 + every section id on empty input', () => {
     const html = renderCommunityPage({
       lang: 'en', people: [], mutual: [], proposals: [], ballots: [],

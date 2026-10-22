@@ -22,3 +22,47 @@
   hash-chained records that prove integrity are the data being sold.
 - The moat compounds: every coordination event deepens the trust graph,
   which improves matching, which attracts more coordination.
+
+## Benefits Dependency Network
+
+Read right-to-left, per the SF Live template: investment drivers on the
+right, benefits on the left, every dependency explicit.
+
+| Investment objective | Business change | Enabling change | Benefit |
+|---|---|---|---|
+| Fund joined-up community projects, not siloed grants (BRP challenge) | Funders pledge against activated coordination, not proposals | Dominant-assurance pledges bind only at quorum; matching pools price collusion risk | Capital flows to verified activity; matching efficiency improves as the trust graph deepens |
+| Quantify co-benefits across capitals | Value measured in money terms per capital class, kept distinct | Four-capital `valueCoordinated` (financial/human/social/natural); verifier-replay disclosures on every figure | Funders see £-denominated avoided cost next to volunteer time without conflating them |
+| Harvest avoided-cost savings to fund community work | Avoided loss becomes a revenue argument for sponsors | Oracle evidence (EA Flood, Sentinel-2, physrisk) + LTIS-type benchmarks cited per figure | Insurance/NHS-style avoided-loss claims become auditable numbers a funder can underwrite |
+| See reality, not plans | Coordination activates at quorum and reports outcomes on evidence | Live public data (17 sources), hash-chained audit ledger, council-gated forum at quorum | Communities become legible to banks/councils as investable, reliable counterparties |
+| Stop scoring clubs as high-risk-low-value | Reliability proven from fulfilment history, not cash flow | Appreciation→EigenTrust graph; Sarafu-compatible commitment/fulfilment records | Community organisations carry portable reputation across funders |
+
+**Dependencies / enabling technologies:** Cloudflare edge (D1+Workers,
+near-zero marginal cost) · hash-chained ledger w/ OTS anchoring · oracle
+adapter layer (EA/Open-Meteo/STAC/physrisk) · OnePlanet MCP knowledge-graph
+import · Sarafu commitment-pool data (Zenodo export) · non-custodial Celo
+builders · IPFS dataset releases · typed SDK + OpenAPI.
+
+## Go-to-market — work-back plan
+
+Working back from the first paying deployment:
+
+1. **Pilot/friendly client.** Brighton Resilience Partnership is the
+   canonical pilot (their challenge framing); a Kenyan grassroots community
+   via Sarafu is the second geography. Both seed live cards, not demos.
+2. **Proposition training + partner-led reach.** OnePlanet carries the
+   planning-layer story; Grassroots carries the commitment-pool story;
+   Geovation is the post-event pathway. Springforth arrives as the
+   coordination-and-funding layer those ecosystems already need.
+3. **Technology integration testing.** MCP import from OnePlanet, Zenodo
+   export from Sarafu, oracle sources — all already wired; the pilot
+   exercises them end-to-end.
+4. **Commercial model.** Funder-side settlement fee on rounds first
+   (no new behavior), then hosted deployments for councils, then consented
+   dataset revenue once the audit corpus is large enough to sell.
+5. **Client onboarding.** Zero-install portal + Telegram bot; a council or
+   foundation joins by declaring a matching round, not by deploying
+   software.
+6. **Customer-facing materials.** `/docs` + OpenAPI, judge route list
+   (JUDGES.md), this canvas, the architecture diagram — all public.
+7. **Iterate and simplify.** Every pilot cycle feeds the feed signals
+   (join/interest/pass) and council telemetry back into surfacing order.

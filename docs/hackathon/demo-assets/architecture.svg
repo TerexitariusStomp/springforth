@@ -104,7 +104,7 @@
   <!-- right rail: PS1 loop -->
   <g>
     <rect x="820" y="110" width="320" height="708" rx="12" fill="#121c33" stroke="#39558f" stroke-width="1.4" stroke-dasharray="6 5"/>
-    <text x="840" y="140" fill="#8ab4f8" font-size="13" font-weight="700" letter-spacing="2">PS1 — COLLABORATION REVERSE</text>
+    <text x="840" y="140" fill="#8ab4f8" font-size="13" font-weight="700" letter-spacing="2">PS1 — OVERLAPPING PLANS</text>
 
     <g font-size="12.5" fill="#dbe4f7">
       <rect x="840" y="156" width="280" height="58" rx="8" fill="#1a2a4d"/>

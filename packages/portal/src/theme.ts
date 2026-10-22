@@ -73,13 +73,9 @@ a{color:var(--sf-sage)}
 .nav-toggle[open] summary{background:rgba(255,255,255,.1)}
 .nav-menu{position:absolute;top:72px;left:0;right:0;z-index:30;display:flex;flex-direction:column;gap:4px;padding:16px 24px 22px;background:var(--sf-green);border-bottom:1px solid rgba(255,255,255,.14);max-height:calc(100vh - 72px);overflow-y:auto}
 .nav-menu a{color:var(--sf-pale);text-decoration:none;font-size:14px;font-weight:700;padding:8px 0}
-.nav-more{position:relative}
-details.nav-more>summary,details.nav-more>summary:focus{list-style:none;cursor:pointer;color:var(--sf-pale);font-size:13px;font-weight:600;opacity:.76;transition:opacity .2s;margin-bottom:0}
-.nav-more summary::-webkit-details-marker{display:none}
-.nav-more summary::after,.nav-more summary::before{display:none!important}
-.nav-more summary:hover{opacity:1}
-.nav-more[open] summary{opacity:1}
-.nav-drop{position:absolute;top:calc(100% + 14px);right:0;z-index:30;min-width:170px;display:flex;flex-direction:column;padding:.5rem;background:var(--sf-green);border:1px solid rgba(255,255,255,.14);border-radius:12px;box-shadow:0 16px 40px rgba(11,25,19,.35)}
+.nav-more{position:relative;display:flex;align-items:center}
+.nav-drop{position:absolute;top:calc(100% + 14px);right:0;z-index:30;min-width:170px;display:none;flex-direction:column;padding:.5rem;background:var(--sf-green);border:1px solid rgba(255,255,255,.14);border-radius:12px;box-shadow:0 16px 40px rgba(11,25,19,.35)}
+.nav-more:hover .nav-drop,.nav-more:focus-within .nav-drop{display:flex}
 .nav-drop a{color:var(--sf-pale);text-decoration:none;font-size:13px;font-weight:600;padding:.5rem .8rem;border-radius:8px;opacity:.8}
 .nav-drop a:hover{opacity:1;background:rgba(255,255,255,.08)}
 
@@ -433,12 +429,12 @@ export const topbar = (): string => `
   <a class="brand" href="/"><span class="brand-mark">${SPARK}</span>Springforth</a>
   <nav class="nav-links" aria-label="Primary">
     ${NAV_ITEMS.map(([h, l]) => `<a href="${h}">${l}</a>`).join('')}
-    <details class="nav-more">
-      <summary aria-label="More pages">More</summary>
+    <div class="nav-more">
+      <a href="/all" aria-haspopup="true">More</a>
       <nav class="nav-drop" aria-label="More pages">
         ${MORE_ITEMS.map(([h, l]) => `<a href="${h}">${l}</a>`).join('')}
       </nav>
-    </details>
+    </div>
   </nav>
   <a class="nav-cta" href="/possibilities#declare">Start a possibility</a>
   <details class="nav-toggle">
@@ -498,7 +494,6 @@ ${topbar()}
 ${bodyHtml}
 </main>
 ${siteFooter()}
-<script>addEventListener('click',(e)=>{document.querySelectorAll('.nav-more[open]').forEach((d)=>{if(!d.contains(e.target))d.open=false})});addEventListener('keydown',(e)=>{if(e.key==='Escape')document.querySelectorAll('.nav-more[open]').forEach((d)=>d.open=false)});</script>
 ${o.htmx === false ? '' : '<script src="/vendor/htmx.js" defer></script>'}
 </body></html>`;
 }

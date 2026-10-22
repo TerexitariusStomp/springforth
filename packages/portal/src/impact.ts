@@ -180,7 +180,8 @@ ${howItWorks(lang, 'how.impact.ledger', 's6')}`;
 </tr>`).join('\n');
   const dataBody = `
 ${srcRows ? `<table><tr><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.license'))}</th><th scope="col">${esc(t(lang, 'col.method'))}</th><th scope="col">${esc(t(lang, 'col.status'))}</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${srcRows}</table>` : ''}
-${relRows ? `<h3>${esc(t(lang, 'hub.impact.data.releases'))}</h3><table><tr><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.records'))}</th><th scope="col">sha256</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${relRows}</table>`
+<h3>${esc(t(lang, 'hub.impact.data.releases'))}</h3>
+${relRows ? `<table><tr><th scope="col">${esc(t(lang, 'col.source'))}</th><th scope="col">${esc(t(lang, 'col.records'))}</th><th scope="col">sha256</th><th scope="col">${esc(t(lang, 'col.date'))}</th></tr>${relRows}</table>`
     : `<p class="muted">${esc(t(lang, 'hub.impact.data.none'))}</p>`}
 ${sliceList ? `<h3>${esc(t(lang, 'hub.impact.data.available'))}</h3><ul>${sliceList}</ul>` : ''}`;
 

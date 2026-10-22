@@ -121,6 +121,10 @@ council/stewardship) — use this slide's vocabulary in the pitch.
       now extracted to `vendor/onenote-Resources.txt`
 - [x] OnePlanet live — `opk_` key obtained, MCP verified, SFLive Sandbox
       plans imported to prod (flood strategy 37 OAIs, climate plan 146 OAIs)
+- [x] Sarafu Zenodo field reports live — 42-record topical sample
+      (APPROVED + GPS, mangrove/reforestation-first near Mida Creek) seeded
+      as `sarafu:field-reports` action nodes; overlap records vs the Kwale
+      mangrove project + `/map` evidence pins
 - [ ] User: email contacto@alpha-klima.com with team name for physrisk API
 - [ ] User: request EODATAHUB_KEY via Help Desk channel
 - [ ] User: confirm pitch slot (Oct 28, 10:00–12:00) in calendar

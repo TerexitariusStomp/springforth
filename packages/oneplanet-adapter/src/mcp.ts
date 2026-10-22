@@ -89,10 +89,11 @@ const OAI_KIND: Record<string, 'outcomes' | 'actions' | 'indicators'> = {
   outcome: 'outcomes', action: 'actions', indicator: 'indicators' };
 
 // OAI item → the per-collection shape normalizePlan already consumes.
-function toOpPlan(planId: string, items: Json[]): Json {
+function toOpPlan(planId: string, items: Json[], title?: string): Json {
   const plan: Json & { outcomes: Json[]; actions: Json[]; indicators: Json[];
     organisations: Json[]; places: Json[]; frameworks: Json[] } = {
-    id: planId, outcomes: [], actions: [], indicators: [],
+    id: planId, ...(title ? { title } : {}),
+    outcomes: [], actions: [], indicators: [],
     organisations: [], places: [], frameworks: [] };
   for (const it of items) {
     const bucket = OAI_KIND[String(it.label ?? '').toLowerCase()];
@@ -111,18 +112,44 @@ export async function fetchPlanMcp(url: string, key: string, planId: string,
   const tools = await mcp.listTools();
   const pick = (pat: RegExp) => tools.find((t) => pat.test(t.name) || pat.test(t.description ?? ''));
 
+  // Resolve the plan's display name: list workspaces, then plans in each
+  // until the uuid matches. Both tools are key-accessible.
+  let planTitle: string | undefined;
+  const wsTool = tools.find((t) => /^list_workspaces$/i.test(t.name));
+  const lpTool = tools.find((t) => /list_workspace_plans/i.test(t.name));
+  if (wsTool && lpTool) {
+    try {
+      const wl = await mcp.callTool(wsTool.name, {}) as Json;
+      for (const w of ((wl?.items ?? []) as Json[])) {
+        const pl = await mcp.callTool(lpTool.name, { workspace_uuid: w.uuid }) as Json;
+        const hit = ((pl?.items ?? []) as Json[]).find((p) => p.uuid === planId);
+        if (hit?.name) { planTitle = String(hit.name); break; }
+      }
+    } catch { /* title optional */ }
+  }
+
   // Fast path — the real OAI listing tool; returns the node array directly.
   // Name match first: descriptions mention OAIs broadly and would catch
   // e.g. list_workspaces before query_plan_oais.
   const oai = tools.find((t) => /oai/i.test(t.name)) ?? pick(OAI_PAT);
   if (oai) {
-    for (const args of [{ plan_uuid: planId, limit: 100 }, { planId, limit: 100 },
-      { plan_id: planId, limit: 100 }, { uuid: planId, limit: 100 }]) {
+    // page through the plan — the API caps at 100 items per call
+    const page = async (base: Json) => {
+      const items: Json[] = []; let more = true;
+      for (let offset = 0; more && offset < 2000; offset += 100) {
+        const data = await mcp.callTool(oai.name, { ...base, limit: 100, offset }) as Json;
+        const page = (data?.items ?? data?.results ?? data) as Json[];
+        if (!Array.isArray(page) || !page.length) break;
+        items.push(...page);
+        more = Boolean((data as Json)?.has_more);
+      }
+      return items;
+    };
+    for (const args of [{ plan_uuid: planId }, { planId }, { plan_id: planId }, { uuid: planId }]) {
       try {
-        const data = await mcp.callTool(oai.name, args) as Json;
-        const items = (data?.items ?? data?.results ?? data) as Json[];
-        if (Array.isArray(items) && items.length)
-          return normalizePlan(toOpPlan(planId, items), 'oneplanet-mcp');
+        const items = await page(args);
+        if (items.length)
+          return normalizePlan(toOpPlan(planId, items, planTitle), 'oneplanet-mcp');
       } catch { /* try next arg shape */ }
     }
   }

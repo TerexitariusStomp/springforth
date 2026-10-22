@@ -920,6 +920,7 @@ const fr: Record<string, string> = {
   'map.quorum': 'quorum atteint',
   'map.completed': 'terminée',
   'map.expired': 'expirée',
+  'map.evidence': 'preuves terrain',
   'map.kicker': 'Géographie',
   'map.h1': 'Où le travail',
   'map.h1.em': 'se situe vraiment.',

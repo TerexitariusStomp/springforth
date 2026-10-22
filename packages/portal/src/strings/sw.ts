@@ -920,6 +920,7 @@ const sw: Record<string, string> = {
   'map.quorum': 'imefika idadi',
   'map.completed': 'imekamilika',
   'map.expired': 'imeisha',
+  'map.evidence': 'ushahidi wa uwanjani',
   'map.kicker': 'Jiografia',
   'map.h1': 'Kazi iko',
   'map.h1.em': 'wapi haswa.',

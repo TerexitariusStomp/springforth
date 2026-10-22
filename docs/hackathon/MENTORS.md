@@ -45,9 +45,12 @@ detection), `/impact#data` imports block, scenario block on GB cards,
 Care about: Sarafu commitment pools, fulfilment histories, investability
 evidence beyond cash flow; regenerative-bonds framing (arxiv 2606.23922).
 Show: commitment-pool-compatible `Participation`/fulfilment records,
-trust-graph reliability scoring, Kenya seed geography (Mida Creek), the
-endowment lane for regenerative-finance continuity.
-Data on hand: Zenodo export (zenodo.org/records/20120190),
+**live Zenodo field-report import** — `sarafu:field-reports` carries 42
+APPROVED+GPS reports (topical sample near Mida Creek) as evidence nodes
+that pin `/map` and overlap real plan nodes (`/collaborate?node=…`),
+trust-graph reliability scoring, the endowment lane for
+regenerative-finance continuity.
+Data on hand: Zenodo export (zenodo.org/records/20120190) **imported**,
 viz.sarafu.network, sarafu.network/map.
 
 ## Earth observation / physical risk

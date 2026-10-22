@@ -298,7 +298,7 @@ ${c.value ? valueBlock(c.value, tt) : ''}
 <p>${esc(tt('card.declaredBy'))} <strong>${displayName(c.declarerId)}</strong>${c.place ? ` · ${esc(c.place)}` : ''}
 ${c.timeStart ? ` · ${esc(c.timeStart.slice(0, 10))}${c.timeEnd ? ` → ${esc(c.timeEnd.slice(0, 10))}` : ''}` : ''}
 · <a href="/possibilities/${esc(c.id)}/ics">${esc(tt('card.ics'))}</a></p>
-${conn?.geo ? `<div class="map-mini">${worldMapSvg([{ id: c.id, lat: conn.geo.lat, lon: conn.geo.lon, status: c.status, title: c.title, href: `/possibilities#${c.id}` }], tt)}<a href="/map">${esc(tt('map.full'))} →</a></div>` : ''}
+${conn?.geo ? `<div class="map-mini">${worldMapSvg([{ id: c.id, lat: conn.geo.lat, lon: conn.geo.lon, status: c.status, title: c.title, href: `/possibilities#${c.id}` }], [], tt)}<a href="/map">${esc(tt('map.full'))} →</a></div>` : ''}
 ${c.description ? `<p>${esc(c.description)}</p>` : ''}
 ${whyBlock(c, conn, tt)}
 ${scenarioBlock(c, tt)}
@@ -470,7 +470,7 @@ export function renderPossibilitiesPage(
     </label>
   </div>
   ${markers.length ? `<div class="mutual-panel" style="margin-top:0;margin-bottom:2rem"><h3>${esc(tt('map.section'))}</h3>
-    ${worldMapSvg(markers, tt)}${mapLegend(tt)}
+    ${worldMapSvg(markers, [], tt)}${mapLegend(tt)}
     <p class="muted"><a href="/map">${esc(tt('map.full'))} →</a>${unlocated.length ? ` · ${unlocated.length} ${esc(tt('map.unlocated'))}` : ''}</p>
   </div>` : ''}
   <div class="card-grid feed-mode" id="card-grid">

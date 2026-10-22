@@ -36,7 +36,7 @@ const landPaths = (): string =>
 
 // One marker per card — 8px dot with a 22px transparent hit halo so the
 // tap target clears 44px on any density. Status drives color only.
-export function worldMapSvg(markers: MapMarker[], tt: (k: string) => string): string {
+export function worldMapSvg(markers: MapMarker[], evidence: MapMarker[] = [], tt: (k: string) => string): string {
   const dots = markers.map((m) => {
     const [x, y] = proj(m.lon, m.lat);
     const st = ['active', 'quorum', 'completed', 'expired', 'draft'].includes(m.status) ? m.status : 'draft';
@@ -44,9 +44,16 @@ export function worldMapSvg(markers: MapMarker[], tt: (k: string) => string): st
 <circle class="map-halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11"/>
 <circle class="map-dot map-${st}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5"><title>${esc(m.title)} — ${esc(m.status)}</title></circle></a>`;
   }).join('\n');
+  const evDots = evidence.map((m) => {
+    const [x, y] = proj(m.lon, m.lat);
+    return `<a href="${esc(m.href)}" class="map-pin" aria-label="${esc(m.title)}">
+<circle class="map-halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11"/>
+<circle class="map-dot map-evidence" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5"><title>${esc(m.title)}</title></circle></a>`;
+  }).join('\n');
   return `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(tt('map.a11y'))}" class="sf-map">
 <title>${esc(tt('map.title'))}</title>
 ${landPaths()}
+${evDots}
 ${dots}
 </svg>`;
 }
@@ -61,6 +68,7 @@ export const MAP_CSS = `
 .sf-map .map-quorum{fill:var(--sf-info)}
 .sf-map .map-completed{fill:var(--sf-coral)}
 .sf-map .map-expired{fill:var(--sf-muted)}
+.map-evidence{fill:var(--sf-teal);opacity:.85;stroke-width:.8}
 .sf-map .map-pin:focus-visible{outline:none}
 .sf-map .map-pin:focus-visible .map-halo{fill:none;stroke:var(--sf-green-2);stroke-width:2}
 .map-legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:var(--sf-muted);margin-top:.5rem}
@@ -72,6 +80,7 @@ export function mapLegend(tt: (k: string) => string): string {
   const rows: Array<[string, string]> = [
     ['active', 'map.live'], ['quorum', 'map.quorum'],
     ['completed', 'map.completed'], ['expired', 'map.expired'],
+    ['evidence', 'map.evidence'],
   ];
   return `<p class="map-legend">${rows.map(([cls, key]) =>
     `<span><i class="map-dot map-${cls}"></i>${esc(tt(key))}</span>`).join('')}</p>`;
@@ -80,6 +89,7 @@ export function mapLegend(tt: (k: string) => string): string {
 export interface MapPageInput {
   lang: Lang;
   markers: MapMarker[];
+  evidence?: MapMarker[];
   unlocated: { id: string; title: string; place?: string }[];
 }
 
@@ -99,7 +109,7 @@ ${pageHeader({
     lede: tt('map.lede'),
     back: { href: '/possibilities', label: tt('nav.possibilities') },
   })}
-${worldMapSvg(o.markers, tt)}
+${worldMapSvg(o.markers, o.evidence ?? [], tt)}
 ${mapLegend(tt)}
 ${unloc ? `<p class="map-unlocated"><strong>${esc(tt('map.unlocated'))}</strong></p><ul>${unloc}</ul>` : ''}
 </div>`);

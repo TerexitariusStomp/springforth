@@ -17,7 +17,9 @@ const APPLY = process.argv.includes('--apply');
 const PLANS = [
   '294fb866-9bc8-4d3a-ab59-c5e057593231', // Local Flood Risk Management Strategy
   'fff3d651-d79b-4f66-81c1-240f332ccad3', // Climate And Nature Plan
+  '0da8c349-fc4e-4640-9118-7e5b0c08bca1', // SFLive Sandbox — BRP Global Outcomes
 ];
+const WS = '3db92684-b538-4fdc-9799-83ca141483cb';
 
 const q = (sql) => JSON.parse(execFileSync('npx',
   ['wrangler', 'd1', 'execute', DB, '--remote', '--json', '--command', sql],
@@ -59,6 +61,10 @@ const OAI_KIND = { outcome: 'outcome', action: 'action', indicator: 'indicator' 
 await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {},
   clientInfo: { name: 'springforth-seed', version: '0.1.0' } }, 0);
 
+// real plan names from list_workspace_plans (uuid → name)
+const plansList = await call('list_workspace_plans', { workspace_uuid: WS }, 2);
+const nameOf = new Map((plansList.items ?? []).map((p) => [p.uuid, p.name]));
+
 const entityRows = [];
 const imported = [];
 for (const planId of PLANS) {
@@ -84,7 +90,9 @@ for (const planId of PLANS) {
     });
   }
   entityRows.push(['plan', source, {
-    id: source, source, title: `OnePlanet ${planId.slice(0, 8)}`,
+    id: source, source,
+    title: nameOf.get(planId) ?? `OnePlanet ${planId.slice(0, 8)}`,
+    owner: 'OnePlanet SFLive Sandbox',
     importedAt: NOW, nodeCount: nodes.length }]);
   for (const n of nodes) entityRows.push(['plannode', n.id, n]);
   imported.push({ id: source, nodes: nodes.length });

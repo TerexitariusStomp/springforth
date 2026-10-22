@@ -2635,10 +2635,21 @@ export default {
             status: effectiveStatus(p, now), title: p.title, href: `/possibilities#${p.id}` });
           else unlocated.push({ id: p.id, title: p.title, place: p.place });
         }
+        // Evidence layer — field reports / planting records carry their own
+        // h3 (Sarafu field reports, Treegens). Possibility-owned nodes are
+        // excluded: their card already marks the spot.
+        const evidence = nodes
+          .filter((n) => n.kind === 'action' && n.h3 && isValidCell(n.h3)
+            && !n.source?.startsWith('possibility:'))
+          .map((n) => {
+            const [lat, lon] = cellToLatLng(n.h3!);
+            return { id: n.id, lat, lon, status: 'evidence', title: n.label,
+              href: `/collaborate?node=${encodeURIComponent(n.id)}` };
+          });
         const lang = langFrom(url, req.headers.get('cookie'));
         return wantsHtml(req)
-          ? html(renderMapPage({ lang, markers, unlocated }))
-          : json({ markers, unlocated });
+          ? html(renderMapPage({ lang, markers, evidence, unlocated }))
+          : json({ markers, evidence, unlocated });
       }
       // ── Chain lane — status + tx recording + confirmation mirror ────
       if (seg[0] === 'chain') {

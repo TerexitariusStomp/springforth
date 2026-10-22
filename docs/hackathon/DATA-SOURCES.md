@@ -45,6 +45,7 @@ context" — never affects quorum).
 | Source | Lane | Status |
 |---|---|---|
 | **OnePlanet MCP** (`mcp.oneplanet.com/mcp`) | `POST /plans/import` → plan + plannode rows + `plan.imported` ledger event | **Live 2026-10-22** — SFLive Sandbox plans imported: Local Flood Risk Management Strategy (37 OAIs), Climate and Nature Plan (146 OAIs); Brighton outcomes surface in `/collaborate` overlap detection |
+| **Sarafu field reports** (Zenodo `20120190`) | `scripts/seed-sarafu-reports.mjs` → `action` plannodes under `sarafu:field-reports` + `plan.imported` ledger event | **Live 2026-10-22** — 42-report bounded sample (APPROVED + GPS), topical-first toward mangrove/reforestation records near Mida Creek; 4 overlap records vs the Kwale mangrove project surface under `/collaborate?node=…`; reports also pin the `/map` evidence layer |
 
 **How to activate the remaining key-gated lanes (from the OneNote resources page):**
 - **Alpha-Klima** — email `contacto@alpha-klima.com` with the team name;
@@ -53,9 +54,11 @@ context" — never affects quorum).
   notebooks at github.com/Alpha-Klima/alpha-klima-notebooks).
 - **EO Data Hub** — request `EODATAHUB_KEY` via the Teams Help Desk
   channel (SatCat mentors: Liz Scott / Luisa Doughty).
-- **Sarafu** — no key needed for the published Zenodo export
-  (zenodo.org/records/20120190); Mohamed Sohail provisions sandbox/API
-  access on request.
+- **Sarafu** — Zenodo export now imported (see *Live integration
+  imports*): reports are fulfilment evidence, not proof of delivery —
+  redacted names preserved as-is, GPS + status + vouchers carried in node
+  metadata. Live voucher/pool reads remain via the CLC adapter;
+  Mohamed Sohail provisions sandbox/API access on request.
 
 ## Valuation benchmarks (cited, on-card)
 

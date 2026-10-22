@@ -923,6 +923,7 @@ const en: Record<string, string> = {
   'map.quorum': 'at quorum',
   'map.completed': 'completed',
   'map.expired': 'expired',
+  'map.evidence': 'field evidence',
   'map.kicker': 'Geography',
   'map.h1': 'Where the work',
   'map.h1.em': 'actually is.',

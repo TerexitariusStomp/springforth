@@ -110,11 +110,31 @@ export interface DeckCardData {
   reason?: string;   // viewer-personalized relevance line (edge-computed)
 }
 
-export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string) => string; feed?: { nextId?: string } } = {}): string {
+export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string) => string; feed?: { nextId?: string; viewer?: string; returnTo?: string } } = {}): string {
   const tt = opts.tt ?? ((k: string) => t('en', k));
+  const base = opts.base ?? '/possibilities';
+  const feed = opts.feed;
+  const returnTo = feed?.returnTo ?? '/possibilities';
+  const skipTo = feed?.nextId ? `card-${esc(feed.nextId)}` : 'deck';
+  const feedActions = feed ? (feed.viewer
+    ? `<div class="feed-actions">
+  <form method="post" action="/possibilities/${esc(d.id)}/pass" class="feed-form">
+    <input type="hidden" name="actor" value="${esc(feed.viewer)}">
+    <input type="hidden" name="next" value="${esc(returnTo)}#${skipTo}">
+    <button class="feed-skip" type="submit">${tt('feed.skip')}</button>
+  </form>
+  <form method="post" action="/possibilities/${esc(d.id)}/interest" class="feed-form">
+    <input type="hidden" name="actor" value="${esc(feed.viewer)}">
+    <input type="hidden" name="next" value="${esc(returnTo)}#${esc(d.id)}">
+    <button class="feed-yes" type="submit">${tt('feed.interested')}</button>
+  </form>
+</div>`
+    : `<div class="feed-actions">
+  <a class="feed-skip" href="${base}#${skipTo}">${tt('feed.skip')}</a>
+  <a class="feed-yes" href="${base}#${esc(d.id)}">${tt('feed.interested')}</a>
+</div>`) : '';
   const pct = d.min ? Math.min(100, Math.round((d.participants / d.min) * 100)) : 0;
   const more = Math.max(0, d.min - d.participants);
-  const base = opts.base ?? '/possibilities';
   const needs = d.needs?.slice(0, 3) ?? [];
   const tone = toneFor(d.status, pct);
   return `<article class="possibility-card${tone ? ` ${tone}` : ''}" id="card-${esc(d.id)}" data-status="${esc(d.status)}" data-search="${esc(`${d.title} ${d.place ?? ''}`.toLowerCase())}">
@@ -129,10 +149,7 @@ export function deckCard(d: DeckCardData, opts: { base?: string; tt?: (k: string
 ${needs.length ? `<p class="needs"><span>${tt('card.needs')}</span>${needs.map((n) => `<b>${esc(n)}</b>`).join('')}</p>` : ''}
 ${d.reason ? `<p class="reason">${esc(d.reason)}</p>` : ''}
 <a class="join-button" href="${base}#${esc(d.id)}"><span>${more > 0 ? `${more} ${tt('card.more')}` : d.status === 'quorum' ? tt('card.atQuorum') : tt('card.see')}</span><span>→</span></a>
-${opts.feed ? `<div class="feed-actions">
-  <a class="feed-skip" href="${base}#${opts.feed.nextId ? `card-${esc(opts.feed.nextId)}` : 'deck'}">${tt('feed.skip')}</a>
-  <a class="feed-yes" href="${base}#${esc(d.id)}">${tt('feed.interested')}</a>
-</div>` : ''}
+${feedActions}
 </article>`;
 }
 

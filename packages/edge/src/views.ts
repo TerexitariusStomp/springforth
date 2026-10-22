@@ -3,7 +3,7 @@
 // Every loader returns exactly the object its JSON route returns today
 // (same key order = byte-identical serialization).
 import {
-  Possibility, Participation, Appreciation, Pass, AssuranceCredit,
+  Possibility, Participation, Appreciation, Pass, Interest, AssuranceCredit,
   OracleCheck, FundingRound, Donation, Pledge, ImpactClaim,
   RetroRound, ActorWallet, RecurringSupport, YieldStream,
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
@@ -395,18 +395,20 @@ export interface CardConnections {
   posts?: { id: string; parentId?: string; actor: string; kind: string; text: string; at: string }[];
   notes?: { from: string; to: string; note: string }[];
   geo?: { lat: number; lon: number };
-  personal?: { joined: boolean; recognized: number; near?: string };
+  interestCount?: number;
+  personal?: { joined: boolean; interested: boolean; recognized: number; near?: string; newSince: number; lastEvent?: string };
 }
 export async function loadCardConnections(
   env: Env,
   cards: { id: string; report?: unknown; place?: string; h3?: string }[],
 ): Promise<Record<string, CardConnections>> {
-  const [nodes, recs, rounds, dons, pledges, claims, events, seats, posts, apps] = await Promise.all([
+  const [nodes, recs, rounds, dons, pledges, claims, events, seats, posts, apps, interests] = await Promise.all([
     list<PlanNode>(env.DB, 'plannode'), list<OverlapRecord>(env.DB, 'overlap'),
     list<FundingRound>(env.DB, 'round'), list<Donation>(env.DB, 'donation'),
     list<Pledge>(env.DB, 'pledge'), list<ImpactClaim>(env.DB, 'claim'),
     ledgerEvents(env.DB), list<CouncilSeat>(env.DB, 'council-seat'),
     list<ForumPost>(env.DB, 'forum-post'), list<Appreciation>(env.DB, 'appreciation'),
+    list<Interest>(env.DB, 'interest'),
   ]);
   const out: Record<string, CardConnections> = {};
   for (const card of cards) {
@@ -448,6 +450,7 @@ export async function loadCardConnections(
         .map((f) => ({ id: f.id, parentId: f.parentId, actor: f.actor, kind: f.kind, text: f.text, at: f.at })),
       notes: apps.filter((a) => a.possibilityId === card.id && a.note.trim())
         .map((a) => ({ from: a.fromActor, to: a.toActor, note: a.note })),
+      interestCount: interests.filter((i) => i.possibilityId === card.id).length,
       ...(geo ? { geo: { lat: geo.lat, lon: geo.lon } } : {}),
     };
   }

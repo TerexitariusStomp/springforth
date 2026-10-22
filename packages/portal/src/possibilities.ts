@@ -51,13 +51,14 @@ export interface CardConnections {
   hasReport: boolean;
   // Megaplan extras (all optional — older payloads render unchanged):
   trail?: { seq: number; at: string; actor: string; kind: string }[];
+  interestCount?: number;
   seats?: { actor: string; role: string }[];
   posts?: { id: string; parentId?: string; actor: string; kind: string; text: string; at: string }[];
   notes?: { from: string; to: string; note: string }[];
   geo?: { lat: number; lon: number };
   // Viewer-personalized relevance, computed edge-side where full
   // participant data exists (counts only — names stay gated).
-  personal?: { joined: boolean; recognized: number; near?: string };
+  personal?: { joined: boolean; interested: boolean; recognized: number; near?: string; newSince: number; lastEvent?: string };
 }
 
 const money0 = (amount: number, currency: string) =>
@@ -152,26 +153,27 @@ function scenarioBlock(c: PossibilityCard, tt: (k: string) => string): string {
 
 // Per-card audit trail — the verifier's replay: every ledger event that
 // names this card, chronological, linked to /ledger.
+function trailKey(kind: string): string {
+  if (kind.startsWith('possibility.')) {
+    const map: Record<string, string> = {
+      declared: 'trail.declared', joined: 'trail.joined', quorum: 'trail.quorum',
+      completed: 'trail.completed', expired: 'trail.expired',
+      appreciated: 'trail.appreciated', passed: 'trail.passed',
+      interested: 'trail.interested',
+      need_flagged: 'trail.need',
+    };
+    return map[kind.slice('possibility.'.length)] ?? 'trail.other';
+  }
+  if (kind.startsWith('pledge.')) return 'trail.pledge';
+  if (kind === 'council.seated') return 'trail.seat';
+  if (kind === 'forum.posted') return 'trail.post';
+  if (kind === 'context.refreshed') return 'trail.context';
+  return 'trail.other';
+}
+
 function trailBlock(trail: NonNullable<CardConnections['trail']>, tt: (k: string) => string): string {
-  const labelFor = (kind: string): string => {
-    if (kind.startsWith('possibility.')) {
-      const k = kind.slice('possibility.'.length);
-      const map: Record<string, string> = {
-        declared: 'trail.declared', joined: 'trail.joined', quorum: 'trail.quorum',
-        completed: 'trail.completed', expired: 'trail.expired',
-        appreciated: 'trail.appreciated', passed: 'trail.passed',
-        need_flagged: 'trail.need',
-      };
-      return tt(map[k] ?? 'trail.other');
-    }
-    if (kind.startsWith('pledge.')) return tt('trail.pledge');
-    if (kind === 'council.seated') return tt('trail.seat');
-    if (kind === 'forum.posted') return tt('trail.post');
-    if (kind === 'context.refreshed') return tt('trail.context');
-    return tt('trail.other');
-  };
   const rows = trail.map((e) =>
-    `<li><time>${esc(e.at.slice(0, 10))}</time> — <strong>${esc(labelFor(e.kind))}</strong>
+    `<li><time>${esc(e.at.slice(0, 10))}</time> — <strong>${esc(tt(trailKey(e.kind)))}</strong>
 <span class="nice">${displayName(e.actor)} · <a href="/ledger">#${e.seq}</a></span></li>`).join('');
   return `<details class="trail"><summary>${esc(tt('card.trail'))} (${trail.length})</summary>
 <p class="nice">${esc(tt('card.trail.lede'))}</p><ol>${rows}</ol></details>`;
@@ -286,6 +288,7 @@ function cardDetail(c: PossibilityCard, conn: CardConnections | undefined, lang:
 ${c.tipping ? `<span class="badge gold">${esc(tt('card.tipping'))}</span>` : ''}
 <span class="badge">${esc(countdown(c.deadline, tt))}</span>
 <span class="badge">${c.participantCount}/${c.minParticipants} ${esc(tt('card.in'))}${partCap}</span>
+${conn?.interestCount ? `<span class="badge">${conn.interestCount} ${esc(tt('card.interested'))}</span>` : ''}
 <span class="badge">${esc(tt('card.needs').toLowerCase())} ${c.quorum.requiredMet}/${c.quorum.required}</span>
 <span class="badge">${esc(tt('card.score'))} ${c.score.toFixed(2)}</span></p>
 <div class="bar"><div class="fill" style="width:${Math.round(cover * 100)}%"></div></div>
@@ -368,7 +371,13 @@ const DECK_CSS = `
 .mutual-panel{max-width:78.125rem;margin:3rem auto 0;background:var(--sf-card);border:1px solid var(--sf-line-2);border-radius:12px;padding:1.625rem}
 .mutual-panel h3{font-family:var(--sf-serif);font-weight:400;font-size:24px;margin:0 0 .375rem}
 .mutual-panel ul{list-style:none;padding:0;font-size:13px}
-.feed-actions{display:none}
+.feed-actions{display:flex;gap:.625rem;margin-top:.875rem}
+.feed-actions .feed-form{flex:1;display:flex;margin:0}
+.feed-actions a,.feed-actions button{flex:1;min-height:2.75rem;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:99px;font-size:13px;font-weight:800;text-decoration:none;border:1px solid transparent;cursor:pointer;font-family:inherit}
+.feed-actions .feed-skip{color:var(--sf-muted);border:1px solid var(--sf-line);background:transparent}
+.feed-actions .feed-yes{background:var(--sf-coral);color:var(--sf-ink-fixed)}
+.feed-actions .feed-yes:focus-visible,.feed-actions .feed-skip:focus-visible{outline:2px solid var(--sf-green-2);outline-offset:2px}
 ${MAP_CSS}
 .map-mini{max-width:16.25rem;margin:.5rem 0}
 .map-mini .map-halo{display:none}
@@ -395,12 +404,6 @@ ${MAP_CSS}
   .feed-mode .possibility-card .join-button{display:none}
   .feed-mode .possibility-card .needs{display:none}
   .deck-controls .search-field{display:none}
-  .feed-actions{display:flex;gap:.625rem;margin-top:.875rem}
-  .feed-actions a{flex:1;min-height:2.75rem;display:inline-flex;align-items:center;justify-content:center;
-    border-radius:99px;font-size:13px;font-weight:800;text-decoration:none}
-  .feed-actions .feed-skip{color:var(--sf-muted);border:1px solid var(--sf-line)}
-  .feed-actions .feed-yes{background:var(--sf-coral);color:var(--sf-ink-fixed)}
-  .feed-actions .feed-yes:focus-visible,.feed-actions .feed-skip:focus-visible{outline:2px solid var(--sf-green-2);outline-offset:2px}
 }
 @media(max-width:45rem){.detail-panel{padding:1.625rem 1.125rem}}
 `;
@@ -421,8 +424,10 @@ export function renderPossibilitiesPage(
     if (!p) return undefined;
     const bits: string[] = [];
     if (p.joined) bits.push(tt('reason.joined'));
+    else if (p.interested) bits.push(tt('reason.watching'));
     if (p.recognized > 0) bits.push(`${p.recognized} ${tt('reason.recognized')}`);
     if (p.near) bits.push(`${tt('reason.near')} ${p.near}`);
+    if (p.newSince > 0) bits.push(`${p.newSince} ${tt('feed.since')}${p.lastEvent ? ` — ${tt(trailKey(p.lastEvent))}` : ''}`);
     return bits.length ? bits.join(' · ') : undefined;
   };
   const grid = filtered.map((c, idx) => deckCard({
@@ -431,7 +436,8 @@ export function renderPossibilitiesPage(
     min: c.minParticipants || 0, deadline: c.deadline,
     needs: c.needs.filter((n) => !n.met).slice(0, 3).map((n) => n.label),
     reason: reasonFor(c),
-  }, { base: '', tt, feed: { nextId: filtered[idx + 1]?.id } })).join('\n');
+  }, { base: '', tt, feed: { nextId: filtered[idx + 1]?.id, viewer,
+    returnTo: `/possibilities${keep ? `?${keep}` : ''}` } })).join('\n');
   const overlays = cards.map((c) => cardDetail(c, opts.connections?.[c.id], lang)).join('\n');
   const markers = cards.flatMap((c) => {
     const g = opts.connections?.[c.id]?.geo;

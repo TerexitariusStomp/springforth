@@ -1,5 +1,5 @@
 import {
-  Possibility, Participation, Appreciation, Pass, AssuranceCredit,
+  Possibility, Participation, Appreciation, Pass, Interest, AssuranceCredit,
   OracleCheck, Signal, CouncilSeat, ForumPost,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
   RetroRound, RetroBallot, ChainTx, YieldStream,
@@ -249,6 +249,11 @@ const html = (s: string, status = 200) =>
   new Response(s, { status, headers: { 'content-type': 'text/html' } });
 const authed = (req: Request, env: Env) =>
   !!env.ADMIN_TOKEN && req.headers.get('authorization') === `Bearer ${env.ADMIN_TOKEN}`;
+
+// Feed POSTs may carry a `next` path to land on after the redirect —
+// strictly same-origin deck paths only (no protocol-relative escapes).
+const safeNext = (v: unknown, fallback: string): string =>
+  typeof v === 'string' && /^\/possibilities(\?|#|$)/.test(v) ? v : fallback;
 
 // Possibility sweep — advances time-driven statuses once and fires quorum
 // effects exactly once per possibility: status flip, `possibility.quorum`
@@ -1599,21 +1604,24 @@ export default {
         }
         if (req.method === 'GET' && seg.length === 1) {
           await sweepPossibilities(env);
-          const [poss, nodes, recs, parts, apps, passes, { dons, matchByNeed }] = await Promise.all([
+          const [poss, nodes, recs, parts, apps, passes, interests, { dons, matchByNeed }] = await Promise.all([
             list<Possibility>(env.DB, 'possibility'), list<PlanNode>(env.DB, 'plannode'),
             list<OverlapRecord>(env.DB, 'overlap'), list<Participation>(env.DB, 'participation'),
             list<Appreciation>(env.DB, 'appreciation'), list<Pass>(env.DB, 'pass'),
+            list<Interest>(env.DB, 'interest'),
             fundingMaps(env),
           ]);
           const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
             .map((n) => [n.id, n.possibilityId]));
           const edges = trustEdges(apps);
           const viewer = url.searchParams.get('actor') ?? undefined;
-          // ?for=<actor> — interest feed: only possibilities the actor has
-          // joined, so post-interest progress/quorum is one tap away.
+          // ?for=<actor> — interest feed: possibilities the actor joined or
+          // recorded interest in, so post-engagement progress is one tap away.
           const forActor = url.searchParams.get('for') ?? undefined;
           const scoped = forActor
-            ? poss.filter((p) => parts.some((x) => x.possibilityId === p.id && x.actor === forActor))
+            ? poss.filter((p) =>
+                parts.some((x) => x.possibilityId === p.id && x.actor === forActor)
+                || interests.some((i) => i.possibilityId === p.id && i.actor === forActor))
             : poss;
           const now = Date.now();
           const coordinated = new Set(recs
@@ -1666,10 +1674,22 @@ export default {
               .map((p) => p.place?.toLowerCase()).filter(Boolean));
             for (const c of cards) {
               const mine = parts.filter((x) => x.possibilityId === c.id);
+              const myJoin = mine.find((x) => x.actor === me);
+              const myInterest = interests.find((i) => i.possibilityId === c.id && i.actor === me);
+              // Since-engagement markers: compare the card's audit trail
+              // against the viewer's earliest signal (join or interest).
+              const engagedAt = [myJoin?.at, myInterest?.at].filter(Boolean).sort()[0];
+              const fresh = engagedAt
+                ? (connections[c.id]?.trail ?? []).filter((e) => e.at > engagedAt
+                    && e.kind !== 'possibility.passed' && e.kind !== 'possibility.interested')
+                : [];
               connections[c.id]!.personal = {
-                joined: mine.some((x) => x.actor === me),
+                joined: !!myJoin,
+                interested: !!myInterest,
                 recognized: mine.filter((x) => recognized.has(x.actor)).length,
-                near: !mine.some((x) => x.actor === me) && c.place && myPlaces.has(c.place.toLowerCase()) ? c.place : undefined,
+                near: !myJoin && c.place && myPlaces.has(c.place.toLowerCase()) ? c.place : undefined,
+                newSince: fresh.length,
+                lastEvent: fresh.length ? fresh[fresh.length - 1]!.kind : undefined,
               };
             }
           }
@@ -1807,8 +1827,29 @@ export default {
           await ledgerAppend(env.DB, actor, 'possibility.passed', { id: p.id });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
-            ? new Response(null, { status: 303, headers: { location: '/possibilities' } })
+            ? new Response(null, { status: 303, headers: { location: safeNext(b.next, '/possibilities') } })
             : json(pass, 201);
+        }
+        // Swipe-right — a logged "I'm interested". The warm signal short
+        // of joining: feeds the actor's interest feed and the card's
+        // public interest count (identity stays graded like participants).
+        if (req.method === 'POST' && seg[2] === 'interest') {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const actor = String(b.actor ?? '');
+          if (!actor) return err('actor required');
+          const interest = Interest.parse({
+            id: `interest-${p.id}-${actor.toLowerCase().replace(/\W+/g, '-')}`,
+            possibilityId: p.id, actor, at: new Date().toISOString(),
+          });
+          await put(env.DB, 'interest', interest.id, interest);
+          await ledgerAppend(env.DB, actor, 'possibility.interested', { id: p.id });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: safeNext(b.next, `/possibilities?actor=${encodeURIComponent(actor)}#${p.id}`) } })
+            : json(interest, 201);
         }
         // Escalation step — a participant flags a NEW need on the card.
         // Flagged needs are always nice-to-have; `required` is the

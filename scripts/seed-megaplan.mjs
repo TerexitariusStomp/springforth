@@ -83,6 +83,27 @@ for (const p of completed) {
   forumEvents.push([a.actor, 'possibility.appreciated', { id: p.id, to: b.actor }]);
 }
 
+// 3.5 Interest rows — the warm "I'm interested" signal on live cards,
+// from actors who haven't joined (watching, not committed). Feeds the
+// ?for=<actor> interest feed and the public watching count.
+const live = possRows.filter((p) => ['active', 'draft'].includes(p.status));
+const WATCHERS = ['bilal', 'chao', 'dunia', 'ezra', 'femi'];
+let seeded = 0;
+for (const p of live) {
+  const joined = new Set(parts.filter((x) => x.possibilityId === p.id)
+    .map((x) => x.actor));
+  for (const w of WATCHERS) {
+    if (joined.has(w) || seeded >= 4) break;
+    const id = `interest-${p.id}-${slug(w)}`;
+    entities.push(['interest', id,
+      { id, possibilityId: p.id, actor: w, at: NOW }]);
+    forumEvents.push([w, 'possibility.interested', { id: p.id }]);
+    seeded++;
+    break;
+  }
+}
+console.log(`interests seeded: ${seeded}`);
+
 // 4. Ledger rows — continue the remote hash chain (same hash as store.ts).
 const digest = (s) => createHash('sha256').update(s).digest('hex');
 const eventHash = (e) => digest(JSON.stringify([e.seq, e.at, e.actor, e.kind, e.payload, e.prev_hash]));

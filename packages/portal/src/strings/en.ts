@@ -646,6 +646,7 @@ const en: Record<string, string> = {
   'deck.mine.body': 'These are the possibilities you\u2019ve joined — progress and quorum updates land here.',
   'feed.interested': 'I\u2019m interested',
   'feed.skip': 'Not now',
+  'feed.since': 'new since you engaged',
   'deck.empty': 'No cards here yet —',
   'deck.empty.cta': 'declare one',
   'deck.f.draft': 'Draft',
@@ -655,6 +656,7 @@ const en: Record<string, string> = {
   'deck.desc': 'Real commitment windows: join a card that is building, or declare the thing only you can start.',
   'card.tipping': 'tipping — 30% reached, momentum building',
   'card.in': 'in',
+  'card.interested': 'watching',
   'card.cover': 'needs:resources cover',
   'card.trust': 'trust',
   'card.urgency': 'urgency',
@@ -936,6 +938,7 @@ const en: Record<string, string> = {
   'trail.expired': 'expired',
   'trail.appreciated': 'appreciation recorded',
   'trail.passed': 'passed',
+  'trail.interested': 'marked interested',
   'trail.need': 'need flagged',
   'trail.pledge': 'pledge state changed',
   'trail.seat': 'council seated',
@@ -993,6 +996,7 @@ const en: Record<string, string> = {
   'forum.k.review': 'review',
   // ── Personal reason lines ──────────────────────────────────────
   'reason.joined': 'you\'re in',
+  'reason.watching': 'you\'re watching this',
   'reason.recognized': 'people you recognize are in',
   'reason.near': 'near a place you joined —',
   // ── Impact metrics + columns ───────────────────────────────────

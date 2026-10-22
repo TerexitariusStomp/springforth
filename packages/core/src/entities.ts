@@ -110,6 +110,17 @@ export const Pass = z.object({
 });
 export type Pass = z.infer<typeof Pass>;
 
+// Swipe-right — a logged "I'm interested" on a possibility card. The
+// warm signal short of joining: counts may render publicly (momentum),
+// identity stays under the same gradation rules as participants.
+export const Interest = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  actor: z.string().min(1),
+  at: z.string().datetime(),
+});
+export type Interest = z.infer<typeof Interest>;
+
 // Dominant-assurance credit (Tabarrok 1998): participants who committed to
 // a possibility that *expired* earn append-only recognition — "they were
 // willing when willingness wasn't enough." Makes joining dominant;

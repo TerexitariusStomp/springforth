@@ -245,11 +245,44 @@ describe('card connections', () => {
   it('hides the pledge form on expired cards and shows reason lines', () => {
     const dead = { ...card(), status: 'expired' as const };
     const html = renderPossibilitiesPage([dead] as never, [], 'priya',
-      { connections: { p1: { ...conn, personal: { joined: false, recognized: 2, near: 'Mida Creek' } } } });
+      { connections: { p1: { ...conn, personal: { joined: false, interested: false, recognized: 2, near: 'Mida Creek', newSince: 0 } } } });
     expect(html).not.toContain('/possibilities/p1/pledge');
     expect(html).toContain('class="reason"');
     expect(html).toContain('2 people you recognize');
     expect(html).toContain('near a place you joined');
+  });
+  // Feed actions are real signals: with a known viewer they POST pass /
+  // interest (with sanitized next redirects); anonymous viewers get plain
+  // anchors so the page still works without form submission.
+  it('renders feed actions as POST forms when a viewer is known', () => {
+    const html = renderPossibilitiesPage([card(), { ...card(), id: 'p2', title: 'Second card' }] as never,
+      [], 'priya');
+    for (const m of [
+      'action="/possibilities/p1/pass"',
+      'action="/possibilities/p1/interest"',
+      'name="actor" value="priya"',
+      'name="next" value="/possibilities?actor=priya#card-p2"',
+      'name="next" value="/possibilities?actor=priya#p1"',
+      'Not now', 'interested',
+    ]) expect(html).toContain(m);
+  });
+  it('keeps feed actions as plain anchors for anonymous viewers', () => {
+    const html = renderPossibilitiesPage([card()] as never, [], undefined);
+    const feed = html.slice(html.indexOf('class="feed-actions"'), html.indexOf('class="feed-actions"') + 600);
+    expect(feed).toContain('<a class="feed-skip"');
+    expect(feed).not.toContain('<form');
+  });
+  it('shows watching + since-engagement markers and the interested count', () => {
+    const html = renderPossibilitiesPage([card()] as never, [], 'priya',
+      { connections: { p1: {
+        ...conn, interestCount: 4,
+        personal: { joined: false, interested: true, recognized: 0, newSince: 2,
+          lastEvent: 'possibility.quorum' },
+      } } });
+    expect(html).toContain('watching this');
+    expect(html).toContain('2 new since you engaged');
+    expect(html).toContain('reached quorum');
+    expect(html).toContain('4 watching');
   });
 });
 

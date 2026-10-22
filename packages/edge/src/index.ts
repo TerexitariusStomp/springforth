@@ -32,6 +32,7 @@ import {
   tickerLines, tickerHtml, pageShell,
 } from '@springforth/portal';
 import { PICO_CSS, HTMX_JS } from './vendor.js';
+import { ogPng } from './og.js';
 import {
   PlanNode, ExternalPlan, OverlapRecord,
   detectOverlaps, detectComplements, validateOverlap, mergeProposal, isNeed,
@@ -687,6 +688,10 @@ export default {
           return new Response(PICO_CSS, { headers: { ...cache, 'content-type': 'text/css' } });
         if (seg[1] === 'htmx.js')
           return new Response(HTMX_JS, { headers: { ...cache, 'content-type': 'text/javascript' } });
+      }
+      // GET /og.png — the social share card (embedded PNG, generated asset)
+      if (req.method === 'GET' && seg[0] === 'og.png') {
+        return new Response(ogPng().buffer as ArrayBuffer, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } });
       }
       // GET /partials/ticker — htmx target for the landing activity ticker.
       if (req.method === 'GET' && seg[0] === 'partials' && seg[1] === 'ticker') {

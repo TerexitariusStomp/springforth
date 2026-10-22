@@ -84,7 +84,7 @@ function cardDetail(c: PossibilityCard): string {
   const joined = (c.participants ?? []).map((x) => `<li>${esc(x.actor)}${x.bringingNodeId ? ' + bringing' : ''}</li>`).join('');
   const partCap = c.maxParticipants ? `/${c.maxParticipants} cap` : '';
   return `<div class="card-overlay" id="${esc(c.id)}">
-<div class="detail-panel" role="dialog" aria-modal="true" aria-label="${esc(c.title)}">
+<div class="detail-panel" role="dialog" aria-modal="true" aria-label="${esc(c.title)}" tabindex="-1">
 <a class="modal-close" href="#deck" aria-label="Close">✕</a>
 <h3>“${esc(c.title)}”</h3>
 <p><span class="badge lime">${esc(c.status)}</span>
@@ -249,6 +249,13 @@ document.getElementById('deck-search')?.addEventListener('input', (e) => {
     el.style.display = !q || (el.dataset.search || '').includes(q) ? '' : 'none';
   });
 });
+const openOverlay = () => document.querySelector('.card-overlay:target');
+const closeOverlay = () => { if (openOverlay()) location.hash = 'deck'; };
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlay(); });
+document.addEventListener('click', (e) => { const ov = openOverlay(); if (ov && e.target === ov) closeOverlay(); });
+const focusPanel = () => openOverlay()?.querySelector('.detail-panel')?.focus();
+addEventListener('hashchange', focusPanel);
+if (openOverlay()) focusPanel();
 </script>`;
 
   return pageShell({

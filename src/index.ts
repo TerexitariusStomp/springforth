@@ -980,9 +980,15 @@ export default {
           || p.startsWith('/__manifest') || p === '/favicon.ico'
           || p.startsWith('/og/') || p.startsWith('/tiles/');
         const pageGet = wantsHtml(req) && url.searchParams.get('format') !== 'json'
+          && req.headers.get('x-sf-ui') !== '1'
           && !p.startsWith('/vendor/') && !p.startsWith('/partials/')
           && p !== '/favicon.svg' && p !== '/og.png';
-        if (rrAsset || pageGet) return env.WEB.fetch(req);
+        if (rrAsset || pageGet) {
+          // Service-binding responses carry immutable headers — re-wrap so the
+          // outer fetch can set cache-control/lang on HTML pages.
+          const r = await env.WEB.fetch(req);
+          return new Response(r.body, r);
+        }
       }
       // Vendored MIT assets — same-origin, no CDN at runtime.
       if (req.method === 'GET' && seg[0] === 'vendor' && seg.length === 2) {

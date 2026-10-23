@@ -27,7 +27,7 @@ environment = "production"
 [vars]
 ENVIRONMENT = "production"
 # Frontend handoff switch — '1' routes browser HTML GETs to springforth-web.
-WEB_FRONTEND = "0"
+WEB_FRONTEND = "1"
 # Chain lane: read-side + unsigned-calldata only — the worker never signs.
 # All protocol contracts verified live on celo mainnet (2026-10-20).
 # celo-sepolia is the proving ground once contracts are deployed there.

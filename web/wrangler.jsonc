@@ -5,6 +5,7 @@
 	"main": "./workers/app.ts",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_compat"],
+	"limits": { "cpu_ms": 30000 },
 	"observability": {
 		"enabled": true
 	},

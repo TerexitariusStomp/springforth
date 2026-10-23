@@ -84,9 +84,11 @@ export async function fetchPlan(base: string, key: string, planId: string): Prom
   return normalizePlan(await res.json());
 }
 
-// Write lane (create_* MCP tools on write-capable keys).
-export { pushPlanNodes, pushNodesWith, pushProgress } from './mcp.js';
-export type { PushResult } from './mcp.js';
+// Write lane (create_* MCP tools on write-capable keys) + full-surface
+// read/passthrough.
+export { pushPlanNodes, pushNodesWith, pushProgress, opTool, listPlans,
+  updateOai, attachToOai, pullOai, OP_TOOLS, OnePlanetMcp } from './mcp.js';
+export type { PushResult, OpAttachment } from './mcp.js';
 
 // CSV lane: rows of kind,label,place,outcome,org,start,budget → one plan.
 export function fromCsv(csv: string, source = 'csv:upload'): ExternalPlan {

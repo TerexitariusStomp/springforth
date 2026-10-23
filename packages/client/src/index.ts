@@ -152,12 +152,34 @@ export class SpringforthClient {
   regenSync = () => this.post('/regen/sync');
   bloomSync = (key?: string) =>
     this.post('/bloom/sync', key ? { key } : {});
+  oneplanetStatus = () => this.get('/oneplanet/status');
   oneplanetPlans = () => this.get('/oneplanet/plans');
+  oneplanetPlan = (uuid: string, report = false) =>
+    this.get(`/oneplanet/plans/${uuid}${report ? '?report=1' : ''}`);
+  oneplanetOai = (oaiUuid: string, planUuid: string) =>
+    this.get(`/oneplanet/oais/${oaiUuid}?planUuid=${planUuid}`);
+  oneplanetFind = (q: string, kind: 'plan' | 'oai' = 'oai', planUuid?: string) =>
+    this.get(`/oneplanet/find?q=${encodeURIComponent(q)}&kind=${kind}${planUuid ? `&planUuid=${planUuid}` : ''}`);
+  oneplanetSearch = (q: string, scope: 'plan' | 'content' | 'knowledge' = 'plan', planUuid?: string) =>
+    this.get(`/oneplanet/search?q=${encodeURIComponent(q)}&scope=${scope}${planUuid ? `&planUuid=${planUuid}` : ''}`);
   oneplanetPublish = (opts: { planUuid: string; planId?: string;
     nodeIds?: string[]; maxNodes?: number; dryRun?: boolean }) =>
     this.post('/oneplanet/publish', opts);
   oneplanetReport = (opts: { nodeId?: string; oaiUuid?: string;
-    planUuid?: string; value: string; note?: string }) =>
+    planUuid?: string; type?: 'progress' | 'guidance' | 'case_study'
+      | 'story' | 'chart' | 'monitoring';
+    value?: string; note?: string; title?: string; description?: string;
+    date?: string; url?: string; units?: string; target?: string;
+    targetDate?: string; benchmark?: string }) =>
     this.post('/oneplanet/report', opts);
+  oneplanetUpdate = (opts: { nodeId?: string; oaiUuid?: string;
+    planUuid?: string; kind?: 'outcome' | 'action' | 'indicator';
+    name?: string; description?: string; status?: string;
+    dueDate?: string }) =>
+    this.post('/oneplanet/update', opts);
+  oneplanetPull = (planUuid: string, store = false) =>
+    this.post('/oneplanet/pull', { planUuid, store });
+  oneplanetTool = (tool: string, args: Record<string, unknown> = {}) =>
+    this.post('/oneplanet/tool', { tool, args });
   importPlan = (format: string, data: unknown, source?: string) => this.post('/plans', { format, data, source });
 }

@@ -232,6 +232,12 @@ importers:
       '@springforth/funding':
         specifier: workspace:*
         version: link:../funding
+      '@springforth/gap-adapter':
+        specifier: workspace:*
+        version: link:../gap-adapter
+      '@springforth/giveth-adapter':
+        specifier: workspace:*
+        version: link:../giveth-adapter
       '@springforth/holons-adapter':
         specifier: workspace:*
         version: link:../holons-adapter
@@ -247,9 +253,18 @@ importers:
       '@springforth/portal':
         specifier: workspace:*
         version: link:../portal
+      '@springforth/regen-adapter':
+        specifier: workspace:*
+        version: link:../regen-adapter
+      '@springforth/restor-adapter':
+        specifier: workspace:*
+        version: link:../restor-adapter
       '@springforth/silvi-adapter':
         specifier: workspace:*
         version: link:../silvi-adapter
+      '@springforth/soulutions-adapter':
+        specifier: workspace:*
+        version: link:../soulutions-adapter
       '@springforth/treegens-adapter':
         specifier: workspace:*
         version: link:../treegens-adapter
@@ -392,6 +407,56 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
 
+  packages/gap-adapter:
+    dependencies:
+      '@springforth/coordination':
+        specifier: workspace:*
+        version: link:../coordination
+      '@springforth/core':
+        specifier: workspace:*
+        version: link:../core
+      h3-js:
+        specifier: ^4.2.1
+        version: 4.3.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/giveth-adapter:
+    dependencies:
+      '@springforth/coordination':
+        specifier: workspace:*
+        version: link:../coordination
+      '@springforth/core':
+        specifier: workspace:*
+        version: link:../core
+      h3-js:
+        specifier: ^4.2.1
+        version: 4.3.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
   packages/holons-adapter:
     dependencies:
       '@springforth/coordination':
@@ -508,6 +573,50 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
 
+  packages/regen-adapter:
+    dependencies:
+      '@springforth/coordination':
+        specifier: workspace:*
+        version: link:../coordination
+      h3-js:
+        specifier: ^4.2.1
+        version: 4.3.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/restor-adapter:
+    dependencies:
+      '@springforth/coordination':
+        specifier: workspace:*
+        version: link:../coordination
+      h3-js:
+        specifier: ^4.2.1
+        version: 4.3.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
   packages/silvi-adapter:
     dependencies:
       '@springforth/coordination':
@@ -516,6 +625,25 @@ importers:
       h3-js:
         specifier: ^4.2.1
         version: 4.5.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/soulutions-adapter:
+    dependencies:
+      '@springforth/coordination':
+        specifier: workspace:*
+        version: link:../coordination
       zod:
         specifier: ^3.25.76
         version: 3.25.76

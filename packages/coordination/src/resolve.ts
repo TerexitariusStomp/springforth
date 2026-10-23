@@ -106,6 +106,16 @@ export interface DetectOpts {
                                                  // humans adjudicate, so favour recall
   scorer?: (a: PlanNode, b: PlanNode) => number | undefined; // injected embedding/ER scorer
   kinds?: PlanNode['kind'][];                    // default ['action','outcome']
+  // Incremental sync scope: only evaluate pairs touching one of these ids.
+  // `pairBudget`/`timeBudgetMs` bound the pass — when either is spent the
+  // function returns the partial result (callers re-run on the next sync).
+  // Keeps resumable import syncs inside Worker CPU as the graph grows.
+  changedIds?: ReadonlySet<string>;
+  pairBudget?: number;
+  timeBudgetMs?: number;
+  // Optional out-param: callers get pair count + whether a budget cut the
+  // pass short — a partial pass must not retire existing proposals.
+  stats?: { pairs: number; exhausted: boolean };
   now?: string;
 }
 
@@ -113,12 +123,48 @@ export function detectOverlaps(nodes: PlanNode[], opts: DetectOpts = {}): Overla
   const min = opts.minConfidence ?? 0.3;
   const candidates = nodes.filter((n) => (opts.kinds ?? ['action', 'outcome']).includes(n.kind));
   const byId = new Map(nodes.map((n) => [n.id, n]));
+  const changed = opts.changedIds;
+  // Token sets are per-node invariants — computing them inside the pair
+  // loop costs O(n²) set constructions. Memoize once per candidate.
+  const cache = new Map<string, { label: Set<string>; desc: Set<string>; tags: Set<string> }>();
+  const tokens = (n: PlanNode) => {
+    let t = cache.get(n.id);
+    if (!t) {
+      t = {
+        label: tokenSet(n.label),
+        desc: tokenSet(`${n.label} ${n.description}`),
+        tags: tokenSet(n.tags.join(' ')),
+      };
+      cache.set(n.id, t);
+    }
+    return t;
+  };
   const out: OverlapRecord[] = [];
+  const t0 = opts.timeBudgetMs !== undefined ? Date.now() : 0;
   let seq = 0;
+  let pairs = 0;
+  const spent = () =>
+    (opts.pairBudget !== undefined && pairs >= opts.pairBudget)
+    || (opts.timeBudgetMs !== undefined && Date.now() - t0 > opts.timeBudgetMs);
+  const finish = (exhausted = false) => {
+    if (opts.stats) { opts.stats.pairs = pairs; opts.stats.exhausted = exhausted; }
+    return out.sort((x, y) => y.confidence - x.confidence);
+  };
 
-  for (let i = 0; i < candidates.length; i++) {
-    for (let j = i + 1; j < candidates.length; j++) {
-      const a = candidates[i]!, b = candidates[j]!;
+  // When scoped, iterate changed × candidates (O(|changed|·n)) instead of
+  // the full n² sweep — the skip-check itself becomes the hot loop at scale.
+  const outer = changed ? candidates.filter((n) => changed.has(n.id)) : candidates;
+  const idx = new Map(candidates.map((n, i) => [n.id, i]));
+  for (const a of outer) {
+    const ai = idx.get(a.id)!;
+    // Scoped: every pair (changed, any) — dedupe changed×changed by order.
+    // Unscoped: classic i<j triangular sweep.
+    for (let bi = changed ? 0 : ai + 1; bi < candidates.length; bi++) {
+      if (bi === ai) continue;
+      const b = candidates[bi]!;
+      if (changed && changed.has(b.id) && bi <= ai) continue;
+      if (a.source === b.source) continue;        // same plan — intra-plan dup is its data's problem
+      if ((pairs++ & 127) === 0 && spent()) return finish(true);
       if (a.source === b.source) continue;        // same plan — intra-plan dup is its data's problem
       const evidence: OverlapRecord['evidence'] = [];
       const counter: NonNullable<OverlapRecord['counterEvidence']> = [];
@@ -129,8 +175,9 @@ export function detectOverlaps(nodes: PlanNode[], opts: DetectOpts = {}): Overla
         if (s > 0) evidence.push({ field, a: aVal, b: bVal, score: s });
         else if (aVal && bVal && counter.length < 4) counter.push({ field, a: aVal, b: bVal, score: s });
       };
-      const ls = jaccard(tokenSet(a.label), tokenSet(b.label));
-      const ds = jaccard(tokenSet(`${a.label} ${a.description}`), tokenSet(`${b.label} ${b.description}`));
+      const at = tokens(a), bt = tokens(b);
+      const ls = jaccard(at.label, bt.label);
+      const ds = jaccard(at.desc, bt.desc);
       push('label', a.label, b.label, Math.max(ls, ds * 0.8));
       push('place', a.placeId ?? a.h3 ?? '', b.placeId ?? b.h3 ?? '', placeScore(a, b));
       const ao = a.parentOutcomeId ? byId.get(a.parentOutcomeId)?.label : undefined;
@@ -157,7 +204,7 @@ export function detectOverlaps(nodes: PlanNode[], opts: DetectOpts = {}): Overla
       }));
     }
   }
-  return out.sort((x, y) => y.confidence - x.confidence);
+  return finish();
 }
 
 // ── Complement matching (CLC needs × offers) ─────────────────────────────
@@ -182,12 +229,34 @@ export function detectComplements(nodes: PlanNode[], opts: ComplementOpts = {}):
   const cap = opts.maxRecords ?? 50;
   const needs = nodes.filter(isNeed);
   const offers = nodes.filter((n) => n.kind === 'offer');
+  const changed = opts.changedIds;
+  const cache = new Map<string, { label: Set<string>; desc: Set<string> }>();
+  const tokens = (n: PlanNode, extra = '') => {
+    const key = extra ? `${n.id}~` : n.id;
+    let t = cache.get(key);
+    if (!t) {
+      t = { label: tokenSet(n.label), desc: tokenSet(`${n.label} ${n.description} ${extra}`) };
+      cache.set(key, t);
+    }
+    return t;
+  };
   const out: OverlapRecord[] = [];
+  const t0 = opts.timeBudgetMs !== undefined ? Date.now() : 0;
   let seq = 0;
+  let pairs = 0;
+  const spent = () =>
+    (opts.pairBudget !== undefined && pairs >= opts.pairBudget)
+    || (opts.timeBudgetMs !== undefined && Date.now() - t0 > opts.timeBudgetMs);
+  const finish = (exhausted = false) => {
+    if (opts.stats) { opts.stats.pairs = pairs; opts.stats.exhausted = exhausted; }
+    return out.sort((x, y) => y.confidence - x.confidence).slice(0, cap);
+  };
 
   for (const need of needs) {
     for (const offer of offers) {
       if (need.source === offer.source) continue;
+      if (changed && !changed.has(need.id) && !changed.has(offer.id)) continue;
+      if ((pairs++ & 127) === 0 && spent()) return finish(true);
       const evidence: OverlapRecord['evidence'] = [];
       const counter: NonNullable<OverlapRecord['counterEvidence']> = [];
       const push = (field: EvidenceField, aVal: string, bVal: string, score: number) => {
@@ -197,11 +266,9 @@ export function detectComplements(nodes: PlanNode[], opts: ComplementOpts = {}):
       };
       // What is needed vs what is offered — description carries the goods
       // terms for vouchers, so it weighs in at full strength here.
-      const ls = jaccard(tokenSet(need.label), tokenSet(offer.label));
-      const ds = jaccard(
-        tokenSet(`${need.label} ${need.description}`),
-        tokenSet(`${offer.label} ${offer.description} ${offer.terms ?? ''}`),
-      );
+      const nt = tokens(need), ot = tokens(offer, offer.terms ?? '');
+      const ls = jaccard(nt.label, ot.label);
+      const ds = jaccard(nt.desc, ot.desc);
       push('label', need.label, offer.label, Math.max(ls, ds * 0.9));
       push('place', need.placeId ?? need.h3 ?? '', offer.placeId ?? offer.h3 ?? '', placeScore(need, offer));
       push('timeframe', need.timeframe.from ?? '', offer.timeframe.from ?? '', timeScore(need, offer));
@@ -225,7 +292,7 @@ export function detectComplements(nodes: PlanNode[], opts: ComplementOpts = {}):
       }));
     }
   }
-  return out.sort((x, y) => y.confidence - x.confidence).slice(0, cap);
+  return finish();
 }
 
 // Human validation is first-class: a record isn't 'confirmed' until a named

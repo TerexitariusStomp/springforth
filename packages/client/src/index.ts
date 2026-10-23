@@ -141,5 +141,14 @@ export class SpringforthClient {
   silviSync = (projectId?: string, apiKey?: string) =>
     this.post('/silvi/sync', projectId ? { projectId, apiKey } : {});
   treegensSync = () => this.post('/treegens/sync');
+  soulutionsSync = () => this.post('/soulutions/sync');
+  givethSync = (opts?: { mode?: 'backfill' | 'sweep'; maxPages?: number; maxProjects?: number }) =>
+    this.post('/giveth/sync', opts ?? {});
+  gapSync = () => this.post('/gap/sync');
+  restorSync = (phase?: 'enumerate' | 'hydrate') =>
+    this.post('/restor/sync', phase ? { phase } : {});
+  ocSync = (phase?: 'accounts' | 'orders') =>
+    this.post('/oc/sync', phase ? { phase } : {});
+  regenSync = () => this.post('/regen/sync');
   importPlan = (format: string, data: unknown, source?: string) => this.post('/plans', { format, data, source });
 }

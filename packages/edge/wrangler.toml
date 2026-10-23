@@ -35,6 +35,19 @@ CHAIN_MODE = "celo"
 # Silvi public API — campaign-scoped key (secret: SILVI_API_KEY) unlocks
 # campaign 5 "Kenya/Uganda" verified planting claims via /silvi/sync.
 SILVI_CAMPAIGN_ID = "5"
+# External project-place lanes — all keyless public surfaces.
+# Defaults live in the adapters; these are the env overrides.
+GIVETH_API = "https://mainnet.serve.giveth.io/graphql"
+SOULUTIONS_URL = "https://soulutions.earth"
+RESTOR_URL = "https://restor.eco"
+GAP_API = "https://gapapi.karmahq.xyz"
+OC_API = "https://api.opencollective.com/graphql/v2"
+REGEN_LCD = "https://lcd-regen.keplr.app"
+# Restor bulk hydration stays outside the worker (scripts/restor-import.mjs);
+# in-worker hydrate is for incremental top-ups only.
+RESTOR_MAX_SITES = "200"
+# Comma-separated public-goods search terms for OC discovery.
+OC_SEARCH_TERMS = "public goods,regenerative,climate,forest,commons"
 
 # Workers AI — embeddings for meaning-matched search + overlap scoring.
 # bge-base-en-v1.5 (768-dim); free tier, no secret needed.

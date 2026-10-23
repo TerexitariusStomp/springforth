@@ -376,6 +376,32 @@ export async function silviClaimClusters(
   };
 }
 
+// Restor lane — the worker never scrapes restor.eco per-request; the
+// /restor/sync hydrate path stores `restor-site` rows with lat/lng, and
+// this reading counts restored sites within radius of the node.
+export interface RestorSiteLike {
+  sites(): Promise<{ lat: number; lng: number }[] | null>;
+}
+export async function restorSitesNear(
+  loc: GeoLoc, restor: RestorSiteLike, radiusKm = 15,
+): Promise<SourceReading | null> {
+  const sites = await restor.sites();
+  if (!sites?.length) return null;
+  let n = 0;
+  for (const s of sites)
+    if (distKm(loc, s.lat, s.lng) <= radiusKm) n++;
+  if (!n) return null;
+  return {
+    key: 'restor',
+    source: 'field-evidence', domain: 'environmental',
+    value: n, unit: `Restor restoration sites within ${radiusKm}km`,
+    at: new Date().toISOString(),
+    methodologyRef: 'Restor (restor.eco) public site registry — declared restoration areas',
+    license: 'site-published registry', attribution: 'Restor (restor.eco)',
+    detail: `${n} declared restoration sites within ${radiusKm}km — restor.eco`,
+  };
+}
+
 // LEAF — "what should grow here": aptness score of the best native
 // species plus count of recommended species, from the public endpoint.
 export interface LeafLike {

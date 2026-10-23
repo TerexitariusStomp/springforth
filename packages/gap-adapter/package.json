@@ -1,0 +1,20 @@
+{
+  "name": "@springforth/gap-adapter",
+  "version": "0.1.0",
+  "description": "Springforth Karma GAP adapter — gap.karmahq.xyz on-chain grant/impact attestations (projects, grants, milestones) into plan-graph nodes and oracle checks; keyless public API.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./*": "./src/*.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {
+    "@springforth/coordination": "workspace:*",
+    "@springforth/core": "workspace:*",
+    "h3-js": "^4.2.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "@types/node": "^22.10.0"
+  }
+}

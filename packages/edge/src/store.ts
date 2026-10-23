@@ -123,6 +123,9 @@ export async function ledgerVerifyIncremental(db: D1Database) {
       return { ok: false, brokenAt: e.seq };
     prev = e.hash; last = e.seq;
   }
-  await put(db, 'verify-checkpoint', 'head', { seq: Math.max(last, tail), hash: prev });
+  // Checkpoint is a memo, not correctness — a write-quota outage degrades
+  // it to the full scan next time rather than erroring the page.
+  await put(db, 'verify-checkpoint', 'head', { seq: Math.max(last, tail), hash: prev })
+    .catch(() => undefined);
   return { ok: true, events: tail + 1 };
 }

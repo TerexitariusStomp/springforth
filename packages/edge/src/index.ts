@@ -61,6 +61,26 @@ import {
   fetchSilviCampaign, fetchSilviClaims, fetchLeafScore, silviLastError,
   type SilviClaim, type SilviClaimCluster,
 } from '@springforth/silvi-adapter';
+import {
+  fetchSoulutionsProjects, fromSoulutionsProjects, soulutionsLastError,
+} from '@springforth/soulutions-adapter';
+import {
+  fetchGivethProjects, fetchGivethQfRounds, fetchGivethDonations,
+  fromGivethProjects, toFundingRounds, toDonations, givethNeedId, givethLastError,
+} from '@springforth/giveth-adapter';
+import {
+  fetchGapProjects, fromGapProjects, toGapChecks, toGapEndorsements, gapLastError,
+} from '@springforth/gap-adapter';
+import {
+  fetchRestorSitemap, fetchRestorSite, fromRestorSites, restorCentroid,
+  restorLastError, type RestorSite,
+} from '@springforth/restor-adapter';
+import {
+  fetchOcAccounts, fetchOcOrders, fromOcAccounts, toOcDonations, ocError,
+} from '@springforth/oc-adapter';
+import {
+  fetchRegenClasses, fetchRegenProjects, fetchRegenBatches, fromRegen, regenLastError,
+} from '@springforth/regen-adapter';
 import { answer as agentAnswer } from '@springforth/agent';
 import { buildManifest } from '@springforth/evidence-anchor';
 import { OPENAPI } from './openapi.ts';
@@ -69,6 +89,7 @@ import {
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
   treegensPlantings, atlasHazard, trajectory,
   silviVerifiedTrees, silviClaimClusters, silviLeafAptness, evidenceBoost,
+  restorSitesNear,
   eaFlood, openMeteo, eaWaterQuality, foodHygiene, inatObservations,
   osDataHubPlaces, eoDataHubScene, alphaKlimaHazard, naturalEnglandSites,
   placeContext,
@@ -113,6 +134,16 @@ export interface Env {
   SILVI_CAMPAIGN_ID?: string;     // campaign-scoped keys: the campaign it unlocks
   SILVI_PROJECT_ID?: string;      // project-scoped keys: the project it unlocks
   SILVI_API_URL?: string;         // defaults to https://admin.silvi.earth/public-api
+  // External project-place lanes — all keyless public surfaces; these
+  // are the env overrides (defaults live in the adapters).
+  GIVETH_API?: string;            // defaults to mainnet.serve.giveth.io/graphql
+  SOULUTIONS_URL?: string;        // defaults to https://soulutions.earth
+  RESTOR_URL?: string;            // defaults to https://restor.eco
+  GAP_API?: string;               // defaults to gapapi.karmahq.xyz
+  OC_API?: string;                // defaults to api.opencollective.com/graphql/v2
+  OC_SEARCH_TERMS?: string;       // comma-separated discovery terms
+  REGEN_LCD?: string;             // defaults to lcd-regen.keplr.app
+  RESTOR_MAX_SITES?: string;      // in-worker hydrate cap (bulk runs local)
   OS_DATAHUB_KEY?: string;        // Ordnance Survey Data Hub
   EODATAHUB_KEY?: string;         // EO Data Hub (Satellite Applications Catapult)
   ALPHAKLIMA_KEY?: string;        // Alpha-Klima physrisk platform
@@ -217,6 +248,19 @@ async function runOracleSources(env: Env, node: PlanNode) {
             : fetchSilviTrees(env.SILVI_API_URL, env.SILVI_API_KEY),
         })).catch(() => null),
     silviLeafAptness(loc, { leaf: (l) => fetchLeafScore(l) }).catch(() => null),
+    // Restor — hydrated site centroids from D1 answer the near-node count.
+    restorSitesNear(loc, {
+      // ~200k sites when fully hydrated — project only the centroid, never
+      // parse the full site JSON per row.
+      sites: () => env.DB.prepare(
+        `SELECT json_extract(json,'$.centroid.lat') AS lat,
+                json_extract(json,'$.centroid.lng') AS lng
+         FROM entities WHERE kind='restor-site'`)
+        .all<{ lat: number | null; lng: number | null }>()
+        .then((r) => (r.results ?? [])
+          .filter((x): x is { lat: number; lng: number } =>
+            x.lat != null && x.lng != null)),
+    }).catch(() => null),
     // Hackathon-endorsed public sources — keyless readers degrade to null
     // outside their coverage (e.g. EA sources on non-UK nodes), gated ones
     // until their env key lands.
@@ -615,13 +659,18 @@ async function rateLimitOk(env: Env, key: string, limit: number): Promise<boolea
   const now = Date.now();
   const windowMs = 60_000;
   const id = `rl-${key}`;
-  const rec = await get<{ windowStart: number; count: number }>(env.DB, 'ratelimit', id);
+  // Fail-open on store errors: a D1 write-quota outage must not take
+  // reads down with it — limiting simply degrades until writes resume.
+  const rec = await get<{ windowStart: number; count: number }>(
+    env.DB, 'ratelimit', id).catch(() => null);
   if (!rec || now - rec.windowStart > windowMs) {
-    await put(env.DB, 'ratelimit', id, { windowStart: now, count: 1 });
+    await put(env.DB, 'ratelimit', id, { windowStart: now, count: 1 })
+      .catch(() => undefined);
     return true;
   }
   if (rec.count >= limit) return false;
-  await put(env.DB, 'ratelimit', id, { ...rec, count: rec.count + 1 });
+  await put(env.DB, 'ratelimit', id, { ...rec, count: rec.count + 1 })
+    .catch(() => undefined);
   return true;
 }
 
@@ -767,7 +816,21 @@ const nodeLinks = async (env: Env, node: PlanNode,
 // them just burns CPU on every hub load, so detection only persists
 // at-or-above-floor records plus complements (which drive matching).
 const OVERLAP_REVIEW_FLOOR = 0.5;
-const persistDetectedOverlaps = async (env: Env, detected: OverlapRecord[]) => {
+// In-worker overlap detection is incremental — pairs touching the synced
+// nodes only, time-boxed so a growing graph can't push syncs over the
+// Worker CPU cap. Full-corpus detection belongs to local import scripts
+// (scripts/*-import.mjs) which run it unbounded.
+const SYNC_DETECT_MS = 40;
+// `scope` bounds retirement to records touching the newly-synced nodes —
+// incremental detection only re-evaluates pairs touching them, so a
+// proposed record between two unchanged nodes was never re-checked and
+// must not be retired. `exhausted` marks a budget-cut pass — records that
+// fell out of the *evaluated* set can't be distinguished from records the
+// pass never reached, so retirement is skipped entirely.
+const persistDetectedOverlaps = async (
+  env: Env, detected: OverlapRecord[], scope?: ReadonlySet<string>,
+  exhausted = false,
+) => {
   const keep = new Map((await list<OverlapRecord>(env.DB, 'overlap')).map((o) => [o.id, o]));
   const seen = new Set<string>();
   for (const rec of detected) {
@@ -777,10 +840,11 @@ const persistDetectedOverlaps = async (env: Env, detected: OverlapRecord[]) => {
     await put(env.DB, 'overlap', rec.id, rec);
     seen.add(rec.id);
   }
-  // Retire auto-proposals that fell out of detection (or below floor).
+  if (exhausted) return 0;
   let retired = 0;
   for (const prior of keep.values())
-    if (prior.status === 'proposed' && !seen.has(prior.id)) {
+    if (prior.status === 'proposed' && !seen.has(prior.id)
+        && (!scope || prior.nodeIds.some((id) => scope.has(id)))) {
       await del(env.DB, 'overlap', prior.id); retired++;
     }
   return retired;
@@ -1379,10 +1443,21 @@ export default {
             { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
           for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
         }
-        const nodes = await list<PlanNode>(env.DB, 'plannode');
-        const emb = await loadEmbeddings(env.DB);
-        const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }), ...detectComplements(nodes)];
-        const retired = await persistDetectedOverlaps(env, detected);
+        const changed = new Set(
+          [...plans.live.nodes, ...plans.archive.nodes].map((n) => n.id));
+        const pool = [
+          ...(await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id NOT LIKE ?', 'treegens-%')),
+          ...plans.live.nodes, ...plans.archive.nodes,
+        ];
+        const st = { pairs: 0, exhausted: false };
+        const detected = [
+          ...detectOverlaps(pool,
+            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ...detectComplements(pool,
+            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+        ];
+        const retired = await persistDetectedOverlaps(env, detected, changed, st.exhausted);
         await ledgerAppend(env.DB, 'api', 'treegens.synced', {
           records: plans.live.nodes.length + plans.archive.nodes.length,
           plans: [plans.live.id, plans.archive.id], overlaps: detected.length, retired,
@@ -1460,11 +1535,19 @@ export default {
             if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
           await putMany(env.DB, 'plannode',
             plan.nodes.map((n) => ({ id: n.id, obj: n })));
-          const nodes = await list<PlanNode>(env.DB, 'plannode');
-          const emb = await loadEmbeddings(env.DB);
-          const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }),
-            ...detectComplements(nodes)];
-          await persistDetectedOverlaps(env, detected);
+          const pool = [
+            ...(await listWhere<PlanNode>(
+              env.DB, 'plannode', 'id NOT LIKE ?', 'silvi-%')),
+            ...plan.nodes,
+          ];
+        const st = { pairs: 0, exhausted: false };
+          const detected = [
+            ...detectOverlaps(pool,
+              { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+            ...detectComplements(pool,
+              { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ];
+          await persistDetectedOverlaps(env, detected, keep, st.exhausted);
           await ledgerAppend(env.DB, 'api', 'silvi.synced', {
             campaign: campaign.id, claims: claims.length,
             clusters: clusters.length, nodes: plan.nodes.length,
@@ -1483,14 +1566,505 @@ export default {
         await put(env.DB, 'plan', `${plan.id}-${project.id}`,
           { ...plan, id: `${plan.id}-${project.id}`, title: `Silvi — ${project.name}`, nodes: undefined, nodeCount: plan.nodes.length });
         for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
-        const nodes = await list<PlanNode>(env.DB, 'plannode');
-        const emb = await loadEmbeddings(env.DB);
-        const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }), ...detectComplements(nodes)];
-        await persistDetectedOverlaps(env, detected);
+        const changed = new Set(plan.nodes.map((n) => n.id));
+        const pool = [
+          ...(await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id NOT LIKE ?', 'silvi-%')),
+          ...plan.nodes,
+        ];
+        const st = { pairs: 0, exhausted: false };
+        const detected = [
+          ...detectOverlaps(pool,
+            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ...detectComplements(pool,
+            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+        ];
+        await persistDetectedOverlaps(env, detected, changed, st.exhausted);
         await ledgerAppend(env.DB, 'api', 'silvi.synced', {
           project: project.id, nodes: plan.nodes.length, overlaps: detected.length,
         });
         return json({ project: project.name, nodes: plan.nodes.length, overlaps: detected.length }, 201);
+      }
+      // Soulutions sync — regenerative-impact marketplace (34 live
+      // projects, ~5 pages). Listing payloads carry the live funding
+      // milestone — mapped verbatim (goal − raised = need budget).
+      if (req.method === 'POST' && seg[0] === 'soulutions' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const body = await req.json().catch(() => ({})) as { maxPages?: number };
+        const projects = await fetchSoulutionsProjects(
+          { maxPages: body.maxPages ?? 20 });
+        if (!projects)
+          return err(`soulutions unreachable — ${soulutionsLastError() || 'bad payload'}`, 502);
+        const plan = fromSoulutionsProjects(projects, 'soulutions:web');
+        await put(env.DB, 'plan', plan.id,
+          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
+        // Retire nodes no longer present, upsert the rest.
+        const keep = new Set(plan.nodes.map((n) => n.id));
+        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'sol-%'))
+          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
+        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        const pool = [
+          ...(await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id NOT LIKE ?', 'sol-%')),
+          ...plan.nodes,
+        ];
+        const st = { pairs: 0, exhausted: false };
+        const detected = [
+          ...detectOverlaps(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ...detectComplements(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+        ];
+        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        await ledgerAppend(env.DB, 'api', 'soulutions.synced', {
+          projects: projects.length, nodes: plan.nodes.length,
+          overlaps: detected.length, retired,
+        });
+        return json({ projects: projects.length, nodes: plan.nodes.length,
+          overlaps: detected.length, retired }, 201);
+      }
+      // Giveth sync — public GraphQL. Two modes:
+      //   backfill — pages allProjects (CreationDate ASC), persists
+      //     `giveth-project` raw + plan nodes per page; resumable `skip`.
+      //   sweep    — donations + QF rounds for projects already imported;
+      //     bounded by maxProjects/maxPages; Donation entities land as
+      //     settled rows, QF rounds as FundingRound entities.
+      if (req.method === 'POST' && seg[0] === 'giveth' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const body = await req.json().catch(() => ({})) as {
+          mode?: 'backfill' | 'sweep'; skip?: number; take?: number;
+          maxPages?: number; maxProjects?: number;
+        };
+        const baseUrl = env.GIVETH_API ?? undefined;
+        if ((body.mode ?? 'backfill') === 'backfill') {
+          const cursorId = 'giveth';
+          const prev = await get<{ skip?: number; done?: boolean }>(
+            env.DB, 'giveth-sync', cursorId);
+          let skip = prev?.done ? 0 : (body.skip ?? prev?.skip ?? 0);
+          const take = Math.min(Math.max(body.take ?? 50, 1), 50);
+          const maxPages = Math.min(Math.max(body.maxPages ?? 10, 1), 40);
+          // Active round membership decides which projects yield need nodes.
+          const rounds = await fetchGivethQfRounds(fetch, baseUrl);
+          const activeQfIds = new Set(
+            (rounds ?? []).filter((r) => r.isActive).map((r) => r.id));
+          let pages = 0, fetched = 0, done = false, totalCount = 0;
+          const callNodes: PlanNode[] = [];
+          while (pages < maxPages) {
+            let page = null;
+            for (let a = 0; a < 3 && !page; a++)
+              page = await fetchGivethProjects({ skip, take }, fetch, baseUrl);
+            if (!page) break;
+            pages++;
+            fetched += page.projects.length;
+            totalCount = page.totalCount;
+            await putMany(env.DB, 'giveth-project', page.projects.map((p) => ({
+              id: `gp-${p.id}`, obj: p,
+            })));
+            // Fold this page into the plan graph right away.
+            const part = fromGivethProjects(page.projects, activeQfIds, 'giveth:graphql');
+            await putMany(env.DB, 'plannode',
+              part.nodes.map((n) => ({ id: n.id, obj: n })));
+            callNodes.push(...part.nodes);
+            skip += page.projects.length;
+            await put(env.DB, 'giveth-sync', cursorId,
+              { skip, done: false, totalCount });
+            if (!page.projects.length || skip >= page.totalCount) { done = true; break; }
+          }
+          await put(env.DB, 'giveth-sync', cursorId, { skip, done, totalCount });
+          // Incremental overlap pass over this call's nodes — bounded, so
+          // each resumable page-batch stays under the CPU cap; the local
+          // backfill script runs the unbounded corpus pass. Same-source
+          // pairs are skipped inside detection, so the existing giveth-*
+          // corpus is excluded from the candidate pool entirely.
+          if (callNodes.length) {
+            const callIds = new Set(callNodes.map((n) => n.id));
+            const nodes = [
+              ...(await listWhere<PlanNode>(
+                env.DB, 'plannode', 'id NOT LIKE ?', 'giveth-%')),
+              ...callNodes,
+            ];
+        const st = { pairs: 0, exhausted: false };
+            const detected = [
+              ...detectOverlaps(nodes,
+                { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+              ...detectComplements(nodes,
+                { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+            ];
+            await persistDetectedOverlaps(env, detected, callIds, st.exhausted);
+          }
+          if (!done)
+            return json({ partial: true, fetched, pages, skip, totalCount,
+              upstream: givethLastError() || null }, 202);
+          // Register the plan entity once the corpus is in.
+          const allNodes = await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id LIKE ?', 'giveth-%');
+          await put(env.DB, 'plan', 'plan-giveth', {
+            id: 'plan-giveth', source: 'giveth:graphql',
+            title: 'Giveth — public goods funding projects',
+            owner: 'giveth', importedAt: new Date().toISOString(),
+            nodeCount: allNodes.length,
+          });
+          await ledgerAppend(env.DB, 'api', 'giveth.synced', {
+            projects: totalCount, nodes: allNodes.length,
+            mode: 'backfill',
+          });
+          return json({ done: true, projects: totalCount,
+            nodes: allNodes.length }, 201);
+        }
+        // sweep — donations + QF rounds for imported projects, bounded.
+        const maxProjects = Math.min(Math.max(body.maxProjects ?? 25, 1), 100);
+        const maxPages = Math.min(Math.max(body.maxPages ?? 4, 1), 20);
+        const projects = (await listWhere<{ id: string }>(
+          env.DB, 'giveth-project', 'id LIKE ?', 'gp-%'))
+          .slice(0, maxProjects);
+        const rounds = await fetchGivethQfRounds(fetch, baseUrl) ?? [];
+        // Relations live on the stored project objects.
+        const relByRound = new Map<string, string[]>();
+        const stored = await listWhere<{
+          id: string; projectQfRoundRelations?: { qfRoundId?: string | number | null }[];
+        }>(env.DB, 'giveth-project', 'id LIKE ?', 'gp-%');
+        for (const p of stored)
+          for (const r of p.projectQfRoundRelations ?? []) {
+            if (r.qfRoundId == null) continue;
+            const k = String(r.qfRoundId);
+            relByRound.set(k, [...(relByRound.get(k) ?? []), givethNeedId(String(p.id))]);
+          }
+        const fundingRounds = toFundingRounds(rounds, relByRound);
+        // The standing pseudo-round for non-QF direct donations.
+        fundingRounds.push({
+          id: 'round-giveth-direct', title: 'Giveth — direct donations',
+          description: 'Direct project donations on Giveth (outside QF rounds)',
+          sponsorIds: ['giveth'],
+          matchingFund: { amount: 0, currency: 'USD' },
+          eligibleNeedIds: [], opensAt: new Date(0).toISOString(),
+          closesAt: new Date(0).toISOString(), state: 'allocated',
+          matchingMode: 'lr', conviction: false,
+          acceptedTokens: {}, endowment: false, chainRef: 'giveth:direct',
+        });
+        await putMany(env.DB, 'funding-round',
+          fundingRounds.map((r) => ({ id: r.id, obj: r })));
+        let donations = 0, pages = 0;
+        for (const p of projects) {
+          let skip = 0;
+          for (let pg = 0; pg < maxPages; pg++) {
+            const d = await fetchGivethDonations(p.id, { skip, take: 50 }, fetch, baseUrl);
+            if (!d || !d.donations.length) break;
+            const entities = toDonations(d.donations, p.id);
+            await putMany(env.DB, 'donation',
+              entities.map((e) => ({ id: e.id, obj: e })));
+            donations += entities.length; pages++;
+            skip += d.donations.length;
+            if (skip >= d.totalCount) break;
+          }
+        }
+        await ledgerAppend(env.DB, 'api', 'giveth.synced', {
+          mode: 'sweep', projects: projects.length, donations,
+          rounds: fundingRounds.length, pages,
+        });
+        return json({ mode: 'sweep', projects: projects.length, donations,
+          rounds: fundingRounds.length }, 201);
+      }
+      // Karma GAP sync — on-chain grant attestations. Projects page at
+      // 10/page; grants ride embedded; milestones → oracle checks;
+      // endorsements → raw rows (never trust edges).
+      if (req.method === 'POST' && seg[0] === 'gap' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const body = await req.json().catch(() => ({})) as { maxPages?: number };
+        const projects = await fetchGapProjects({ maxPages: body.maxPages ?? 45 });
+        if (!projects)
+          return err(`gap api unreachable — ${gapLastError() || 'bad payload'}`, 502);
+        const plan = fromGapProjects(projects, 'gap:api');
+        await put(env.DB, 'plan', plan.id,
+          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
+        const keep = new Set(plan.nodes.map((n) => n.id));
+        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'gap-%'))
+          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
+        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        const checks = toGapChecks(projects);
+        await putMany(env.DB, 'oracle-check', checks.map((c) => ({ id: c.id, obj: c })));
+        const endorses = toGapEndorsements(projects);
+        await putMany(env.DB, 'gap-endorsement', endorses.map((e) => ({ id: e.id, obj: e })));
+        const pool = [
+          ...(await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id NOT LIKE ?', 'gap-%')),
+          ...plan.nodes,
+        ];
+        const st = { pairs: 0, exhausted: false };
+        const detected = [
+          ...detectOverlaps(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ...detectComplements(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+        ];
+        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        await ledgerAppend(env.DB, 'api', 'gap.synced', {
+          projects: projects.length, nodes: plan.nodes.length,
+          checks: checks.length, overlaps: detected.length, retired,
+        });
+        return json({ projects: projects.length, nodes: plan.nodes.length,
+          checks: checks.length, overlaps: detected.length, retired }, 201);
+      }
+      // Restor sync — public sitemap enumeration + per-site RSC hydrate.
+      //   enumerate — walk /sitemaps/sites/{i}/sitemap.xml by cursor,
+      //     persist {id,lastmod} to `restor-sitemap` rows.
+      //   hydrate   — fetch ≤maxSites site pages (newest lastmod first),
+      //     extract the RSC-embedded record, persist `restor-site` +
+      //     plan nodes; advances the hydrate cursor so calls are cheap.
+      if (req.method === 'POST' && seg[0] === 'restor' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const body = await req.json().catch(() => ({})) as {
+          phase?: 'enumerate' | 'hydrate';
+          maxSitemaps?: number; maxSites?: number;
+        };
+        const baseUrl = env.RESTOR_URL ?? undefined;
+        if ((body.phase ?? 'enumerate') === 'enumerate') {
+          const prev = await get<{ index?: number; done?: boolean }>(
+            env.DB, 'restor-sync', 'enumerate');
+          let index = prev?.done ? 0 : prev?.index ?? 0;
+          const maxSitemaps = Math.min(Math.max(body.maxSitemaps ?? 20, 1), 60);
+          let done = false, indexed = 0;
+          for (let i = 0; i < maxSitemaps; i++) {
+            const entries = await fetchRestorSitemap(index, fetch, baseUrl);
+            if (!entries) break;                        // transient — resume
+            if (!entries.length) { done = true; break; } // 404 = end of index
+            await putMany(env.DB, 'restor-sitemap', entries.map((e) => ({
+              id: `rs-${e.id}`, obj: { id: e.id, lastmod: e.lastmod },
+            })));
+            indexed += entries.length; index++;
+            await put(env.DB, 'restor-sync', 'enumerate', { index, done: false });
+          }
+          await put(env.DB, 'restor-sync', 'enumerate', { index, done });
+          return json({ phase: 'enumerate', indexed, index, done,
+            upstream: restorLastError() || null }, done ? 201 : 202);
+        }
+        // hydrate — newest lastmod first; advances a position cursor.
+        // The sitemap index can reach ~200k rows, so the window is read
+        // via SQL projection (id + lastmod only), never a full list().
+        const maxSites = Math.min(Math.max(body.maxSites ?? 200, 1), 500);
+        const prev = await get<{ offset?: number }>(env.DB, 'restor-sync', 'hydrate');
+        const offset = prev?.offset ?? 0;
+        const win = await env.DB.prepare(
+          `SELECT json_extract(json,'$.id') AS id,
+                  json_extract(json,'$.lastmod') AS lastmod
+           FROM entities WHERE kind='restor-sitemap'
+           ORDER BY lastmod DESC, id ASC LIMIT ? OFFSET ?`)
+          .bind(maxSites, offset)
+          .all<{ id: string | null; lastmod: string | null }>();
+        const total = (await env.DB.prepare(
+          `SELECT COUNT(*) AS c FROM entities WHERE kind='restor-sitemap'`)
+          .first<{ c: number }>())?.c ?? 0;
+        const batch = (win.results ?? [])
+          .filter((r): r is { id: string; lastmod: string | null } => r.id != null);
+        const sites: RestorSite[] = [];
+        for (const row of batch) {
+          const r = await fetchRestorSite(row.id, fetch, baseUrl);
+          if (r) sites.push(r.site);
+        }
+        let overlaps = 0;
+        if (sites.length) {
+          const plan = fromRestorSites(sites, 'restor:web');
+          await putMany(env.DB, 'restor-site', sites.map((s) => ({
+            id: `rst-${s.id}`,
+            obj: { ...s, centroid: restorCentroid(s) },
+          })));
+          await putMany(env.DB, 'plannode',
+            plan.nodes.map((n) => ({ id: n.id, obj: n })));
+          await put(env.DB, 'plan', 'plan-restor', {
+            id: 'plan-restor', source: 'restor:web',
+            title: 'Restor — restoration sites', owner: 'restor',
+            importedAt: new Date().toISOString(),
+            nodeCount: (await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'restor-%')).length,
+          });
+          // Bounded incremental detection — restor-* peers are skipped
+          // same-source anyway, so they're excluded from the pool too.
+          const callIds = new Set(plan.nodes.map((n) => n.id));
+          const pool = [
+            ...(await listWhere<PlanNode>(
+              env.DB, 'plannode', 'id NOT LIKE ?', 'restor-%')),
+            ...plan.nodes,
+          ];
+        const st = { pairs: 0, exhausted: false };
+          const detected = [
+            ...detectOverlaps(pool,
+              { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+            ...detectComplements(pool,
+              { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ];
+          await persistDetectedOverlaps(env, detected, callIds, st.exhausted);
+          overlaps = detected.length;
+        }
+        const next = offset + batch.length;
+        const done = next >= total;
+        await put(env.DB, 'restor-sync', 'hydrate', { offset: next, done });
+        return json({ phase: 'hydrate', hydrated: sites.length,
+          attempted: batch.length, offset: next, done, overlaps,
+          upstream: restorLastError() || null }, done ? 201 : 202);
+      }
+      // OpenCollective sync — public GraphQL v2 discovery + orders.
+      //   accounts — paged `accounts` search (env OC_SEARCH_TERMS or the
+      //     public-goods default), stores `oc-collective` + nodes.
+      //   orders   — PAID orders for imported collectives → Donation
+      //     entities (settled, settlementRef oc:<orderId>); bounded.
+      if (req.method === 'POST' && seg[0] === 'oc' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const body = await req.json().catch(() => ({})) as {
+          phase?: 'accounts' | 'orders'; maxPages?: number; maxCollectives?: number;
+          searchTerm?: string; reset?: boolean;
+        };
+        const terms = (env.OC_SEARCH_TERMS ?? 'public goods')
+          .split(',').map((t: string) => t.trim()).filter(Boolean);
+        if ((body.phase ?? 'accounts') === 'accounts') {
+          // Resumable discovery — one search term at a time, paged, with a
+          // cursor so a big result set can't blow the call's CPU budget.
+          if (body.reset) await del(env.DB, 'oc-sync', 'accounts');
+          const prev = await get<{ termIdx?: number; offset?: number; done?: boolean }>(
+            env.DB, 'oc-sync', 'accounts');
+          if (prev?.done && !body.searchTerm)
+            return json({ phase: 'accounts', fetched: 0, done: true,
+              note: 'already discovered — post {"reset":true} to re-walk' });
+          let termIdx = prev?.termIdx ?? 0;
+          let offset = prev?.offset ?? 0;
+          const maxPages = Math.min(Math.max(body.maxPages ?? 3, 1), 10);
+          let pages = 0, termDone = false;
+          const fresh: Parameters<typeof fromOcAccounts>[0] = [];
+          while (pages < maxPages && termIdx < terms.length) {
+            let r = null;
+            for (let a = 0; a < 3 && !r; a++) {   // OC 429s under burst — retry
+              r = await fetchOcAccounts(
+                { searchTerm: body.searchTerm ?? terms[termIdx]!, limit: 50, offset });
+              if (!r) await new Promise((res) => setTimeout(res, 400 * (a + 1)));
+            }
+            if (!r) break;                       // transient — resume next call
+            for (const a of r.accounts) fresh.push(a);
+            pages++; offset += r.accounts.length;
+            if (!r.accounts.length || offset >= r.totalCount) {
+              termDone = true; break;
+            }
+          }
+          if (!pages && !fresh.length)
+            return err(`opencollective unreachable — ${ocError() || 'bad payload'}`, 502);
+          if (termDone) { termIdx++; offset = 0; }
+          const done = termIdx >= terms.length;
+          await put(env.DB, 'oc-sync', 'accounts', { termIdx, offset, done });
+          if (fresh.length) {
+            await putMany(env.DB, 'oc-collective', fresh.map((a) => ({
+              id: `occ-${a.slug}`, obj: a,
+            })));
+            const plan = fromOcAccounts(fresh, 'oc:graphql');
+            await putMany(env.DB, 'plannode',
+              plan.nodes.map((n) => ({ id: n.id, obj: n })));
+            // Pool excludes existing oc-* nodes — same-source pairs are
+            // skipped inside detection; the embedding scorer stays out of
+            // sync routes (its table parse alone nears the CPU cap).
+            const pool = [
+              ...(await listWhere<PlanNode>(
+                env.DB, 'plannode', 'id NOT LIKE ?', 'oc-%')),
+              ...plan.nodes,
+            ];
+            const changed = new Set(plan.nodes.map((n) => n.id));
+        const st = { pairs: 0, exhausted: false };
+            const detected = [
+              ...detectOverlaps(pool,
+                { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+              ...detectComplements(pool,
+                { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+            ];
+            await persistDetectedOverlaps(env, detected, changed, st.exhausted);
+          }
+          if (done) {
+            const count = (await listWhere<PlanNode>(
+              env.DB, 'plannode', 'id LIKE ?', 'oc-%')).length;
+            await put(env.DB, 'plan', 'plan-opencollective', {
+              id: 'plan-opencollective', source: 'oc:graphql',
+              title: 'Open Collective — public-goods collectives',
+              owner: 'opencollective', importedAt: new Date().toISOString(),
+              nodeCount: count,
+            });
+            await ledgerAppend(env.DB, 'api', 'oc.synced', {
+              phase: 'accounts', done: true, nodes: count,
+            });
+          }
+          return json({ phase: 'accounts', fetched: fresh.length,
+            termIdx, done }, done ? 201 : 202);
+        }
+        const maxCollectives = Math.min(Math.max(body.maxCollectives ?? 10, 1), 50);
+        const collectives = (await list<{ slug?: string }>(
+          env.DB, 'oc-collective')).slice(0, maxCollectives);
+        let donations = 0;
+        const epoch = new Date(0).toISOString();
+        for (const c of collectives) {
+          const slug = (c as { slug?: string }).slug ?? '';
+          if (!slug) continue;
+          // Standing historical round per collective — imported orders are
+          // settled donations, never eligible for native matching.
+          await put(env.DB, 'funding-round', `round-oc-${slug}`, {
+            id: `round-oc-${slug}`, title: `Open Collective — ${slug}`,
+            description: `Imported Open Collective orders for /${slug}`,
+            sponsorIds: ['opencollective'],
+            matchingFund: { amount: 0, currency: 'USD' },
+            eligibleNeedIds: [`oc-${slug}-need`],
+            opensAt: epoch, closesAt: epoch, state: 'allocated',
+            matchingMode: 'lr', conviction: false, acceptedTokens: {},
+            endowment: false, chainRef: 'oc:orders',
+          });
+          let offset = 0;
+          for (let pg = 0; pg < 4; pg++) {
+            const r = await fetchOcOrders(slug, { limit: 50, offset });
+            if (!r || !r.orders.length) break;
+            const ents = toOcDonations(r.orders, slug);
+            await putMany(env.DB, 'donation', ents.map((e) => ({ id: e.id, obj: e })));
+            donations += ents.length; offset += r.orders.length;
+            if (offset >= r.totalCount) break;
+          }
+        }
+        await ledgerAppend(env.DB, 'api', 'oc.synced', {
+          phase: 'orders', collectives: collectives.length, donations,
+        });
+        return json({ phase: 'orders', collectives: collectives.length, donations }, 201);
+      }
+      // Regen sync — keyless Cosmos LCD. Classes + projects + batches in
+      // a handful of pages; jurisdiction → coarse country centroid.
+      if (req.method === 'POST' && seg[0] === 'regen' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const baseUrl = env.REGEN_LCD ?? undefined;
+        const [classes, projects, batches] = await Promise.all([
+          fetchRegenClasses(fetch, baseUrl),
+          fetchRegenProjects(fetch, baseUrl),
+          fetchRegenBatches(fetch, baseUrl),
+        ]);
+        if (!projects)
+          return err(`regen lcd unreachable — ${regenLastError() || 'bad payload'}`, 502);
+        const plan = fromRegen(projects, classes ?? [], batches ?? [], 'regen:lcd');
+        await put(env.DB, 'plan', plan.id,
+          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
+        const keep = new Set(plan.nodes.map((n) => n.id));
+        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'regen-%'))
+          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
+        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putMany(env.DB, 'regen-project', projects.map((p) => ({
+          id: `rg-${p.id}`, obj: p,
+        })));
+        const pool = [
+          ...(await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id NOT LIKE ?', 'regen-%')),
+          ...plan.nodes,
+        ];
+        const st = { pairs: 0, exhausted: false };
+        const detected = [
+          ...detectOverlaps(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ...detectComplements(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+        ];
+        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        await ledgerAppend(env.DB, 'api', 'regen.synced', {
+          projects: projects.length, classes: classes?.length ?? 0,
+          batches: batches?.length ?? 0, nodes: plan.nodes.length,
+          overlaps: detected.length, retired,
+        });
+        return json({ projects: projects.length, classes: classes?.length ?? 0,
+          batches: batches?.length ?? 0, nodes: plan.nodes.length,
+          overlaps: detected.length, retired }, 201);
       }
       // Governance — trust-gated parameter ballots. EigenTrust-standing
       // actors vote quadratically on mechanism parameters.
@@ -2009,8 +2583,10 @@ export default {
           ]);
           // Sweep with the same snapshot (it only mutates possibility
           // statuses/credits/pledges) — then re-read just that small table.
+          // Fail-open under write-quota outage: the page renders pre-sweep
+          // state rather than erroring on a status transition write.
           await sweepPossibilities(env, 'system',
-            { poss: possBefore, nodes, recs, parts });
+            { poss: possBefore, nodes, recs, parts }).catch(() => undefined);
           const poss = await list<Possibility>(env.DB, 'possibility');
           const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
             .map((n) => [n.id, n.possibilityId]));

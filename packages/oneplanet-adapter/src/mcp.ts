@@ -136,3 +136,82 @@ export async function fetchPlanMcp(url: string, key: string, planId: string,
     return normalizePlan(toOpPlan(planId, items), 'oneplanet-mcp');
   return normalizePlan({ id: planId, ...plan }, 'oneplanet-mcp');
 }
+
+// ── Write lane ─────────────────────────────────────────────────────────
+// Write-capable keys expose create_* tools. There is no create_plan, so
+// publishing targets an existing plan_uuid in the bound workspace.
+// PlanNode kind → OAI kind: outcome/framework → Outcome, indicator →
+// Indicator, action/need/offer → Action (kind is preserved in the
+// description so the semantic survives the narrower vocabulary).
+// organisation/place have no OAI counterpart — skipped, reported.
+
+import type { PlanNode } from '@springforth/coordination';
+
+const PUSH_TOOL: Partial<Record<PlanNode['kind'], string>> = {
+  outcome: 'create_outcome', framework: 'create_outcome',
+  action: 'create_action', need: 'create_action', offer: 'create_action',
+  indicator: 'create_indicator',
+};
+
+export interface PushResult {
+  nodeId: string; tool?: string; oaiUuid?: string;
+  error?: string; skipped?: string;
+}
+
+type ToolCaller = { callTool(name: string, args: Json): Promise<unknown> };
+
+const oaiUuidOf = (r: unknown): string | undefined => {
+  const d = r as Json;
+  const uuid = d?.uuid ?? d?.oai_uuid ?? (d?.item as Json | undefined)?.uuid
+    ?? (d?.oai as Json | undefined)?.uuid;
+  return uuid ? String(uuid) : undefined;
+};
+
+export async function pushNodesWith(
+  mcp: ToolCaller, planUuid: string, nodes: PlanNode[],
+): Promise<PushResult[]> {
+  const out: PushResult[] = [];
+  for (const n of nodes) {
+    const tool = PUSH_TOOL[n.kind];
+    if (!tool) { out.push({ nodeId: n.id, skipped: `no OAI kind for ${n.kind}` }); continue; }
+    try {
+      const description = [
+        n.kind !== 'action' ? `[springforth ${n.kind}]` : '[springforth]',
+        n.description,
+        `node: ${n.id}`,
+      ].filter(Boolean).join(' — ').slice(0, 800);
+      const r = await mcp.callTool(tool, {
+        plan_uuid: planUuid,
+        name: (n.label || n.id).slice(0, 250),
+        description,
+      });
+      out.push({ nodeId: n.id, tool, oaiUuid: oaiUuidOf(r) });
+    } catch (e) {
+      out.push({ nodeId: n.id, tool, error: String(e).slice(0, 160) });
+    }
+  }
+  return out;
+}
+
+export async function pushPlanNodes(
+  url: string, key: string, planUuid: string, nodes: PlanNode[],
+  opts: { maxNodes?: number; fetchFn?: McpFetch } = {},
+): Promise<PushResult[]> {
+  const mcp = new OnePlanetMcp(url, key, opts.fetchFn ?? fetch);
+  const max = Math.min(Math.max(opts.maxNodes ?? 25, 1), 200);
+  return pushNodesWith(mcp, planUuid, nodes.slice(0, max));
+}
+
+// Progress write-back — a recorded value + note on an OAI. This is how
+// Springforth oracle readings land on OnePlanet monitoring timelines.
+export async function pushProgress(
+  url: string, key: string, planUuid: string, oaiUuid: string,
+  value: string, note?: string, fetchFn: McpFetch = fetch,
+): Promise<unknown> {
+  const mcp = new OnePlanetMcp(url, key, fetchFn);
+  return mcp.callTool('create_progress_unit', {
+    plan_uuid: planUuid, oai_uuid: oaiUuid,
+    progress_value: value,
+    ...(note ? { progress_comments: note } : {}),
+  });
+}

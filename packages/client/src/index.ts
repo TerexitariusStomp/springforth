@@ -152,5 +152,12 @@ export class SpringforthClient {
   regenSync = () => this.post('/regen/sync');
   bloomSync = (key?: string) =>
     this.post('/bloom/sync', key ? { key } : {});
+  oneplanetPlans = () => this.get('/oneplanet/plans');
+  oneplanetPublish = (opts: { planUuid: string; planId?: string;
+    nodeIds?: string[]; maxNodes?: number; dryRun?: boolean }) =>
+    this.post('/oneplanet/publish', opts);
+  oneplanetReport = (opts: { nodeId?: string; oaiUuid?: string;
+    planUuid?: string; value: string; note?: string }) =>
+    this.post('/oneplanet/report', opts);
   importPlan = (format: string, data: unknown, source?: string) => this.post('/plans', { format, data, source });
 }

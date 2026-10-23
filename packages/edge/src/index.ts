@@ -1334,6 +1334,106 @@ export default {
           return json(plan);
         }
       }
+      // OnePlanet write lane — the bound key exposes create_* tools, so
+      // Springforth graph nodes publish into a plan in the workspace as
+      // OAIs, and oracle-style readings write back as progress units.
+      //   GET  /oneplanet/plans    — plans in the bound workspace (pick
+      //                              a target planUuid)
+      //   POST /oneplanet/publish  — {planUuid, planId | nodeIds,
+      //                              maxNodes, dryRun} → create OAIs,
+      //                              oneplanet-push provenance rows
+      //   POST /oneplanet/report   — {nodeId | oaiUuid, planUuid?, value,
+      //                              note} → create_progress_unit
+      if (seg[0] === 'oneplanet') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        if (!env.ONEPLANET_API_KEY)
+          return err('ONEPLANET_API_KEY not configured', 503);
+        const opUrl = env.ONEPLANET_URL ?? 'https://mcp.oneplanet.com/mcp';
+        const { OnePlanetMcp, pushPlanNodes, pushProgress } =
+          await import('@springforth/oneplanet-adapter/mcp');
+        if (req.method === 'GET' && seg[1] === 'plans') {
+          const mcp = new OnePlanetMcp(opUrl, env.ONEPLANET_API_KEY);
+          const ws = await mcp.callTool('list_workspaces', {}) as { items?: { uuid: string; name?: string }[] };
+          const plans: { workspace: string; uuid: string; name: string }[] = [];
+          for (const w of ws?.items ?? []) {
+            const pl = await mcp.callTool('list_workspace_plans',
+              { workspace_uuid: w.uuid }) as { items?: { uuid: string; name: string }[] };
+            for (const p of pl?.items ?? [])
+              plans.push({ workspace: w.name ?? w.uuid, uuid: p.uuid, name: p.name });
+          }
+          return json({ workspaces: ws?.items ?? [], plans });
+        }
+        if (req.method === 'POST' && seg[1] === 'publish') {
+          const body = await req.json().catch(() => ({})) as {
+            planUuid?: string; planId?: string; nodeIds?: string[];
+            maxNodes?: number; dryRun?: boolean;
+          };
+          if (!body.planUuid) return err('planUuid (target OnePlanet plan) required', 400);
+          let nodes: PlanNode[] = [];
+          if (body.nodeIds?.length) {
+            for (const id of body.nodeIds) {
+              const n = await get<PlanNode>(env.DB, 'plannode', id);
+              if (n) nodes.push(n);
+            }
+          } else if (body.planId) {
+            const plan = await get<ExternalPlan & { nodeCount?: number }>(
+              env.DB, 'plan', body.planId);
+            if (!plan) return err('plan not found', 404);
+            nodes = await listWhere<PlanNode>(
+              env.DB, 'plannode', "json_extract(json,'$.source') = ?", plan.source);
+          } else return err('planId or nodeIds required', 400);
+          // Idempotent: oneplanet-push rows remember nodeId → oaiUuid.
+          const prior = await listWhere<{ nodeId: string }>(
+            env.DB, 'oneplanet-push', 'id LIKE ?', 'op-%');
+          const done = new Set(prior.map((p) => p.nodeId));
+          const todo = nodes.filter((n) => !done.has(n.id));
+          const maxNodes = Math.min(Math.max(body.maxNodes ?? 25, 1), 200);
+          const batch = todo.slice(0, maxNodes);
+          if (body.dryRun)
+            return json({ targetPlanUuid: body.planUuid, total: nodes.length,
+              alreadyPushed: done.size, wouldPush: batch.map((n) => n.id) });
+          const results = await pushPlanNodes(
+            opUrl, env.ONEPLANET_API_KEY, body.planUuid, batch, { maxNodes });
+          const pushedOk = results.filter((r) => r.oaiUuid);
+          await putManyIfChanged(env.DB, 'oneplanet-push', pushedOk.map((r) => ({
+            id: `op-${r.nodeId}`,
+            obj: { nodeId: r.nodeId, oaiUuid: r.oaiUuid,
+              planUuid: body.planUuid, tool: r.tool,
+              at: new Date().toISOString() },
+          })));
+          const errors = results.filter((r) => r.error);
+          await ledgerAppend(env.DB, 'api', 'oneplanet.pushed', {
+            planUuid: body.planUuid, pushed: pushedOk.length,
+            skipped: results.filter((r) => r.skipped).length,
+            errors: errors.length, remaining: todo.length - batch.length,
+          });
+          return json({ pushed: pushedOk.length, skipped: results.length
+            - pushedOk.length - errors.length, errors, results,
+            remaining: todo.length - batch.length },
+            todo.length - batch.length > 0 ? 202 : 201);
+        }
+        if (req.method === 'POST' && seg[1] === 'report') {
+          const body = await req.json().catch(() => ({})) as {
+            nodeId?: string; oaiUuid?: string; planUuid?: string;
+            value?: string; note?: string;
+          };
+          if (body.value == null) return err('value required', 400);
+          const pushedRow = body.nodeId
+            ? await get<{ oaiUuid: string; planUuid: string }>(
+                env.DB, 'oneplanet-push', `op-${body.nodeId}`)
+            : null;
+          const oaiUuid = body.oaiUuid ?? pushedRow?.oaiUuid;
+          const planUuid = body.planUuid ?? pushedRow?.planUuid;
+          if (!oaiUuid || !planUuid)
+            return err('oaiUuid + planUuid required (or a pushed nodeId)', 400);
+          const r = await pushProgress(opUrl, env.ONEPLANET_API_KEY,
+            planUuid, oaiUuid, String(body.value), body.note);
+          await ledgerAppend(env.DB, 'api', 'oneplanet.reported',
+            { oaiUuid, planUuid, nodeId: body.nodeId, value: body.value });
+          return json({ ok: true, oaiUuid, result: r }, 201);
+        }
+        return err('unknown oneplanet route', 404);
+      }
       // Plan nodes — read + human correction. Ingest is imperfect by
       // nature; corrections are first-class, attributed, and logged to the
       // audit ledger with a before/after diff — the fix is visible, the

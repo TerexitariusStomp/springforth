@@ -293,7 +293,7 @@ body>footer{min-height:150px;padding:45px clamp(24px,6vw,90px);display:grid;grid
 .badge.blue{background:rgba(121,174,187,.22);color:var(--sf-info)}
 .muted{color:var(--sf-muted);font-size:12px}
 .page .card{background:var(--sf-card);border:1px solid var(--sf-line-2);border-radius:12px;padding:1.2rem;margin:1rem 0;box-shadow:0 8px 25px rgba(34,53,42,.04)}
-.page .card h3{font-family:var(--sf-serif);font-weight:400;font-size:22px;margin:.2rem 0 .6rem;color:var(--sf-ink-2)}
+.page .card h2,.page .card h3{font-family:var(--sf-serif);font-weight:400;font-size:22px;margin:.2rem 0 .6rem;color:var(--sf-ink-2)}
 .page .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
 .page .val input{padding:.5rem .7rem;flex:1;min-width:8rem}
 .page .val input[type=search]{padding-inline-start:2.4rem}

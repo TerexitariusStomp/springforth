@@ -16,8 +16,9 @@ for (const a of m.artifacts) {
     if (a.kind === 'npm') latest = execSync(`npm view ${a.pkg} version`, { encoding: 'utf8' }).trim();
     else if (a.kind === 'repo') latest = execSync(`git ls-remote https://github.com/${a.repo}.git HEAD`, { encoding: 'utf8' }).split('\t')[0]?.slice(0, 12);
   } catch { latest = 'unreachable'; }
-  const cur = a.current ?? a.rev?.slice(0, 19) ?? 'n/a';
-  const stale = latest && latest !== 'unreachable' && a.current && latest !== a.current;
+  const cur = a.current ?? a.syncedRev ?? a.rev?.slice(0, 19) ?? 'n/a';
+  const stale = latest && latest !== 'unreachable' && cur !== 'n/a'
+    && latest !== cur && !(a.rev?.startsWith('sha256:') && !a.syncedRev);
   if (stale) drift++;
   console.log(`${stale ? warn('DRIFT') : ok('ok   ')} ${a.name.padEnd(18)} ${String(cur).padEnd(20)} → ${latest ?? dim(a.kind + ' (manual)')} ${dim(a.license ?? '')}`);
   if (stale) console.log(`       ${dim('sync: ' + (a.sync ?? 'manual — ' + (a.note ?? '')))}`);

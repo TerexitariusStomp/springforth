@@ -22,7 +22,7 @@ const STOPS: { n: number; href: string; label: string }[] = [
 export function renderHowItWorksPage(lang: Lang): string {
   const stops = STOPS.map((s) => `<div class="card">
 <p><span class="kicker">${s.n}</span></p>
-<h3>${esc(t(lang, `howto.stop.${s.n}.title`))}</h3>
+<h2>${esc(t(lang, `howto.stop.${s.n}.title`))}</h2>
 <p><strong>${esc(t(lang, 'howto.do'))}:</strong> ${esc(t(lang, `howto.stop.${s.n}.do`))}</p>
 <p class="muted"><strong>${esc(t(lang, 'howto.look'))}:</strong> ${esc(t(lang, `howto.stop.${s.n}.look`))}</p>
 <p><a href="${s.href}">${esc(t(lang, s.label))} →</a></p>

@@ -6,7 +6,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { resolvePlace } from '../packages/coordination/src/geo.ts';
+import { resolvePlace } from '../src/geo.ts';
 
 const DB = 'springforth-coord';
 const APPLY = process.argv.includes('--apply');

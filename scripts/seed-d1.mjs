@@ -6,14 +6,14 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { normalizePlan, fromCsv } from '../packages/oneplanet-adapter/src/index.ts';
-import { fromJson as fromClcJson } from '../packages/clc-adapter/src/index.ts';
-import { fromJson as fromHolonsJson } from '../packages/holons-adapter/src/index.ts';
-import { fromJson as fromArtizenJson } from '../packages/artizen-adapter/src/index.ts';
-import { fromJson as fromVfJson } from '../packages/vf-adapter/src/index.ts';
-import { fromTreegensFeed, fromTreegensArchive } from '../packages/treegens-adapter/src/index.ts';
-import { fromSilviProjects } from '../packages/silvi-adapter/src/index.ts';
-import { detectOverlaps, detectComplements } from '../packages/coordination/src/index.ts';
+import { normalizePlan, fromCsv } from '../src/adapters/oneplanet/index.ts';
+import { fromJson as fromClcJson } from '../src/adapters/clc.ts';
+import { fromJson as fromHolonsJson } from '../src/adapters/holons.ts';
+import { fromJson as fromArtizenJson } from '../src/adapters/artizen.ts';
+import { fromJson as fromVfJson } from '../src/adapters/vf.ts';
+import { fromTreegensFeed, fromTreegensArchive } from '../src/adapters/treegens.ts';
+import { fromSilviProjects } from '../src/adapters/silvi.ts';
+import { detectOverlaps, detectComplements } from '../src/coordination.ts';
 
 const DB = 'springforth-coord';
 const q = (sql) => JSON.parse(execFileSync('npx',

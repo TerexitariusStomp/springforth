@@ -1,7 +1,0 @@
-packages:
-  - 'packages/*'
-
-# Dependency supply-chain policy (matches poi-compute conventions):
-# - pin direct deps to versions published at least ~7 days ago
-# - never float on latest/*
-minimumReleaseAge: 10080

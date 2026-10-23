@@ -8,7 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { detectOverlaps, detectComplements } from '../packages/coordination/src/resolve.ts';
+import { detectOverlaps, detectComplements } from '../src/resolve.ts';
 
 const DB = 'springforth-coord';
 const APPLY = process.argv.includes('--apply');

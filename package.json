@@ -3,22 +3,46 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Springforth — custom-code layer for community coordination infrastructure — possibility cards, resource matching, explainable overlap detection, open-evidence verification.",
+  "description": "Springforth — community coordination infrastructure: possibility cards, resource matching, explainable overlap detection, open-evidence verification.",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.13.1",
   "scripts": {
-    "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "pnpm -r --if-present run test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "seed": "node --experimental-strip-types scripts/seed-d1.mjs",
     "design:check": "node scripts/design-check.mjs",
     "design:scan": "for a in landing deck console instrument reference tour-all; do node .devin/skills/ss-score/scripts/styleseed-check.mjs scan --project-root . --artifact $a --format json; done",
     "a11y:check": "node scripts/a11y-check.mjs",
-    "deploy": "cd packages/edge && wrangler deploy"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "upstream": "node scripts/upstream-check.mjs",
+    "web:build": "pnpm -C web run build",
+    "web:dev": "pnpm -C web run dev",
+    "web:deploy": "pnpm -C web run deploy",
+    "web:typecheck": "pnpm -C web run typecheck"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.25.2",
+    "d3-shape": "3.2.0",
+    "devalue": "6.0.3",
+    "graphology": "0.26.0",
+    "graphology-layout-forceatlas2": "0.10.1",
+    "graphology-types": "0.24.7",
+    "h3-js": "4.3.0",
+    "marked": "15.0.12",
+    "minisearch": "7.2.0",
+    "viem": "^2.38.5",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "@types/d3-shape": "3.1.7",
+    "@types/node": "^24.19.2",
     "axe-core": "4.14.0",
     "papaparse": "5.5.3",
     "playwright": "1.62.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "wrangler": "4.151.0"
   }
 }

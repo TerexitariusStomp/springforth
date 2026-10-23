@@ -13,7 +13,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import {
   fetchRestorSitemap, fetchRestorSite, fromRestorSites, restorCentroid,
   restorLastError,
-} from '../packages/restor-adapter/src/index.ts';
+} from '../src/adapters/restor.ts';
 
 const DB = 'springforth-coord';
 const ARGS = Object.fromEntries(process.argv.slice(2).map((a) => {

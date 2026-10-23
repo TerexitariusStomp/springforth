@@ -12,8 +12,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import {
   fetchSilviCampaign, fetchSilviClaims, clusterSilviClaims, fromSilviClusters,
   silviLastError,
-} from '../packages/silvi-adapter/src/index.ts';
-import { detectOverlaps, detectComplements } from '../packages/coordination/src/index.ts';
+} from '../src/adapters/silvi.ts';
+import { detectOverlaps, detectComplements } from '../src/coordination.ts';
 
 const DB = 'springforth-coord';
 const CAMPAIGN = process.argv[2] ?? '5';

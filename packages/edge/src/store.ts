@@ -24,6 +24,31 @@ export async function putMany(
   }
 }
 
+// putMany variant that reads existing rows first and writes only rows
+// whose serialized JSON actually changed. Re-runnable syncs (Silvi claims,
+// Giveth backfill, Bloom chapters) cost reads (5M/day) instead of
+// re-burning the write budget (100k rows/day) on identical rows.
+export async function putManyIfChanged(
+  db: D1Database, kind: string, rows: { id: string; obj: unknown }[],
+): Promise<{ written: number; unchanged: number }> {
+  const changed: typeof rows = [];
+  let unchanged = 0;
+  for (let i = 0; i < rows.length; i += 90) {
+    const slice = rows.slice(i, i + 90);
+    const marks = slice.map(() => '?').join(',');
+    const existing = await db.prepare(
+      `SELECT id, json FROM entities WHERE kind=? AND id IN (${marks})`,
+    ).bind(kind, ...slice.map((r) => r.id)).all<{ id: string; json: string }>();
+    const byId = new Map((existing.results ?? []).map((r) => [r.id, r.json]));
+    for (const r of slice) {
+      if (byId.get(r.id) === JSON.stringify(r.obj)) unchanged++;
+      else changed.push(r);
+    }
+  }
+  await putMany(db, kind, changed);
+  return { written: changed.length, unchanged };
+}
+
 export async function get<T>(db: D1Database, kind: string, id: string): Promise<T | null> {
   const r = await db.prepare('SELECT json FROM entities WHERE kind=? AND id=?')
     .bind(kind, id).first<{ json: string }>();

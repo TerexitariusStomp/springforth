@@ -105,7 +105,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from '@springforth/portal';
-import { get, list, listWhere, put, putMany, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, put, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -662,22 +662,22 @@ const withCors = (res: Response, env: Env, req: Request) => {
 // Rate limit: sliding window per actor|route, D1-backed. Telegram (/tg)
 // is exempt — bot throughput isn't user spam. Writes count against a
 // tighter budget than reads. Returns remaining budget or null if over.
-async function rateLimitOk(env: Env, key: string, limit: number): Promise<boolean> {
+// Per-isolate sliding-window limiter. D1-backed limiting wrote a row per
+// request — on the 100k/day free-tier row cap that burned the budget and,
+// when exhausted, 500'd every page. In-memory limiting is approximate
+// across isolates (each isolate has its own window), which is acceptable
+// for abuse throttling; correctness never depends on it.
+const rlBuckets = new Map<string, { windowStart: number; count: number }>();
+function rateLimitOk(_env: Env, key: string, limit: number): boolean {
   const now = Date.now();
-  const windowMs = 60_000;
-  const id = `rl-${key}`;
-  // Fail-open on store errors: a D1 write-quota outage must not take
-  // reads down with it — limiting simply degrades until writes resume.
-  const rec = await get<{ windowStart: number; count: number }>(
-    env.DB, 'ratelimit', id).catch(() => null);
-  if (!rec || now - rec.windowStart > windowMs) {
-    await put(env.DB, 'ratelimit', id, { windowStart: now, count: 1 })
-      .catch(() => undefined);
+  const rec = rlBuckets.get(key);
+  if (!rec || now - rec.windowStart > 60_000) {
+    if (rlBuckets.size > 10_000) rlBuckets.clear();
+    rlBuckets.set(key, { windowStart: now, count: 1 });
     return true;
   }
   if (rec.count >= limit) return false;
-  await put(env.DB, 'ratelimit', id, { ...rec, count: rec.count + 1 })
-    .catch(() => undefined);
+  rec.count++;
   return true;
 }
 
@@ -1514,7 +1514,7 @@ export default {
             if (!page) break;               // upstream hiccup — cursor resumes
             pages++;
             fetched += page.claims.length;
-            await putMany(env.DB, 'silvi-claim', page.claims.map((c) => ({
+            await putManyIfChanged(env.DB, 'silvi-claim', page.claims.map((c) => ({
               id: `sc${campaignId}-${c.id}`, obj: c,
             })));
             if (page.nextAfter == null) { done = true; break; }
@@ -1530,7 +1530,7 @@ export default {
           const claims = await listWhere<SilviClaim>(
             env.DB, 'silvi-claim', 'id LIKE ?', `sc${campaignId}-%`);
           const clusters = clusterSilviClaims(claims);
-          await putMany(env.DB, 'silvi-cluster', clusters.map((c) => ({
+          await putManyIfChanged(env.DB, 'silvi-cluster', clusters.map((c) => ({
             id: `scl${campaignId}-${c.key}`, obj: { campaignId, ...c },
           })));
           const plan = fromSilviClusters(campaign, clusters, claims.length, 'silvi:app');
@@ -1540,7 +1540,7 @@ export default {
           for (const n of await listWhere<PlanNode>(
             env.DB, 'plannode', 'id LIKE ?', `silvi-c${campaignId}-%`))
             if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-          await putMany(env.DB, 'plannode',
+          await putManyIfChanged(env.DB, 'plannode',
             plan.nodes.map((n) => ({ id: n.id, obj: n })));
           const pool = [
             ...(await listWhere<PlanNode>(
@@ -1609,7 +1609,7 @@ export default {
         const keep = new Set(plan.nodes.map((n) => n.id));
         for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'sol-%'))
           if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
         const pool = [
           ...(await listWhere<PlanNode>(
             env.DB, 'plannode', 'id NOT LIKE ?', 'sol-%')),
@@ -1664,12 +1664,12 @@ export default {
             pages++;
             fetched += page.projects.length;
             totalCount = page.totalCount;
-            await putMany(env.DB, 'giveth-project', page.projects.map((p) => ({
+            await putManyIfChanged(env.DB, 'giveth-project', page.projects.map((p) => ({
               id: `gp-${p.id}`, obj: p,
             })));
             // Fold this page into the plan graph right away.
             const part = fromGivethProjects(page.projects, activeQfIds, 'giveth:graphql');
-            await putMany(env.DB, 'plannode',
+            await putManyIfChanged(env.DB, 'plannode',
               part.nodes.map((n) => ({ id: n.id, obj: n })));
             callNodes.push(...part.nodes);
             skip += page.projects.length;
@@ -1748,7 +1748,7 @@ export default {
           matchingMode: 'lr', conviction: false,
           acceptedTokens: {}, endowment: false, chainRef: 'giveth:direct',
         });
-        await putMany(env.DB, 'funding-round',
+        await putManyIfChanged(env.DB, 'funding-round',
           fundingRounds.map((r) => ({ id: r.id, obj: r })));
         let donations = 0, pages = 0;
         for (const p of projects) {
@@ -1757,7 +1757,7 @@ export default {
             const d = await fetchGivethDonations(p.id, { skip, take: 50 }, fetch, baseUrl);
             if (!d || !d.donations.length) break;
             const entities = toDonations(d.donations, p.id);
-            await putMany(env.DB, 'donation',
+            await putManyIfChanged(env.DB, 'donation',
               entities.map((e) => ({ id: e.id, obj: e })));
             donations += entities.length; pages++;
             skip += d.donations.length;
@@ -1786,11 +1786,11 @@ export default {
         const keep = new Set(plan.nodes.map((n) => n.id));
         for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'gap-%'))
           if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
         const checks = toGapChecks(projects);
-        await putMany(env.DB, 'oracle-check', checks.map((c) => ({ id: c.id, obj: c })));
+        await putManyIfChanged(env.DB, 'oracle-check', checks.map((c) => ({ id: c.id, obj: c })));
         const endorses = toGapEndorsements(projects);
-        await putMany(env.DB, 'gap-endorsement', endorses.map((e) => ({ id: e.id, obj: e })));
+        await putManyIfChanged(env.DB, 'gap-endorsement', endorses.map((e) => ({ id: e.id, obj: e })));
         const pool = [
           ...(await listWhere<PlanNode>(
             env.DB, 'plannode', 'id NOT LIKE ?', 'gap-%')),
@@ -1834,7 +1834,7 @@ export default {
             const entries = await fetchRestorSitemap(index, fetch, baseUrl);
             if (!entries) break;                        // transient — resume
             if (!entries.length) { done = true; break; } // 404 = end of index
-            await putMany(env.DB, 'restor-sitemap', entries.map((e) => ({
+            await putManyIfChanged(env.DB, 'restor-sitemap', entries.map((e) => ({
               id: `rs-${e.id}`, obj: { id: e.id, lastmod: e.lastmod },
             })));
             indexed += entries.length; index++;
@@ -1870,11 +1870,11 @@ export default {
         let overlaps = 0;
         if (sites.length) {
           const plan = fromRestorSites(sites, 'restor:web');
-          await putMany(env.DB, 'restor-site', sites.map((s) => ({
+          await putManyIfChanged(env.DB, 'restor-site', sites.map((s) => ({
             id: `rst-${s.id}`,
             obj: { ...s, centroid: restorCentroid(s) },
           })));
-          await putMany(env.DB, 'plannode',
+          await putManyIfChanged(env.DB, 'plannode',
             plan.nodes.map((n) => ({ id: n.id, obj: n })));
           await put(env.DB, 'plan', 'plan-restor', {
             id: 'plan-restor', source: 'restor:web',
@@ -1954,11 +1954,11 @@ export default {
           const done = termIdx >= terms.length;
           await put(env.DB, 'oc-sync', 'accounts', { termIdx, offset, done });
           if (fresh.length) {
-            await putMany(env.DB, 'oc-collective', fresh.map((a) => ({
+            await putManyIfChanged(env.DB, 'oc-collective', fresh.map((a) => ({
               id: `occ-${a.slug}`, obj: a,
             })));
             const plan = fromOcAccounts(fresh, 'oc:graphql');
-            await putMany(env.DB, 'plannode',
+            await putManyIfChanged(env.DB, 'plannode',
               plan.nodes.map((n) => ({ id: n.id, obj: n })));
             // Pool excludes existing oc-* nodes — same-source pairs are
             // skipped inside detection; the embedding scorer stays out of
@@ -2019,7 +2019,7 @@ export default {
             const r = await fetchOcOrders(slug, { limit: 50, offset });
             if (!r || !r.orders.length) break;
             const ents = toOcDonations(r.orders, slug);
-            await putMany(env.DB, 'donation', ents.map((e) => ({ id: e.id, obj: e })));
+            await putManyIfChanged(env.DB, 'donation', ents.map((e) => ({ id: e.id, obj: e })));
             donations += ents.length; offset += r.orders.length;
             if (offset >= r.totalCount) break;
           }
@@ -2047,8 +2047,8 @@ export default {
         const keep = new Set(plan.nodes.map((n) => n.id));
         for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'regen-%'))
           if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
-        await putMany(env.DB, 'regen-project', projects.map((p) => ({
+        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putManyIfChanged(env.DB, 'regen-project', projects.map((p) => ({
           id: `rg-${p.id}`, obj: p,
         })));
         const pool = [
@@ -2094,8 +2094,8 @@ export default {
         const keep = new Set(plan.nodes.map((n) => n.id));
         for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'blm-%'))
           if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
-        await putMany(env.DB, 'bloom-location', locations.map((l) => ({
+        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putManyIfChanged(env.DB, 'bloom-location', locations.map((l) => ({
           id: `blm-${(l.systemname ?? l.slug ?? l.brandname ?? 'x')
             .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
           obj: l,

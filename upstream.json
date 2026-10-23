@@ -1,104 +1,62 @@
 {
-  "$comment": "Vendored + derived upstream artifacts. `pnpm upstream` reports drift; `node scripts/upstream-sync.mjs <name>` syncs syncable entries. npm deps are tracked by `pnpm outdated` — the single package.json IS the dependency surface.",
+  "$comment": "Upstream provenance manifest. `pnpm upstream` reports drift; `node scripts/upstream-sync.mjs <name>` refreshes syncable artifacts. Adapter API probes: `pnpm upstream --probe`.",
   "artifacts": [
     {
       "name": "pico-css",
-      "path": "src/vendor.ts#PICO_CSS",
-      "kind": "npm-embedded",
+      "path": "src/vendor.ts:PICO_CSS",
+      "kind": "npm",
       "pkg": "@picocss/pico",
-      "file": "css/pico.classless.min.css",
+      "asset": "css/pico.min.css",
       "current": "2.1.1",
       "license": "MIT",
-      "sync": "upstream-sync"
+      "sync": "node scripts/upstream-sync.mjs pico-css"
     },
     {
       "name": "htmx",
-      "path": "src/vendor.ts#HTMX_JS",
-      "kind": "npm-embedded",
+      "path": "src/vendor.ts:HTMX_JS",
+      "kind": "npm",
       "pkg": "htmx.org",
-      "file": "dist/htmx.min.js",
+      "asset": "dist/htmx.min.js",
       "current": "2.0.11",
       "license": "BSD-2-Clause",
-      "sync": "upstream-sync"
+      "sync": "node scripts/upstream-sync.mjs htmx"
     },
     {
-      "name": "worldmap",
+      "name": "worldmap-data",
       "path": "src/portal/worldmap-data.ts",
       "kind": "derived-data",
-      "repo": "natural-earth/natural-earth-vector",
-      "url": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/",
-      "current": "110m coastline, hand-simplified",
+      "repo": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/",
       "license": "public domain",
-      "sync": "manual — regenerate via source pipeline"
+      "note": "Hand-simplified Natural Earth 110m coastline; regenerate from source shapefiles if updated"
     },
     {
-      "name": "imd2025",
+      "name": "imd2025-lsoa",
       "path": "src/data/imd2025-lsoa.json",
       "kind": "derived-data",
-      "url": "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025",
-      "current": "IMD 2025 LSOA",
+      "repo": "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025",
       "license": "OGL-3.0",
-      "sync": "manual — vendored official CSV keeps the endorsed source keyless"
+      "note": "English Indices of Deprivation 2025, LSOA-level; vendored official CSV → JSON"
     },
     {
-      "name": "styleseed",
+      "name": "styleseed-skills",
       "path": ".devin/skills/",
-      "kind": "vendored-suite",
+      "kind": "repo",
       "repo": "bitjaru/styleseed",
-      "current": "engine 4.2.0, sha256:eeb89d12",
+      "rev": "sha256:eeb89d12b518c178162f72ffe39a7126dd611953d2f66be0f5507de1bfbe7073",
       "license": "MIT",
       "sync": "npx skills add bitjaru/styleseed",
-      "provenance": ".devin/skills/PROVENANCE.md"
+      "note": "See .devin/skills/PROVENANCE.md — includes styleseed-engine, claude-design, popular-web-designs, design-md"
     }
   ],
   "probes": [
-    {
-      "name": "silvi",
-      "url": "https://admin.silvi.earth/public-api/claims?limit=1"
-    },
-    {
-      "name": "treegens",
-      "url": "https://world.treegens.app/data/pre-app-plantings.json"
-    },
-    {
-      "name": "sarafu",
-      "url": "https://sarafu.network"
-    },
-    {
-      "name": "atlas",
-      "url": "https://envhealth-atlas.pages.dev"
-    },
-    {
-      "name": "giveth",
-      "url": "https://mainnet.serve.giveth.io/graphql"
-    },
-    {
-      "name": "soulutions",
-      "url": "https://soulutions.earth"
-    },
-    {
-      "name": "restor",
-      "url": "https://restor.eco/sitemap.xml"
-    },
-    {
-      "name": "gap",
-      "url": "https://gapapi.karmahq.xyz"
-    },
-    {
-      "name": "opencollective",
-      "url": "https://api.opencollective.com/graphql/v2"
-    },
-    {
-      "name": "regen",
-      "url": "https://lcd-regen.keplr.app"
-    },
-    {
-      "name": "bloom",
-      "url": "https://hdkzuqwqcauhtqkrrzjx.supabase.co"
-    },
-    {
-      "name": "oneplanet",
-      "url": "https://mcp.oneplanet.com/mcp"
-    }
+    { "name": "silvi", "url": "https://api.silvi.earth" },
+    { "name": "giveth", "url": "https://mainnet.serve.giveth.io/graphql", "method": "POST", "body": "{\"query\":\"{__typename}\"}" },
+    { "name": "gap", "url": "https://gapapi.karmahq.xyz" },
+    { "name": "restor", "url": "https://restor.eco" },
+    { "name": "opencollective", "url": "https://api.opencollective.com/graphql/v2", "method": "POST", "body": "{\"query\":\"{__typename}\"}" },
+    { "name": "regen", "url": "https://lcd-regen.keplr.app" },
+    { "name": "bloom", "url": "https://hdkzuqwqcauhtqkrrzjx.supabase.co" },
+    { "name": "soulutions", "url": "https://soulutions.earth" },
+    { "name": "oneplanet-mcp", "url": "https://mcp.oneplanet.com/mcp", "note": "requires key; skipped without ONEPLANET_API_KEY" }
   ]
 }

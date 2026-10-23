@@ -857,6 +857,37 @@ const persistDetectedOverlaps = async (
   return retired;
 };
 
+// Plan-meta row — nodes are stripped so feeds carrying 100+ records stay small.
+const putPlanMeta = (env: Env, planId: string, plan: ExternalPlan, title?: string) =>
+  put(env.DB, 'plan', planId,
+    { ...plan, id: planId, ...(title ? { title } : {}), nodes: undefined, nodeCount: plan.nodes.length });
+
+// Shared sync tail for adapter routes: upsert `nodes`, retire stale
+// `retirePrefix%` rows not in `changed`, then a scoped+budgeted overlap pass
+// over the `excludePrefix%`-excluded pool. `prefix` is shorthand for both.
+const syncDetect = async (env: Env, nodes: PlanNode[], opts: {
+  prefix?: string; retirePrefix?: string; excludePrefix?: string;
+  changedIds?: ReadonlySet<string>; skipPut?: boolean;
+} = {}) => {
+  const changed = opts.changedIds ?? new Set(nodes.map((n) => n.id));
+  const retirePfx = opts.retirePrefix ?? opts.prefix;
+  if (retirePfx)
+    for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', `${retirePfx}%`))
+      if (!changed.has(n.id)) await del(env.DB, 'plannode', n.id);
+  if (!opts.skipPut)
+    await putManyIfChanged(env.DB, 'plannode', nodes.map((n) => ({ id: n.id, obj: n })));
+  const pool = [
+    ...(await listWhere<PlanNode>(env.DB, 'plannode', 'id NOT LIKE ?', `${opts.excludePrefix ?? opts.prefix ?? ''}%`)),
+    ...nodes];
+  const st = { pairs: 0, exhausted: false };
+  const detected = [
+    ...detectOverlaps(pool, { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+    ...detectComplements(pool, { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+  ];
+  const retired = await persistDetectedOverlaps(env, detected, changed, st.exhausted);
+  return { detected, retired, exhausted: st.exhausted };
+};
+
 // Retired top-level surfaces → their hub section. `always` routes had no
 // JSON form so every GET redirects; the rest only redirect browsers —
 // API clients keep receiving the same JSON byte-for-byte.

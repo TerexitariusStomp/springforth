@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CELO, CELO_SEPOLIA, SEPOLIA, chainFor, encodeSchemaData, buildAttestTx,
   buildCreateProfileTx, buildCreateRoundTx, buildAllocateTx, buildMintClaimTx,
-} from '../src/chain/index.ts';
+} from '../src/chain.ts';
 
 describe('chain config', () => {
   it('both nets carry the public deployments', () => {
@@ -80,7 +80,7 @@ describe('hypercert mint', () => {
 });
 
 // ── receipt parsing + yield math ─────────────────────────────────────
-import { yieldDeltaUnits, unitsToStable, parsePoolId, parseAttestedUid } from '../src/chain/index.ts';
+import { yieldDeltaUnits, unitsToStable, parsePoolId, parseAttestedUid } from '../src/chain.ts';
 import { keccak256, toBytes, type TransactionReceipt } from 'viem';
 
 describe('yield delta', () => {
@@ -143,7 +143,7 @@ describe('parseAttestedUid', () => {
 });
 
 // ── Silvi sponsorship rail ───────────────────────────────────────────
-import { buildSponsorSpeciesTx, buildErc20ApproveTx, parseSilviSponsorship } from '../src/chain/index.ts';
+import { buildSponsorSpeciesTx, buildErc20ApproveTx, parseSilviSponsorship } from '../src/chain.ts';
 import { encodeAbiParameters, parseAbiParameters } from 'viem';
 
 describe('silvi sponsorship', () => {

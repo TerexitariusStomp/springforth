@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PlanNode } from '../src/coordination';
-import { pushNodesWith } from '../src/adapters/oneplanet/mcp.ts';
+import { pushNodesWith } from '../src/adapters/oneplanet.ts';
 
 const node = (id: string, kind: string, label = `L ${id}`) =>
   PlanNode.parse({ id, kind: kind as never, label, canonical: label.toLowerCase(), source: 'test' });

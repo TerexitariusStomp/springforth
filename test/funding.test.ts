@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocateMatching, refreshPledge, badgeholders, tallyRound, buildClaim, toHypercertLexicon } from '../src/funding/index.ts';
+import { allocateMatching, refreshPledge, badgeholders, tallyRound, buildClaim, toHypercertLexicon } from '../src/funding.ts';
 import type { Donation, Possibility, Pledge, RetroBallot, Appreciation, OracleCheck } from '../src/core';
 import type { PlanNode, OverlapRecord } from '../src/coordination';
 

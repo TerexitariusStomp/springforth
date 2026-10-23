@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromCsv, fromMarkdown, normalizePlan } from '../src/adapters/oneplanet/index.ts';
+import { fromCsv, fromMarkdown, normalizePlan } from '../src/adapters/oneplanet.ts';
 
 const OP_PLAN = {
   id: 'plan-cvl', title: 'Thorntree Community Plan',

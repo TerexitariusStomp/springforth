@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { to360Giving, donations360 } from '../src/exports/360giving.ts';
+import { to360Giving, donations360 } from '../src/exports.ts';
 import type { FundingRound, Donation } from '../src/core';
 
 const round: FundingRound = {

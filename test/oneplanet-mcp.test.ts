@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OnePlanetMcp, fetchPlanMcp, type McpFetch } from '../src/adapters/oneplanet/mcp.ts';
+import { OnePlanetMcp, fetchPlanMcp, type McpFetch } from '../src/adapters/oneplanet.ts';
 
 const PLAN = {
   id: 'plan-cvl', title: 'Thorntree Community Plan',

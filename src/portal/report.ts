@@ -2,7 +2,7 @@ import type {
   Appreciation, ImpactClaim, OracleCheck, Participation, Possibility,
 } from '../core';
 import type { PlanNode } from '../coordination';
-import type { Trajectory } from '../oracle/index';
+import type { Trajectory } from '../oracle';
 import { pageShell } from './theme.ts';
 import { t, type Lang } from './i18n.ts';
 import { pageHeader, displayName } from './ui.ts';

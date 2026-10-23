@@ -12,9 +12,9 @@ import {
   allocateMatching, pairwiseAllocate, refreshPledge, badgeholders, tallyRound,
   buildClaim, toHypercertLexicon,
   eligibleVoters, tallyProposal, GOVERNABLE,
-} from './funding/index';
-import { to360Giving } from './exports/360giving';
-import { toIati } from './exports/iati';
+} from './funding';
+import { to360Giving } from './exports';
+import { toIati } from './exports';
 import { outcomePayload, evaluationPayload } from './attest';
 import {
   chainFor, buildCreateProfileTx, buildCreateRoundTx,
@@ -23,7 +23,7 @@ import {
   yieldDeltaUnits, unitsToStable, verifyWalletBinding,
   buildCreateFlowTx, buildDeleteFlowTx, parseFlowRate, streamAccrual,
   CFA_FORWARDER, type ChainConfig,
-} from './chain/index';
+} from './chain';
 import {
   renderPossibilitiesPage, renderLandingPage,
   renderRoundPage, renderReportPage, renderRoundAdmin,
@@ -48,7 +48,7 @@ import {
   earnedRecognition, eigenTrust, viewerDeck, identitiesRevealed,
   resolvePlace,
 } from './coordination';
-import { normalizePlan, fromCsv, fromMarkdown } from './adapters/oneplanet/index';
+import { normalizePlan, fromCsv, fromMarkdown } from './adapters/oneplanet';
 import { fromJson as fromClcJson } from './adapters/clc';
 import { fromJson as fromHolonsJson } from './adapters/holons';
 import { fromJson as fromArtizenJson } from './adapters/artizen';
@@ -85,7 +85,7 @@ import {
   fetchBloomLocations, fromBloomLocations, bloomLastError,
 } from './adapters/bloom';
 import { answer as agentAnswer } from './agent';
-import { buildManifest } from './anchor';
+import { buildManifest } from './attest';
 import { OPENAPI } from './openapi.ts';
 import {
   checkFromReading, EXPECTED_DIRECTION,
@@ -97,7 +97,7 @@ import {
   osDataHubPlaces, eoDataHubScene, alphaKlimaHazard, naturalEnglandSites,
   placeContext,
   type SourceReading, type GeoLoc,
-} from './oracle/index';
+} from './oracle';
 import { liveAtlas } from './adapters/atlas';
 import { handleTelegramUpdate, sendTelegram } from './telegram.js';
 import { cellToLatLng, isValidCell, latLngToCell } from 'h3-js';
@@ -1311,7 +1311,7 @@ export default {
           if (!env.ONEPLANET_API_KEY) return err('ONEPLANET_API_KEY not configured', 503);
           const { planId } = await req.json() as { planId?: string };
           if (!planId) return err('planId required', 400);
-          const { fetchPlan } = await import('./adapters/oneplanet/index');
+          const { fetchPlan } = await import('./adapters/oneplanet');
           const plan = await fetchPlan(
             env.ONEPLANET_URL ?? 'https://mcp.oneplanet.com/mcp',
             env.ONEPLANET_API_KEY, planId);
@@ -1362,7 +1362,7 @@ export default {
         const opUrl = env.ONEPLANET_URL ?? 'https://mcp.oneplanet.com/mcp';
         const { opTool, listPlans, pushPlanNodes, updateOai, attachToOai,
           pullOai, OP_TOOLS } =
-          await import('./adapters/oneplanet/mcp');
+          await import('./adapters/oneplanet');
         if (req.method === 'GET' && seg[1] === 'status')
           return json({
             ping: await opTool(opUrl, env.ONEPLANET_API_KEY, 'ping'),

@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { fetchPlanMcp } from '../src/adapters/oneplanet/mcp.ts';
+import { fetchPlanMcp } from '../src/adapters/oneplanet.ts';
 // Live lane — runs only when ONEPLANET_API_KEY is in the environment.
 it.runIf(process.env.ONEPLANET_API_KEY)('live MCP import', async () => {
   const plan = await fetchPlanMcp('https://mcp.oneplanet.com/mcp',

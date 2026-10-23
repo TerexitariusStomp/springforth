@@ -13,14 +13,14 @@ import {
 import {
   allocateMatching, pairwiseAllocate, badgeholders, eligibleVoters,
   paramValue, GOVERNABLE,
-} from './funding/index';
+} from './funding';
 import {
   PlanNode, OverlapRecord,
   isNeed, inferCapital, effectiveStatus, trustEdges,
   earnedRecognition, eigenTrust, successfulCoordinationsPerWeek,
   resolvePlace,
 } from './coordination';
-import { SOURCES, evidenceBoost } from './oracle/index';
+import { SOURCES, evidenceBoost } from './oracle';
 import { list, ledgerEventsMentioning, ledgerTail, ledgerVerifyIncremental } from './store.js';
 import type { Env } from './index.js';
 

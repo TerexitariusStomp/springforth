@@ -6,11 +6,11 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { normalizePlan, fromCsv } from '../src/adapters/oneplanet/index.ts';
-import { fromJson as fromClcJson } from '../src/adapters/clc.ts';
-import { fromJson as fromHolonsJson } from '../src/adapters/holons.ts';
-import { fromJson as fromArtizenJson } from '../src/adapters/artizen.ts';
-import { fromJson as fromVfJson } from '../src/adapters/vf.ts';
+import { normalizePlan, fromCsv } from '../src/adapters/oneplanet.ts';
+import { fromJson as fromClcJson } from '../src/adapters/formats.ts';
+import { fromJson as fromHolonsJson } from '../src/adapters/formats.ts';
+import { fromJson as fromArtizenJson } from '../src/adapters/formats.ts';
+import { fromJson as fromVfJson } from '../src/adapters/formats.ts';
 import { fromTreegensFeed, fromTreegensArchive } from '../src/adapters/treegens.ts';
 import { fromSilviProjects } from '../src/adapters/silvi.ts';
 import { detectOverlaps, detectComplements } from '../src/coordination.ts';

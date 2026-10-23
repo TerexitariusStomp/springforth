@@ -1,81 +1,104 @@
 {
-  "$comment": "Provenance manifest for vendored/derived artifacts. `pnpm upstream` reports drift; `node scripts/upstream-sync.mjs <name>` re-vendors syncable entries.",
+  "$comment": "Vendored + derived upstream artifacts. `pnpm upstream` reports drift; `node scripts/upstream-sync.mjs <name>` syncs syncable entries. npm deps are tracked by `pnpm outdated` — the single package.json IS the dependency surface.",
   "artifacts": [
     {
       "name": "pico-css",
       "path": "src/vendor.ts#PICO_CSS",
-      "upstream": "picocss/pico",
-      "kind": "npm",
-      "package": "@picocss/pico",
-      "file": "css/pico.min.css",
-      "current": "2.0.6",
+      "kind": "npm-embedded",
+      "pkg": "@picocss/pico",
+      "file": "css/pico.classless.min.css",
+      "current": "2.1.1",
       "license": "MIT",
-      "sync": "node scripts/upstream-sync.mjs pico-css"
+      "sync": "upstream-sync"
     },
     {
       "name": "htmx",
       "path": "src/vendor.ts#HTMX_JS",
-      "upstream": "bigskysoftware/htmx",
-      "kind": "npm",
-      "package": "htmx.org",
+      "kind": "npm-embedded",
+      "pkg": "htmx.org",
       "file": "dist/htmx.min.js",
-      "current": "2.0.4",
-      "license": "BSD-2-Clause / MIT",
-      "sync": "node scripts/upstream-sync.mjs htmx"
+      "current": "2.0.11",
+      "license": "BSD-2-Clause",
+      "sync": "upstream-sync"
     },
     {
-      "name": "worldmap-data",
+      "name": "worldmap",
       "path": "src/portal/worldmap-data.ts",
-      "upstream": "natural-earth/natural-earth-vector",
       "kind": "derived-data",
-      "current": "110m coastline (public domain)",
-      "license": "Public domain",
-      "sync": "manual — regenerate from Natural Earth 110m coastline vectors"
+      "repo": "natural-earth/natural-earth-vector",
+      "url": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/",
+      "current": "110m coastline, hand-simplified",
+      "license": "public domain",
+      "sync": "manual — regenerate via source pipeline"
     },
     {
-      "name": "imd2025-lsoa",
+      "name": "imd2025",
       "path": "src/data/imd2025-lsoa.json",
-      "upstream": "gov.uk English Indices of Deprivation 2025",
       "kind": "derived-data",
-      "current": "IMD 2025, LSOA level",
-      "license": "Open Government Licence",
-      "sync": "manual — official CSV, vendored keyless"
+      "url": "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025",
+      "current": "IMD 2025 LSOA",
+      "license": "OGL-3.0",
+      "sync": "manual — vendored official CSV keeps the endorsed source keyless"
     },
     {
-      "name": "styleseed-skills",
-      "path": ".devin/skills/styleseed*,ss-*",
-      "upstream": "bitjaru/styleseed",
+      "name": "styleseed",
+      "path": ".devin/skills/",
       "kind": "vendored-suite",
-      "current": "engine 4.2.0, rev sha256:eeb89d12",
+      "repo": "bitjaru/styleseed",
+      "current": "engine 4.2.0, sha256:eeb89d12",
       "license": "MIT",
-      "sync": "npx skills add bitjaru/styleseed (see .devin/skills/PROVENANCE.md)"
+      "sync": "npx skills add bitjaru/styleseed",
+      "provenance": ".devin/skills/PROVENANCE.md"
+    }
+  ],
+  "probes": [
+    {
+      "name": "silvi",
+      "url": "https://admin.silvi.earth/public-api/claims?limit=1"
     },
     {
-      "name": "claude-design-skill",
-      "path": ".devin/skills/claude-design",
-      "upstream": "BadTechBandit/hermes creative/ skill",
-      "kind": "vendored-suite",
-      "current": "1.1.0",
-      "license": "MIT",
-      "sync": "manual — copy from Hermes install"
+      "name": "treegens",
+      "url": "https://world.treegens.app/data/pre-app-plantings.json"
     },
     {
-      "name": "design-md-skill",
-      "path": ".devin/skills/design-md",
-      "upstream": "BadTechBandit/hermes creative/ skill",
-      "kind": "vendored-suite",
-      "current": "unknown",
-      "license": "MIT",
-      "sync": "manual — copy from Hermes install"
+      "name": "sarafu",
+      "url": "https://sarafu.network"
     },
     {
-      "name": "popular-web-designs",
-      "path": ".devin/skills/popular-web-designs",
-      "upstream": "VoltAgent/awesome-design-md via Hermes",
-      "kind": "vendored-suite",
-      "current": "1.0.0",
-      "license": "MIT",
-      "sync": "manual — copy from Hermes install"
+      "name": "atlas",
+      "url": "https://envhealth-atlas.pages.dev"
+    },
+    {
+      "name": "giveth",
+      "url": "https://mainnet.serve.giveth.io/graphql"
+    },
+    {
+      "name": "soulutions",
+      "url": "https://soulutions.earth"
+    },
+    {
+      "name": "restor",
+      "url": "https://restor.eco/sitemap.xml"
+    },
+    {
+      "name": "gap",
+      "url": "https://gapapi.karmahq.xyz"
+    },
+    {
+      "name": "opencollective",
+      "url": "https://api.opencollective.com/graphql/v2"
+    },
+    {
+      "name": "regen",
+      "url": "https://lcd-regen.keplr.app"
+    },
+    {
+      "name": "bloom",
+      "url": "https://hdkzuqwqcauhtqkrrzjx.supabase.co"
+    },
+    {
+      "name": "oneplanet",
+      "url": "https://mcp.oneplanet.com/mcp"
     }
   ]
 }

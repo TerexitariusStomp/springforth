@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toIati } from '../src/exports/iati.ts';
+import { toIati } from '../src/exports.ts';
 import type { FundingRound } from '../src/core';
 
 const round: FundingRound = {

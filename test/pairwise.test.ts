@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pairwiseAllocate, allocateMatching } from '../src/funding/index.ts';
+import { pairwiseAllocate, allocateMatching } from '../src/funding.ts';
 import type { Donation, Appreciation } from '../src/core';
 import { trustEdges } from '../src/coordination';
 
@@ -82,7 +82,7 @@ describe('pairwise coordination-subsidy QF', () => {
   });
 });
 
-import { eligibleVoters, tallyProposal, paramValue } from '../src/funding/index.ts';
+import { eligibleVoters, tallyProposal, paramValue } from '../src/funding.ts';
 import type { GovernanceBallot, GovernanceProposal } from '../src/core';
 
 describe('trust-gated governance', () => {

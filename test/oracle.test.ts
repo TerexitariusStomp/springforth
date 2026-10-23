@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkFromReading, type SourceReading } from '../src/oracle/sources.ts';
+import { checkFromReading, type SourceReading } from '../src/oracle.ts';
 
 const reading: SourceReading = {
   key: 'sentinel2', source: 'remote-sensing', domain: 'environmental',

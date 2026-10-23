@@ -1,6 +1,6 @@
 import type { DemandGate, Donation, FundingRound, RoundApplication } from '../core';
 import type { PlanNode } from '../coordination';
-import type { NodeMatch } from '../funding/index';
+import type { NodeMatch } from '../funding';
 import { pageShell } from './theme.ts';
 import { t, type Lang } from './i18n.ts';
 import { pageHeader, howItWorks, displayName } from './ui.ts';

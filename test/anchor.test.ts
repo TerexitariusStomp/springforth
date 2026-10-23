@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anchorEvidence, buildManifest, LocalAnchorClient } from '../src/anchor.ts';
+import { anchorEvidence, buildManifest, LocalAnchorClient } from '../src/attest.ts';
 
 describe('evidence-anchor', () => {
   const files = [

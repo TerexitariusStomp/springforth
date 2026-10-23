@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { trajectory } from '../src/oracle/trajectory.ts';
+import { trajectory } from '../src/oracle.ts';
 import type { OracleCheck } from '../src/core';
 
 const chk = (id: string, score: number, at: string): OracleCheck & { nodeId: string } => ({

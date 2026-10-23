@@ -1,31 +1,27 @@
 #!/usr/bin/env node
-// upstream-sync <name> — re-vendor an artifact per upstream.json.
-// For kind:npm entries, fetches <package>@latest tarball, extracts <file>,
-// rewrites the matching export in src/vendor.ts, and bumps `current` in
-// upstream.json. Run tests after syncing.
+// Re-vendor an embedded upstream asset into src/vendor.ts.
+//   node scripts/upstream-sync.mjs pico-css|htmx [--to <version>]
 import { readFileSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
-
+const manifestUrl = new URL('../upstream.json', import.meta.url);
+const manifest = JSON.parse(readFileSync(manifestUrl));
 const name = process.argv[2];
-const up = JSON.parse(readFileSync('upstream.json', 'utf8'));
-const a = up.artifacts.find((x) => x.name === name);
-if (!a) { console.error(`unknown artifact: ${name}`); process.exit(1); }
-if (a.kind !== 'npm') { console.error(`${name} is kind:${a.kind} — ${a.sync}`); process.exit(1); }
+const a = manifest.artifacts.find((x) => x.name === name);
+if (!a?.pkg || a.sync !== 'upstream-sync') {
+  console.error(`not a syncable artifact: ${name ?? '(none)'}. Syncable: ${manifest.artifacts.filter((x) => x.sync === 'upstream-sync').map((x) => x.name).join(', ')}`);
+  process.exit(1);
+}
+const toIdx = process.argv.indexOf('--to');
+const version = toIdx > 0 ? process.argv[toIdx + 1] : 'latest';
+const meta = await (await fetch(`https://registry.npmjs.org/${encodeURIComponent(a.pkg)}/${version}`)).json();
+if (!meta.version) { console.error('version not found:', version); process.exit(1); }
+const body = await (await fetch(`https://unpkg.com/${a.pkg}@${meta.version}/${a.file}`)).text();
+if (body.length < 1000) { console.error(`suspicious payload (${body.length}b) — aborting`); process.exit(1); }
 
-const [constName, path] = a.path.split('#');
-const meta = await (await fetch(`https://registry.npmjs.org/${a.package}/latest`)).json();
-console.log(`${name}: ${a.current} -> ${meta.version}`);
-execSync(`npm pack ${a.package}@${meta.version} --pack-destination /tmp`, { stdio: 'inherit' });
-const tgz = `/tmp/${a.package.replace('@', '').replace('/', '-')}-${meta.version}.tgz`;
-execSync(`mkdir -p /tmp/upstream-${name} && tar -xzf ${tgz} -C /tmp/upstream-${name}`);
-const content = readFileSync(`/tmp/upstream-${name}/package/${a.file}`, 'utf8');
-
-let vts = readFileSync(path, 'utf8');
-const re = new RegExp(`export const ${constName} = "(?:[^"\\\\]|\\\\.)*";`);
-if (!re.test(vts)) { console.error(`export ${constName} not found in ${path}`); process.exit(1); }
-vts = vts.replace(re, `export const ${constName} = ${JSON.stringify(content)};`);
-writeFileSync(path, vts);
-
+const [file, ident] = a.path.split('#');
+const vsrc = readFileSync(file, 'utf8');
+const out = vsrc.replace(new RegExp(`export const ${ident} = "(?:[^"\\\\]|\\\\.)*";`), `export const ${ident} = ${JSON.stringify(body)};`);
+if (out === vsrc) { console.error('could not locate', a.path); process.exit(1); }
+writeFileSync(file, out);
 a.current = meta.version;
-writeFileSync('upstream.json', JSON.stringify(up, null, 2) + '\n');
-console.log(`synced ${name} ${meta.version} into ${path}`);
+writeFileSync(manifestUrl, JSON.stringify(manifest, null, 2) + '\n');
+console.log(`${name}: ${a.pkg}@${meta.version} → ${a.path} (${body.length}b). Run pnpm typecheck + pnpm test.`);

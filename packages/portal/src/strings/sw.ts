@@ -106,6 +106,7 @@ const sw: Record<string, string> = {
   'nav.apiDocs': 'Nyaraka za API',
   'nav.telegram': 'Bot ya Telegram',
   'nav.startPossibility': 'Anzisha uwezekano',
+  'a11y.tableScroll': 'Jedwali inayosokozwa — tumia vitufe vya mishale kusogea mlalo.',
   'a11y.skipToContent': 'Ruka hadi maudhui',
   'a11y.primaryNav': 'Msingi',
   'a11y.sectionNav': 'Kwenye ukurasa huu',

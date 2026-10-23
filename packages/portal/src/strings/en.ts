@@ -107,6 +107,7 @@ const en: Record<string, string> = {
   'nav.apiDocs': 'API docs',
   'nav.telegram': 'Telegram bot',
   'nav.startPossibility': 'Start a possibility',
+  'a11y.tableScroll': 'Scrollable table — use arrow keys to pan horizontally.',
   'a11y.skipToContent': 'Skip to content',
   'a11y.primaryNav': 'Primary',
   'a11y.sectionNav': 'On this page',

@@ -190,7 +190,7 @@ export function SiteFooter() {
 			<div className="border-t border-white/10 px-5 py-4 lg:px-10">
 				<div className="mx-auto flex max-w-7xl items-center justify-between">
 					<LangSwitch label={t("a11y.langFooter")} />
-					<span className="text-xs text-cream/50">
+					<span className="text-xs text-cream/70">
 						{t("footer.generated")} {new Date().toISOString()}
 					</span>
 				</div>

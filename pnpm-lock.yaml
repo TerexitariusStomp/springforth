@@ -606,6 +606,9 @@ importers:
       '@springforth/coordination':
         specifier: workspace:*
         version: link:../coordination
+      '@springforth/core':
+        specifier: workspace:*
+        version: link:../core
       '@springforth/portal':
         specifier: workspace:*
         version: link:../portal
@@ -639,6 +642,9 @@ importers:
       lucide-react:
         specifier: 1.57.0
         version: 1.57.0(@types/react@19.3.0)(react@19.3.1)
+      marked:
+        specifier: 17.0.1
+        version: 17.0.1
       motion:
         specifier: 14.3.0
         version: 14.3.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2786,6 +2792,11 @@ packages:
   marked@15.0.12:
     resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
     engines: {node: '>= 18'}
+    hasBin: true
+
+  marked@17.0.1:
+    resolution: {integrity: sha512-boeBdiS0ghpWcSwoNm/jJBwdpFaMnZWRzjA6SkUMYb40SVaN1x7mmfGKp0jvexGcx+7y2La5zRZsYFZI6Qpypg==}
+    engines: {node: '>= 20'}
     hasBin: true
 
   math-intrinsics@1.1.0:
@@ -5302,6 +5313,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.6.0
 
   marked@15.0.12: {}
+
+  marked@17.0.1: {}
 
   math-intrinsics@1.1.0: {}
 

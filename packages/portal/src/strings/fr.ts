@@ -106,6 +106,7 @@ const fr: Record<string, string> = {
   'nav.apiDocs': 'Docs API',
   'nav.telegram': 'Bot Telegram',
   'nav.startPossibility': 'Lancer une possibilit\u00e9',
+  'a11y.tableScroll': 'Tableau défilant — utilisez les flèches pour naviguer horizontalement.',
   'a11y.skipToContent': 'Aller au contenu',
   'a11y.primaryNav': 'Principal',
   'a11y.sectionNav': 'Sur cette page',

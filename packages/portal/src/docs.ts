@@ -6,7 +6,7 @@ import { pageShell } from './theme.ts';
 import { t, type Lang } from './i18n.ts';
 import { pageHeader } from './ui.ts';
 
-interface PathEntry { summary?: string }
+export interface PathEntry { summary?: string }
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

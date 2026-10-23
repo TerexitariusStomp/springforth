@@ -37,6 +37,10 @@
 	--color-danger-deep: #7a2828;
 	--color-info: #2f5c67;
 	--color-info-bright: #7fb3e8;
+	--color-map-sea: #e4ede8;
+	--color-map-land: #c6d8cb;
+	--color-gold-tint: #fffdf6;
+	--color-lime-ink: #3c5c1a;
 
 	--color-background: var(--color-cream);
 	--color-foreground: var(--color-ink);
@@ -81,6 +85,10 @@
 }
 
 .dark {
+	--color-map-sea: #10251c;
+	--color-map-land: #2a4a3a;
+	--color-gold-tint: #1c1a10;
+	--color-lime-ink: #b8d96a;
 	--color-background: var(--color-forest);
 	--color-foreground: var(--color-cream);
 	--color-card: #1a4a38;

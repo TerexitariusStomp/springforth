@@ -9,7 +9,7 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				// Primary action — coral on dark, deepened coral on light.
-				default: "bg-coral-ink text-white hover:bg-coral shadow-sm",
+				default: "bg-coral-ink text-white shadow-sm hover:bg-coral hover:text-ink",
 				lime: "bg-lime text-forest hover:bg-lime-deep shadow-sm",
 				forest: "bg-forest text-cream hover:bg-sage",
 				outline: "border border-line bg-transparent hover:bg-card text-foreground",

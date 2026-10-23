@@ -1,0 +1,13 @@
+{
+  "silvi": "https://admin.silvi.earth/public-api",
+  "giveth": "https://mainnet.serve.giveth.io/graphql",
+  "gap": "https://gapapi.karmahq.xyz",
+  "restor": "https://restor.eco/sitemap.xml",
+  "opencollective": "https://api.opencollective.com/graphql/v2",
+  "regen": "https://lcd-regen.keplr.app/cosmos/base/tendermint/v1beta1/node_info",
+  "soulutions": "https://soulutions.earth",
+  "bloom": "https://bloomnetwork.earth",
+  "oneplanet-mcp": "https://mcp.oneplanet.com/mcp",
+  "atlas": "https://envhealth-atlas.pages.dev",
+  "treegens": "https://world.treegens.app/data/pre-app-plantings.json"
+}

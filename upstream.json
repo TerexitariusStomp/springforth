@@ -1,0 +1,81 @@
+{
+  "$comment": "Provenance manifest for vendored/derived artifacts. `pnpm upstream` reports drift; `node scripts/upstream-sync.mjs <name>` re-vendors syncable entries.",
+  "artifacts": [
+    {
+      "name": "pico-css",
+      "path": "src/vendor.ts#PICO_CSS",
+      "upstream": "picocss/pico",
+      "kind": "npm",
+      "package": "@picocss/pico",
+      "file": "css/pico.min.css",
+      "current": "2.0.6",
+      "license": "MIT",
+      "sync": "node scripts/upstream-sync.mjs pico-css"
+    },
+    {
+      "name": "htmx",
+      "path": "src/vendor.ts#HTMX_JS",
+      "upstream": "bigskysoftware/htmx",
+      "kind": "npm",
+      "package": "htmx.org",
+      "file": "dist/htmx.min.js",
+      "current": "2.0.4",
+      "license": "BSD-2-Clause / MIT",
+      "sync": "node scripts/upstream-sync.mjs htmx"
+    },
+    {
+      "name": "worldmap-data",
+      "path": "src/portal/worldmap-data.ts",
+      "upstream": "natural-earth/natural-earth-vector",
+      "kind": "derived-data",
+      "current": "110m coastline (public domain)",
+      "license": "Public domain",
+      "sync": "manual — regenerate from Natural Earth 110m coastline vectors"
+    },
+    {
+      "name": "imd2025-lsoa",
+      "path": "src/data/imd2025-lsoa.json",
+      "upstream": "gov.uk English Indices of Deprivation 2025",
+      "kind": "derived-data",
+      "current": "IMD 2025, LSOA level",
+      "license": "Open Government Licence",
+      "sync": "manual — official CSV, vendored keyless"
+    },
+    {
+      "name": "styleseed-skills",
+      "path": ".devin/skills/styleseed*,ss-*",
+      "upstream": "bitjaru/styleseed",
+      "kind": "vendored-suite",
+      "current": "engine 4.2.0, rev sha256:eeb89d12",
+      "license": "MIT",
+      "sync": "npx skills add bitjaru/styleseed (see .devin/skills/PROVENANCE.md)"
+    },
+    {
+      "name": "claude-design-skill",
+      "path": ".devin/skills/claude-design",
+      "upstream": "BadTechBandit/hermes creative/ skill",
+      "kind": "vendored-suite",
+      "current": "1.1.0",
+      "license": "MIT",
+      "sync": "manual — copy from Hermes install"
+    },
+    {
+      "name": "design-md-skill",
+      "path": ".devin/skills/design-md",
+      "upstream": "BadTechBandit/hermes creative/ skill",
+      "kind": "vendored-suite",
+      "current": "unknown",
+      "license": "MIT",
+      "sync": "manual — copy from Hermes install"
+    },
+    {
+      "name": "popular-web-designs",
+      "path": ".devin/skills/popular-web-designs",
+      "upstream": "VoltAgent/awesome-design-md via Hermes",
+      "kind": "vendored-suite",
+      "current": "1.0.0",
+      "license": "MIT",
+      "sync": "manual — copy from Hermes install"
+    }
+  ]
+}

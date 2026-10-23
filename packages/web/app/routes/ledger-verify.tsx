@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/ledger-verify";
 import type { renderLedgerVerifyPage } from "@springforth/portal";
@@ -31,7 +32,7 @@ export default function LedgerVerify({ loaderData }: Route.ComponentProps) {
 				<div className="mt-8">
 					<StatGrid items={[
 						{ v: String(v.events ?? "—"), l: t("detail.verify.events") },
-						{ v: v.ok ? "✓" : "✗", l: t("detail.verify.integrity") },
+						{ v: v.ok ? <Check className="size-6 text-ok" aria-hidden /> : <X className="size-6 text-coral-ink" aria-hidden />, l: t("detail.verify.integrity") },
 						{ v: "OTS", l: t("detail.verify.anchored") },
 					]} />
 				</div>

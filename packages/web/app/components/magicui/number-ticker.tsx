@@ -28,13 +28,16 @@ export function NumberTicker({
     damping: 60,
     stiffness: 100,
   })
-  const isInView = useInView(ref, { once: true, margin: "0px" })
+  const isInView = useInView(ref, { once: true })
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null
 
     if (isInView) {
       timer = setTimeout(() => {
+        // Reset to startValue at animation start — the SSR'd value is the
+        // real number so no-JS and pre-hydration renders stay correct.
+        if (ref.current) ref.current.textContent = String(startValue);
         motionValue.set(direction === "down" ? startValue : value)
       }, delay * 1000)
     }
@@ -63,12 +66,12 @@ export function NumberTicker({
     <span
       ref={ref}
       className={cn(
-        "inline-block tracking-wider text-black tabular-nums dark:text-white",
+        "inline-block tracking-wider tabular-nums",
         className
       )}
       {...props}
     >
-      {startValue}
+      {value}
     </span>
   )
 }

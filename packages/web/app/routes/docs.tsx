@@ -60,7 +60,7 @@ export default function Docs({ loaderData }: Route.ComponentProps) {
 	const Section = ({ famKey, rows }: { famKey: string; rows: [string, string, string][] }) => (
 		<section className="mt-8">
 			<h2 className="font-display text-2xl">{t(`api.fam.${famKey}`)}</h2>
-			<div tabIndex={0} role="region" aria-label={t("a11y.tableScroll")} className="mt-3 overflow-x-auto">
+			<div tabIndex={0} role="region" aria-label={`${t(`api.fam.${famKey}`)} — ${t("a11y.tableScroll")}`} className="mt-3 overflow-x-auto">
 				<table className={tableCls}>
 					<tbody>
 						{rows.sort((a, b) => a[1].localeCompare(b[1])).map(([m, p, s]) => (

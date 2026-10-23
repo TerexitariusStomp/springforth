@@ -28,6 +28,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 				<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 				<Meta />
 				<Links />
+				{/* no-JS: reveal-on-scroll targets must not stay hidden */}
+				<noscript>
+					<style>{`[data-slot="blur-fade"]{opacity:1!important;transform:none!important;filter:none!important}`}</style>
+				</noscript>
 			</head>
 			<body className="min-h-full antialiased">
 				{children}
@@ -63,15 +67,26 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 		stack = error.stack;
 	}
 
+	// Renders outside the i18n provider (root boundary) — English fallback is
+	// deliberate; a dead page still needs a way home.
 	return (
-		<main className="mx-auto max-w-2xl px-6 pt-24 pb-12">
-			<h1 className="font-display text-4xl">{message}</h1>
-			<p className="mt-4 text-muted">{details}</p>
-			{stack && (
-				<pre className="mt-6 w-full overflow-x-auto rounded-lg bg-ink p-4 text-sm text-cream">
-					<code>{stack}</code>
-				</pre>
-			)}
-		</main>
+		<div className="flex min-h-screen flex-col bg-cream text-ink">
+			<header className="border-b border-line px-5 py-4">
+				<a href="/" className="font-display text-xl font-bold text-forest">Springforth</a>
+			</header>
+			<main className="mx-auto flex max-w-2xl flex-1 flex-col items-start justify-center px-6 py-24">
+				<span className="font-display text-8xl text-lime-ink">{message}</span>
+				<p className="mt-4 text-muted">{details}</p>
+				<div className="mt-8 flex gap-3">
+					<a href="/" className="h-11 rounded-full bg-forest px-6 text-sm font-bold text-cream inline-flex items-center transition-colors hover:bg-sage">Home</a>
+					<a href="/possibilities" className="h-11 rounded-full border border-line px-6 text-sm font-bold inline-flex items-center transition-colors hover:bg-line/30">The deck</a>
+				</div>
+				{stack && (
+					<pre className="mt-6 w-full overflow-x-auto rounded-lg bg-ink p-4 text-sm text-cream">
+						<code>{stack}</code>
+					</pre>
+				)}
+			</main>
+		</div>
 	);
 }

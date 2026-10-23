@@ -403,14 +403,21 @@ export interface CardConnections {
 export async function loadCardConnections(
   env: Env,
   cards: { id: string; report?: unknown; place?: string; h3?: string }[],
+  pre?: {
+    nodes: PlanNode[]; recs: OverlapRecord[]; dons: Donation[];
+    apps: Appreciation[]; interests: Interest[];
+  },
 ): Promise<Record<string, CardConnections>> {
   const [nodes, recs, rounds, dons, pledges, claims, events, seats, posts, apps, interests] = await Promise.all([
-    list<PlanNode>(env.DB, 'plannode'), list<OverlapRecord>(env.DB, 'overlap'),
-    list<FundingRound>(env.DB, 'round'), list<Donation>(env.DB, 'donation'),
+    pre?.nodes ?? list<PlanNode>(env.DB, 'plannode'),
+    pre?.recs ?? list<OverlapRecord>(env.DB, 'overlap'),
+    list<FundingRound>(env.DB, 'round'),
+    pre?.dons ?? list<Donation>(env.DB, 'donation'),
     list<Pledge>(env.DB, 'pledge'), list<ImpactClaim>(env.DB, 'claim'),
     ledgerEventsMentioning(env.DB, 'poss-'), list<CouncilSeat>(env.DB, 'council-seat'),
-    list<ForumPost>(env.DB, 'forum-post'), list<Appreciation>(env.DB, 'appreciation'),
-    list<Interest>(env.DB, 'interest'),
+    list<ForumPost>(env.DB, 'forum-post'),
+    pre?.apps ?? list<Appreciation>(env.DB, 'appreciation'),
+    pre?.interests ?? list<Interest>(env.DB, 'interest'),
   ]);
   const out: Record<string, CardConnections> = {};
   for (const card of cards) {

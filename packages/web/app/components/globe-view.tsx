@@ -1,10 +1,19 @@
 import createGlobe, { type COBEOptions } from "cobe";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { cellToLatLng, isValidCell } from "h3-js";
 import { cn } from "~/lib/utils";
 
 export interface GlobeMarker {
 	location: [number, number]; // [lat, lon]
 	size?: number;
+}
+
+// h3 cell strings are converted here, client-side — cellToLatLng is
+// Emscripten-backed and ~600 conversions per SSR was tripping CPU limits.
+export function cellsToMarkers(cells: (string | undefined)[]): GlobeMarker[] {
+	return cells
+		.filter((c): c is string => !!c && isValidCell(c))
+		.map((c) => ({ location: cellToLatLng(c) as [number, number], size: 0.05 }));
 }
 
 export interface GlobeArc {
@@ -15,17 +24,20 @@ export interface GlobeArc {
 // cobe v2 WebGL globe — client-only (callers lazy-load; SSR shows fallback).
 export function GlobeView({
 	markers,
+	cells,
 	arcs = [],
 	className,
 	dark = 1,
 	autoRotate = true,
 }: {
-	markers: GlobeMarker[];
+	markers?: GlobeMarker[];
+	cells?: (string | undefined)[];
 	arcs?: GlobeArc[];
 	className?: string;
 	dark?: number;
 	autoRotate?: boolean;
 }) {
+	markers = useMemo(() => markers ?? cellsToMarkers(cells ?? []), [markers, cells]);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const globeRef = useRef<ReturnType<typeof createGlobe> | null>(null);
 	const phi = useRef(0);

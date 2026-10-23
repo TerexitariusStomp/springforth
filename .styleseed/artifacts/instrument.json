@@ -21,10 +21,16 @@
       "packages/portal/src/ledger.ts",
       "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts"
+      "packages/portal/src/i18n.ts",
+      "packages/web/app/routes/impact.tsx",
+      "packages/web/app/routes/ledger.tsx",
+      "packages/web/app/routes/ledger-verify.tsx",
+      "packages/web/app/routes/plans.tsx",
+      "packages/web/app/routes/plan.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts"
+      "packages/portal/src/theme.ts",
+      "packages/web/app/app.css"
     ]
   },
   "validation": {

@@ -1,13 +1,13 @@
 import { Link, useLocation, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+
 import { Menu, X, ChevronDown } from "lucide-react";
 import { LANGS } from "~/lib/i18n";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 
 export const SPARK = (
-	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true" className="h-5 w-5">
+	<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true" className="size-5">
 		<path d="M12 2v5m0 10v5M2 12h5m10 0h5M5.6 5.6l3.2 3.2m6.4 6.4l3.2 3.2M5.6 18.4l3.2-3.2m6.4-6.4l3.2-3.2" />
 	</svg>
 );
@@ -44,7 +44,7 @@ export function LangSwitch({ label }: { label: string }) {
 
 export function SiteHeader() {
 	const { t } = useTranslation();
-	const [open, setOpen] = useState(false);
+
 	const hubs: [string, string][] = [
 		["/possibilities", t("nav.possibilities")],
 		["/collaborate", t("nav.collaborate")],
@@ -68,7 +68,7 @@ export function SiteHeader() {
 				{t("a11y.skipToContent")}
 			</a>
 			<header className="sticky top-0 z-40 border-b border-white/10 bg-forest text-cream">
-				<div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-4 px-5 lg:px-10">
+				<div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-4 px-5 lg:px-10">
 					<Link to="/" className="flex items-center gap-2 font-display text-2xl tracking-tight">
 						<span className="text-lime">{SPARK}</span>
 						Springforth
@@ -82,7 +82,7 @@ export function SiteHeader() {
 						<div className="group relative">
 							<Link to="/how-it-works" className="flex items-center gap-1 text-cream/80 transition-colors hover:text-lime" aria-haspopup="true">
 								{t("nav.learn")}
-								<ChevronDown className="h-3.5 w-3.5 transition-transform group-focus-within:rotate-180 group-hover:rotate-180" />
+								<ChevronDown className="size-3.5 transition-transform group-focus-within:rotate-180 group-hover:rotate-180" />
 							</Link>
 							<nav
 								aria-label={t("nav.learn")}
@@ -108,34 +108,33 @@ export function SiteHeader() {
 					<Button asChild size="sm" className="hidden lg:inline-flex">
 						<Link to="/possibilities#declare">{t("nav.startPossibility")}</Link>
 					</Button>
-					<button
-						type="button"
-						className="inline-flex h-10 w-10 items-center justify-center rounded-lg lg:hidden"
-						aria-label={t("a11y.menu")}
-						aria-expanded={open}
-						onClick={() => setOpen((v) => !v)}
-					>
-						{open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-					</button>
+					{/* details/summary — the menu opens without JS */}
+					<details className="group lg:hidden">
+						<summary
+							className="inline-flex size-10 cursor-pointer list-none items-center justify-center rounded-lg [&::-webkit-details-marker]:hidden"
+							aria-label={t("a11y.menu")}
+						>
+							<Menu className="size-5 group-open:hidden" />
+							<X className="hidden size-5 group-open:block" />
+						</summary>
+						<nav aria-label={t("a11y.menu")} className="absolute inset-x-0 top-full border-t border-white/10 bg-forest px-5 py-4">
+							{[...hubs, ...learn].map(([h, l]) =>
+								h.startsWith("http") ? (
+									<a key={h} href={h} rel="noopener" className="block rounded-lg px-3 py-2.5 text-cream/85 hover:bg-white/10">
+										{l}
+									</a>
+								) : (
+									<Link key={h} to={h} className="block rounded-lg px-3 py-2.5 text-cream/85 hover:bg-white/10">
+										{l}
+									</Link>
+								),
+							)}
+							<div className="mt-3 border-t border-white/10 pt-3">
+								<LangSwitch label={t("a11y.langMenu")} />
+							</div>
+						</nav>
+					</details>
 				</div>
-				{open && (
-					<nav aria-label={t("a11y.menu")} className="border-t border-white/10 px-5 py-4 lg:hidden">
-						{[...hubs, ...learn].map(([h, l]) =>
-							h.startsWith("http") ? (
-								<a key={h} href={h} rel="noopener" className="block rounded-lg px-3 py-2.5 text-cream/85 hover:bg-white/10">
-									{l}
-								</a>
-							) : (
-								<Link key={h} to={h} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2.5 text-cream/85 hover:bg-white/10">
-									{l}
-								</Link>
-							),
-						)}
-						<div className="mt-3 border-t border-white/10 pt-3">
-							<LangSwitch label={t("a11y.langMenu")} />
-						</div>
-					</nav>
-				)}
 			</header>
 		</>
 	);

@@ -38,8 +38,8 @@ export default function Search({ loaderData }: Route.ComponentProps) {
 								<a href={`/collaborate?node=${encodeURIComponent(h.id)}`} className="font-semibold text-info underline">
 									{h.label}
 								</a>
-								<Badge className="ml-2">{h.kind}</Badge>
-								<Badge className="ml-1">{t(h.via === "semantic" ? "search.semantic" : "search.lexical")} {(h.score * 100).toFixed(0)}%</Badge>
+								<Badge className="ms-2">{h.kind}</Badge>
+								<Badge className="ms-1">{t(h.via === "semantic" ? "search.semantic" : "search.lexical")} {(h.score * 100).toFixed(0)}%</Badge>
 								<span className="mt-1 block text-xs text-muted">{h.source}</span>
 							</li>
 						))}

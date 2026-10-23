@@ -65,7 +65,7 @@ export default function Round({ loaderData }: Route.ComponentProps) {
 										<td className={tdCls}>{MONEY.format(a.match)}</td>
 										<td className={tdCls}>
 											<div className="flex items-center gap-2">
-												<div className="h-2 w-24 overflow-hidden rounded-full bg-line/60">
+												<div className="size-24 overflow-hidden rounded-full bg-line/60">
 													<div className="h-full rounded-full bg-lime" style={{ width: `${pct}%` }} />
 												</div>
 												{MONEY.format(a.total)}

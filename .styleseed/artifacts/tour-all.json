@@ -19,10 +19,12 @@
       "packages/portal/src/howitworks.ts",
       "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts"
+      "packages/portal/src/i18n.ts",
+      "packages/web/app/routes/how-it-works.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts"
+      "packages/portal/src/theme.ts",
+      "packages/web/app/app.css"
     ]
   },
   "validation": {

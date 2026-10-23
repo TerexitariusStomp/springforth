@@ -26,6 +26,15 @@ export async function list<T>(db: D1Database, kind: string): Promise<T[]> {
   return (r.results ?? []).map((x) => JSON.parse(x.json) as T);
 }
 
+// Filtered list — the SQL WHERE clause runs inside D1 so hot paths only
+// parse the rows they actually consume (e.g. deck cards need only the
+// plannodes carrying a possibilityId, not every imported plan node).
+export async function listWhere<T>(db: D1Database, kind: string, where: string, ...binds: unknown[]): Promise<T[]> {
+  const r = await db.prepare(`SELECT json FROM entities WHERE kind=? AND ${where} ORDER BY id`)
+    .bind(kind, ...binds as never[]).all<{ json: string }>();
+  return (r.results ?? []).map((x) => JSON.parse(x.json) as T);
+}
+
 const digest = (s: string) => createHash('sha256').update(s).digest('hex');
 const eventHash = (e: { seq: number; at: string; actor: string; kind: string; payload: unknown; prev_hash: string }) =>
   digest(JSON.stringify([e.seq, e.at, e.actor, e.kind, e.payload, e.prev_hash]));

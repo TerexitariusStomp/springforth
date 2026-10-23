@@ -31,7 +31,7 @@ const STATUS_FILTERS: Array<[string, string]> = [
 ];
 
 const field =
-	"h-11 flex-1 min-w-[8rem] rounded-lg border border-line bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
+	"h-11 flex-1 min-w-[8rem] rounded-lg border border-line bg-card px-3 text-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function Possibilities({ loaderData }: Route.ComponentProps) {
 	const { cards, edges, viewer, opts } = loaderData;
@@ -130,15 +130,15 @@ export default function Possibilities({ loaderData }: Route.ComponentProps) {
 							</Link>
 						)}
 					</nav>
-					<label className="flex h-10 flex-1 min-w-48 max-w-xs items-center gap-2 rounded-full border border-line bg-card px-3">
-						<Search className="h-4 w-4 text-muted" aria-hidden />
+					<label className="flex h-10 flex-1 min-w-48 max-w-xs items-center gap-2 rounded-full border border-line bg-card px-3 focus-within:ring-2 focus-within:ring-ring">
+						<Search className="size-4 text-muted" aria-hidden />
 						<input
 							type="search"
 							placeholder={t("deck.search")}
 							aria-label={t("a11y.deckSearch")}
 							value={q}
 							onChange={(e) => setQ(e.target.value)}
-							className="w-full bg-transparent text-sm outline-none"
+							className="w-full bg-transparent text-sm outline-hidden"
 						/>
 					</label>
 					<Button asChild>
@@ -148,9 +148,8 @@ export default function Possibilities({ loaderData }: Route.ComponentProps) {
 
 				{located > 0 && (
 					<div className="mb-8 rounded-2xl border border-line bg-card p-5">
-						<h3 className="font-display text-xl">{t("map.section")}</h3>
+						<h2 className="font-display text-xl">{t("map.section")}</h2>
 						<p className="mt-1 text-sm text-muted">
-							{located} {t("map.full").toLowerCase()}{" "}
 							<Link to="/map" className="font-semibold text-forest dark:text-lime">{t("map.full")} →</Link>
 							{unlocated > 0 && ` · ${unlocated} ${t("map.unlocated")}`}
 						</p>
@@ -228,10 +227,10 @@ export default function Possibilities({ loaderData }: Route.ComponentProps) {
 			>
 				<Dialog.Portal>
 					<Dialog.Overlay className="fixed inset-0 z-50 bg-forest/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in" />
-					<Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[min(44rem,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-cream p-8 shadow-2xl focus:outline-none data-[state=open]:animate-in data-[state=open]:zoom-in-95">
+					<Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[min(44rem,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-cream p-8 shadow-2xl focus-visible:outline-hidden data-[state=open]:animate-in data-[state=open]:zoom-in-95">
 						<Dialog.Close asChild>
 							<button aria-label={t("a11y.close")} className="absolute right-4 top-4 rounded-full p-2 hover:bg-line/50">
-								<X className="h-5 w-5" />
+								<X className="size-5" />
 							</button>
 						</Dialog.Close>
 						<Dialog.Title className="sr-only">{detail?.title}</Dialog.Title>
@@ -259,53 +258,70 @@ export default function Possibilities({ loaderData }: Route.ComponentProps) {
 			>
 				<Dialog.Portal>
 					<Dialog.Overlay className="fixed inset-0 z-50 bg-forest/70 backdrop-blur-sm" />
-					<Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[min(38rem,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-cream p-8 shadow-2xl focus:outline-none">
+					<Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[88vh] w-[min(38rem,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-cream p-8 shadow-2xl focus-visible:outline-hidden">
 						<Dialog.Close asChild>
 							<button aria-label={t("a11y.close")} className="absolute right-4 top-4 rounded-full p-2 hover:bg-line/50">
-								<X className="h-5 w-5" />
+								<X className="size-5" />
 							</button>
 						</Dialog.Close>
 						<span className="text-xs font-bold uppercase tracking-widest text-coral-ink">{t("declare.kicker")}</span>
 						<Dialog.Title className="mt-2 font-display text-3xl">{t("declare.h2")}</Dialog.Title>
 						<p className="mt-2 text-sm text-muted">{t("declare.lede")}</p>
-						<form method="post" action="/possibilities" className="mt-6 space-y-4">
-							<input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px]" />
-							<label className="block text-sm font-semibold">
-								{t("declare.possibility")}
-								<textarea name="title" required placeholder={t("declare.ph")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" rows={3} />
-							</label>
-							<label className="block text-sm font-semibold">
-								{t("declare.name")}
-								<input name="declarerId" required placeholder={t("declare.namePh")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
-							</label>
-							<div className="grid gap-4 sm:grid-cols-2">
-								<label className="block text-sm font-semibold">
-									{t("declare.where")}
-									<input name="place" placeholder={t("declare.wherePh")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
-								</label>
-								<label className="block text-sm font-semibold">
-									{t("declare.deadline")}
-									<input name="deadline" type="date" className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
-								</label>
-							</div>
-							<div className="grid gap-4 sm:grid-cols-2">
-								<label className="block text-sm font-semibold">
-									{t("declare.min")}
-									<input name="minParticipants" type="number" min="1" defaultValue={3} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
-								</label>
-								<label className="block text-sm font-semibold">
-									{t("declare.desc")}
-									<input name="description" placeholder={t("declare.descPh")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
-								</label>
-							</div>
-							<button type="submit" className="w-full rounded-full bg-coral py-3.5 font-bold text-ink transition-colors hover:bg-coral-ink">
-								{t("declare.submit")}
-							</button>
-						</form>
+						<DeclareForm />
 					</Dialog.Content>
 				</Dialog.Portal>
 			</Dialog.Root>
+			{declaring && (
+				<section id="declare" className="mx-auto max-w-2xl border-t border-line px-5 py-12 lg:px-10" aria-labelledby="declare-h">
+					<span className="text-xs font-bold uppercase tracking-widest text-coral-ink">{t("declare.kicker")}</span>
+					<h2 id="declare-h" className="mt-2 font-display text-3xl">{t("declare.h2")}</h2>
+					<p className="mt-2 text-sm text-muted">{t("declare.lede")}</p>
+					<DeclareForm />
+				</section>
+			)}
 			<SiteFooter />
 		</div>
+	);
+}
+
+// Shared declare form — used by the ?declare=1 dialog and the no-JS
+// inline section. Posts plainly to POST /possibilities (303 → deep link).
+function DeclareForm() {
+	const { t } = useTranslation();
+	return (
+		<form method="post" action="/possibilities" className="mt-6 space-y-4">
+			<input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="sr-only" />
+			<label className="block text-sm font-semibold">
+				{t("declare.possibility")}
+				<textarea name="title" required placeholder={t("declare.ph")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" rows={3} />
+			</label>
+			<label className="block text-sm font-semibold">
+				{t("declare.name")}
+				<input name="declarerId" required placeholder={t("declare.namePh")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+			</label>
+			<div className="grid gap-4 sm:grid-cols-2">
+				<label className="block text-sm font-semibold">
+					{t("declare.where")}
+					<input name="place" placeholder={t("declare.wherePh")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+				</label>
+				<label className="block text-sm font-semibold">
+					{t("declare.deadline")}
+					<input name="deadline" type="date" className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+				</label>
+			</div>
+			<div className="grid gap-4 sm:grid-cols-2">
+				<label className="block text-sm font-semibold">
+					{t("declare.min")}
+					<input name="minParticipants" type="number" min="1" defaultValue={3} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+				</label>
+				<label className="block text-sm font-semibold">
+					{t("declare.desc")}
+					<input name="description" placeholder={t("declare.descPh")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+				</label>
+			</div>
+			<button type="submit" className="w-full rounded-full bg-coral py-3.5 font-bold text-ink transition-colors hover:bg-coral-ink">
+				{t("declare.submit")}
+			</button>
+		</form>
 	);
 }

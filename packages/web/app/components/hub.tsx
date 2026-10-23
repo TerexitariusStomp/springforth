@@ -59,7 +59,7 @@ export function HubSection({ id, kicker, title, count, lede, children, className
 						{count != null && <span className="ml-2 text-base font-normal text-muted">· {count}</span>}
 					</h2>
 				</div>
-				<ChevronDown className="h-5 w-5 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
+				<ChevronDown className="size-5 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
 			</summary>
 			<div className="mt-5">
 				{lede && <p className="mb-4 max-w-2xl text-sm text-ink-mute">{lede}</p>}
@@ -88,7 +88,7 @@ export function HowNote({ noteKey, anchor }: { noteKey: string; anchor: string }
 }
 
 export const field =
-	"h-11 min-w-0 flex-1 rounded-lg border border-line bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
+	"h-11 min-w-0 flex-1 rounded-lg border border-line bg-card px-3 text-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
 export const submit =
 	"h-11 shrink-0 rounded-full bg-forest px-5 text-xs font-extrabold text-cream transition-colors hover:bg-sage dark:bg-lime dark:text-forest";
 export const emptyCls = "rounded-xl border border-dashed border-line p-6 text-sm text-muted";
@@ -97,7 +97,7 @@ export const tableCls = "w-full border-collapse text-sm";
 export const thCls = "border-b border-line pb-2 pr-4 text-left text-xs font-bold uppercase tracking-wide text-muted";
 export const tdCls = "border-b border-line/60 py-2 pr-4 align-top";
 
-export function StatGrid({ items }: { items: { v: string; l: string }[] }) {
+export function StatGrid({ items }: { items: { v: React.ReactNode; l: string }[] }) {
 	return (
 		<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 			{items.map((i) => (

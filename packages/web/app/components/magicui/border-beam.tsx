@@ -56,8 +56,8 @@ export const BorderBeam = ({
   size = 50,
   delay = 0,
   duration = 6,
-  colorFrom = "#ffaa40",
-  colorTo = "#9c40ff",
+  colorFrom = "var(--color-lime)",
+  colorTo = "var(--color-coral)",
   transition,
   style,
   reverse = false,
@@ -66,7 +66,7 @@ export const BorderBeam = ({
 }: BorderBeamProps) => {
   return (
     <div
-      className="pointer-events-none absolute inset-0 rounded-[inherit] border-(length:--border-beam-width) border-transparent mask-[linear-gradient(transparent,transparent),linear-gradient(#000,#000)] mask-intersect [mask-clip:padding-box,border-box]"
+      className="pointer-events-none absolute inset-0 rounded-[inherit] border-(length:--border-beam-width) border-transparent mask-[linear-gradient(transparent,transparent),linear-gradient(black,black)] mask-intersect [mask-clip:padding-box,border-box]"
       style={
         {
           "--border-beam-width": `${borderWidth}px`,

@@ -49,9 +49,9 @@ export default function Plan({ loaderData }: Route.ComponentProps) {
 				<strong>{n.label}</strong>
 				{n.placeId && <span className="text-muted"> · {n.placeId}</span>}
 				{spark ? (
-					<span dangerouslySetInnerHTML={{ __html: spark }} className="ml-2 inline-block align-middle" />
+					<span dangerouslySetInnerHTML={{ __html: spark }} className="ms-2 inline-block align-middle" />
 				) : n.kind === "indicator" ? (
-					<span className="ml-2 text-xs text-muted">{t("plans.doc.noreadings")}</span>
+					<span className="ms-2 text-xs text-muted">{t("plans.doc.noreadings")}</span>
 				) : null}
 				{n.description && (
 					<div
@@ -59,7 +59,7 @@ export default function Plan({ loaderData }: Route.ComponentProps) {
 						dangerouslySetInnerHTML={{ __html: md(n.description) }}
 					/>
 				)}
-				{kids.length > 0 && <ul className="ml-5 border-l border-line pl-4">{kids.map((k) => nodeItem(k, depth + 1))}</ul>}
+				{kids.length > 0 && <ul className="ms-5 border-l border-line pl-4">{kids.map((k) => nodeItem(k, depth + 1))}</ul>}
 			</li>
 		);
 	};

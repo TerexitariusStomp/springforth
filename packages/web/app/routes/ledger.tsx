@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/ledger";
 import type { renderLedgerPage } from "@springforth/portal";
@@ -33,9 +34,9 @@ export default function Ledger({ loaderData }: Route.ComponentProps) {
 				/>
 				<p className="mt-6 text-sm">
 					{verify.ok ? (
-						<strong className="text-ok">✓ {t("detail.ledger.ok")}</strong>
+						<strong className="flex items-center gap-1 text-ok"><Check className="size-4" aria-hidden />{t("detail.ledger.ok")}</strong>
 					) : (
-						<strong className="text-coral-ink">✗ {t("detail.ledger.broken")} {verify.brokenAt}</strong>
+						<strong className="flex items-center gap-1 text-coral-ink"><X className="size-4" aria-hidden />{t("detail.ledger.broken")} {verify.brokenAt}</strong>
 					)}
 					{verify.ok && <> — {verify.events} {t("detail.ledger.okBody")}</>} ·{" "}
 					<Link to="/ledger/verify" className="font-semibold text-info underline">{t("detail.ledger.verify")}</Link>

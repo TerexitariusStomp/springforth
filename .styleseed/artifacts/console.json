@@ -22,10 +22,20 @@
       "packages/portal/src/rounds.ts",
       "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts"
+      "packages/portal/src/i18n.ts",
+      "packages/web/app/routes/collaborate.tsx",
+      "packages/web/app/routes/fund.tsx",
+      "packages/web/app/routes/community.tsx",
+      "packages/web/app/routes/round.tsx",
+      "packages/web/app/routes/round-admin.tsx",
+      "packages/web/app/routes/donor.tsx",
+      "packages/web/app/routes/map.tsx",
+      "packages/web/app/components/hub.tsx",
+      "packages/web/app/components/tx-button.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts"
+      "packages/portal/src/theme.ts",
+      "packages/web/app/app.css"
     ]
   },
   "validation": {

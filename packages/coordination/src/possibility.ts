@@ -160,6 +160,9 @@ export function scoreCard(
     edges: TrustEdge[];
     viewer?: string;
     now?: number;
+    // Precomputed EigenTrust vector — callers scoring many cards for one
+    // viewer pass it in so the power iteration runs once per request.
+    vec?: Record<string, number>;
   },
 ): { score: number; trust: number; urgency: number; cover: number; tipping: boolean } {
   const now = ctx.now ?? Date.now();
@@ -168,7 +171,7 @@ export function scoreCard(
   const others = ctx.viewer ? actors.filter((a) => a !== ctx.viewer) : actors;
   // Personalized EigenTrust vector seeded at the viewer (uniform otherwise)
   // — transitive trust, not just direct mutual edges.
-  const vec = eigenTrust(ctx.edges, { seed: ctx.viewer });
+  const vec = ctx.vec ?? eigenTrust(ctx.edges, { seed: ctx.viewer });
   const trust = others.length
     ? Math.min(1, others.reduce((s, a) => s + relTrust(vec, a), 0) / others.length)
     : 0;

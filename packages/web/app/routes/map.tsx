@@ -60,7 +60,7 @@ export default function MapPage({ loaderData }: Route.ComponentProps) {
 					{(o.evidence ?? []).map((m) => {
 						const [x, y] = proj(m.lon, m.lat);
 						return (
-							<a key={m.id} href={m.href} aria-label={m.title} className="outline-none">
+							<a key={m.id} href={m.href} aria-label={m.title} className="focus-visible:outline-2 focus-visible:outline-accent">
 								<circle cx={x} cy={y} r={11} fill="transparent" />
 								<circle cx={x} cy={y} r={2.5} className="fill-teal stroke-card opacity-85" strokeWidth={0.8}>
 									<title>{m.title}</title>
@@ -72,7 +72,7 @@ export default function MapPage({ loaderData }: Route.ComponentProps) {
 						const [x, y] = proj(m.lon, m.lat);
 						const st = DOT[m.status] ? m.status : "draft";
 						return (
-							<a key={m.id} href={m.href} aria-label={m.title} className="outline-none">
+							<a key={m.id} href={m.href} aria-label={m.title} className="focus-visible:outline-2 focus-visible:outline-accent">
 								<circle cx={x} cy={y} r={11} fill="transparent" />
 								<circle cx={x} cy={y} r={4.5} className={cn(DOT[st], "stroke-card")} strokeWidth={1.2}>
 									<title>{m.title} — {m.status}</title>
@@ -84,7 +84,7 @@ export default function MapPage({ loaderData }: Route.ComponentProps) {
 				<div className="mt-3 flex flex-wrap gap-4 text-xs text-muted">
 					{LEGEND.map(([cls, key]) => (
 						<span key={cls} className="inline-flex items-center gap-1.5">
-							<i className={cn("inline-block h-2.5 w-2.5 rounded-full", DOT[cls])} aria-hidden />
+							<i className={cn("inline-block size-2.5 rounded-full", DOT[cls])} aria-hidden />
 							{t(key)}
 						</span>
 					))}

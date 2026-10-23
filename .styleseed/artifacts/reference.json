@@ -23,10 +23,18 @@
       "packages/portal/src/whitepaper.ts",
       "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts"
+      "packages/portal/src/i18n.ts",
+      "packages/web/app/routes/docs.tsx",
+      "packages/web/app/routes/actor.tsx",
+      "packages/web/app/routes/claim.tsx",
+      "packages/web/app/routes/report.tsx",
+      "packages/web/app/routes/whitepaper.tsx",
+      "packages/web/app/routes/search.tsx",
+      "packages/web/app/routes/not-found.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts"
+      "packages/portal/src/theme.ts",
+      "packages/web/app/app.css"
     ]
   },
   "validation": {

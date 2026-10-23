@@ -19,10 +19,15 @@
       "packages/portal/src/possibilities.ts",
       "packages/portal/src/strings",
       "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts"
+      "packages/portal/src/i18n.ts",
+      "packages/web/app/routes/possibilities.tsx",
+      "packages/web/app/components/possibility-card.tsx",
+      "packages/web/app/components/card-detail.tsx",
+      "packages/web/app/components/actor-name.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts"
+      "packages/portal/src/theme.ts",
+      "packages/web/app/app.css"
     ]
   },
   "validation": {

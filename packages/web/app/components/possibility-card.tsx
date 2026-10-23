@@ -74,27 +74,27 @@ export function PossibilityCard({
 				</Link>
 			</h3>
 			<p className="flex items-center gap-1.5 text-sm text-muted">
-				<MapPin className="h-3.5 w-3.5" aria-hidden />
+				<MapPin className="size-3.5" aria-hidden />
 				{d.place ?? t("card.anywhere")}
 			</p>
 			<div className="grid grid-cols-3 gap-2 rounded-xl bg-pale p-3 text-center dark:bg-white/5">
 				<div>
 					<strong className="block text-lg font-bold">
-						<Users className="mr-1 inline h-3.5 w-3.5 align-baseline" aria-hidden />
+						<Users className="me-1 inline size-3.5 align-baseline" aria-hidden />
 						{d.participants}
 					</strong>
 					<span className="text-[11px] uppercase tracking-wide text-muted">{t("card.committed")}</span>
 				</div>
 				<div>
 					<strong className="block text-lg font-bold">
-						<Target className="mr-1 inline h-3.5 w-3.5 align-baseline" aria-hidden />
+						<Target className="me-1 inline size-3.5 align-baseline" aria-hidden />
 						{d.min || "—"}
 					</strong>
 					<span className="text-[11px] uppercase tracking-wide text-muted">{t("card.goal")}</span>
 				</div>
 				<div>
 					<strong className="block text-lg font-bold">
-						<Clock className="mr-1 inline h-3.5 w-3.5 align-baseline" aria-hidden />
+						<Clock className="me-1 inline size-3.5 align-baseline" aria-hidden />
 						{daysLeft(d.deadline, t("card.overdue"))}
 					</strong>
 					<span className="text-[11px] uppercase tracking-wide text-muted">{t("card.left")}</span>
@@ -131,7 +131,7 @@ export function PossibilityCard({
 				<span>
 					{more > 0 ? `${more} ${t("card.more")}` : d.status === "quorum" ? t("card.atQuorum") : t("card.see")}
 				</span>
-				<ArrowRight className="h-4 w-4" aria-hidden />
+				<ArrowRight className="size-4" aria-hidden />
 			</Link>
 			{nextId !== undefined &&
 				(viewer ? (

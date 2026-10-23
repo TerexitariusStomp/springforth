@@ -47,6 +47,15 @@ interface ParticlesProps extends ComponentPropsWithoutRef<"div"> {
   vy?: number
 }
 
+// CSS custom properties arrive as var(--token) — resolve client-side
+// since canvas fillStyle can't consume them. SSR renders no canvas.
+function resolveCssColor(c: string): string {
+  if (typeof window !== "undefined" && c.startsWith("var("))
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(c.slice(4, -1).trim()).trim() || c;
+  return c;
+}
+
 function hexToRgb(hex: string): number[] {
   hex = hex.replace("#", "")
 
@@ -84,7 +93,7 @@ export const Particles: React.FC<ParticlesProps> = ({
   ease = 50,
   size = 0.4,
   refresh = false,
-  color = "#ffffff",
+  color = "var(--color-foreground)",
   vx = 0,
   vy = 0,
   ...props
@@ -204,7 +213,7 @@ export const Particles: React.FC<ParticlesProps> = ({
     }
   }
 
-  const rgb = hexToRgb(color)
+  const rgb = hexToRgb(resolveCssColor(color))
 
   const drawCircle = (circle: Circle, update = false) => {
     if (context.current) {

@@ -37,7 +37,7 @@ export default function HowItWorks() {
 						<div key={s.n} className={`${cardCls} flex gap-5`}>
 							<span className="font-display text-4xl text-lime-ink">{s.n}</span>
 							<div>
-								<h3 className="font-display text-xl">{t(`howto.stop.${s.n}.title`)}</h3>
+								<h2 className="font-display text-xl">{t(`howto.stop.${s.n}.title`)}</h2>
 								<p className="mt-1 text-sm">
 									<strong>{t("howto.do")}:</strong> {t(`howto.stop.${s.n}.do`)}
 								</p>

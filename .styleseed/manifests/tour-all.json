@@ -36,8 +36,8 @@
     {
       "id": "artifact",
       "path": ".styleseed/artifacts/tour-all.json",
-      "sha256": "sha256:3379ec07ac38f7322abe469522f253a79933d745c03a0b599240270c64f36f88",
-      "bytes": 1175
+      "sha256": "sha256:86fd3e12b05c8b869ab9c9c23f0e70b7c39c68fcb9bab2319d413704307b5e59",
+      "bytes": 1259
     }
   ],
   "sources": [
@@ -97,10 +97,10 @@
     }
   ],
   "methodHash": "sha256:a17671ffa091733121586645217244668d9aa68b9dea9dc5d51734fc9e1ef055",
-  "validationHash": "sha256:d1b4ff194da0a9066c2a8e3a3ce2104ac40fac318241366edadd82aca2249fd1",
+  "validationHash": "sha256:c023a57c60f174f6c78d5392c71a505daf74f5f7fe12381867238fcb4f98bf1a",
   "validationSlices": {
     "target": "sha256:596b1589e8f0cc12c4e58474e3e1e5c276ea9d12afde4e637df912b0ddef0e6a",
-    "implementation": "sha256:98d2681468ccc69796330578c0d70450629ac854824fc73a208993af31d92d31",
+    "implementation": "sha256:960e2f85ae508b87807dfc98e22e4fa1476d9433ffb9792fb0d9e8528727bc39",
     "scoreFloor": "sha256:b4944c6ff08dc6f43da2e9c824669b7d927dd1fa976fadc7b456881f51bf5ccc",
     "requiredRenders": "sha256:e2cbc22ce7be59d23cd2e88d6fdbc576aa98f69928e4ff1e61fda02e15ccca2f",
     "temporal": "sha256:c5ec5a78d8447626a8d2c39addbf2843320eb8e491b9e7c1e92927a135b06bba",

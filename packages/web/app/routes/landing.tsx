@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import { cellToLatLng, isValidCell } from "h3-js";
+
 import { effectiveStatus } from "@springforth/coordination";
 import type { Route } from "./+types/landing";
 import type { renderLandingPage } from "@springforth/portal";
@@ -16,7 +16,7 @@ import { AnimatedShinyText } from "~/components/magicui/animated-shiny-text";
 import { AuroraText } from "~/components/magicui/aurora-text";
 import { Particles } from "~/components/magicui/particles";
 import { Button } from "~/components/ui/button";
-import { ArrowRight, Check, Users } from "lucide-react";
+import { ArrowRight, Check, Plus, Users } from "lucide-react";
 
 const Globe = lazy(() => import("~/components/globe-view").then((m) => ({ default: m.GlobeView })));
 
@@ -53,11 +53,12 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 	const orbit = near[0];
 	const featured = [...live, ...atQuorum].slice(0, 4);
 
-	// Globe pins — real h3 cells from imported action nodes + possibility cards.
-	const markers = [
-		...i.actionNodes.filter((n) => n.h3 && isValidCell(n.h3)).map((n) => cellToLatLng(n.h3!)),
-		...i.cards.filter((c) => c.possibility.h3 && isValidCell(c.possibility.h3)).map((c) => cellToLatLng(c.possibility.h3!)),
-	].map((loc) => ({ location: loc as [number, number], size: 0.05 }));
+	// Globe pins — raw h3 cells; the client-only globe component converts
+	// them (cellToLatLng is Emscripten-backed — too heavy for SSR).
+	const cells = [
+		...i.actionNodes.map((n) => n.h3),
+		...i.cards.map((c) => c.possibility.h3),
+	];
 
 	const orbitPct = orbit?.possibility.minParticipants
 		? Math.min(100, Math.round((orbit.participants / orbit.possibility.minParticipants) * 100))
@@ -69,14 +70,14 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 			<main id="main">
 				{/* ── hero ─────────────────────────────────────────────── */}
 				<section className="relative overflow-hidden bg-forest text-cream">
-					<Particles className="absolute inset-0 opacity-40" quantity={60} color="#c8f36d" staticity={60} />
+					<Particles className="absolute inset-0 opacity-40" quantity={60} color="var(--color-lime)" staticity={60} />
 					<div className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-20 pt-16 lg:grid-cols-2 lg:px-10 lg:pt-24">
 						<div className="relative z-10">
 							<BlurFade delay={0}>
 								<p className="inline-flex items-center gap-2 rounded-full border border-lime/30 bg-lime/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-lime">
-									<span className="relative flex h-2 w-2">
+									<span className="relative flex size-2">
 										<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-75" />
-										<span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
+										<span className="relative inline-flex size-2 rounded-full bg-lime" />
 									</span>
 									{t("eyebrow")}
 								</p>
@@ -84,7 +85,7 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 							<BlurFade delay={0.1}>
 								<h1 className="mt-6 font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
 									{t("hero.h1.pre")}{" "}
-									<AuroraText className="italic" colors={["#c8f36d", "#94c8c0", "#f17e64"]}>
+									<AuroraText className="italic" colors={["var(--color-lime)", "var(--color-teal)", "var(--color-coral)"]}>
 										{t("hero.h1.em")}
 									</AuroraText>
 								</h1>
@@ -97,7 +98,7 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 									<Button asChild variant="lime" size="lg">
 										<Link to="/possibilities">
 											{t("hero.cta.deck")}
-											<ArrowRight className="h-4 w-4" />
+											<ArrowRight className="size-4" />
 										</Link>
 									</Button>
 									<Button asChild variant="outline" size="lg" className="border-cream/30 text-cream hover:bg-white/10">
@@ -109,11 +110,11 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 								<div className="mt-8 flex items-center gap-3 text-sm text-cream/80">
 									<div className="flex -space-x-2">
 										{i.participantInitials.map((_, idx) => (
-											<span key={idx} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-forest bg-sage text-cream">
-												<Users className="h-3.5 w-3.5" />
+											<span key={idx} className="flex size-8 items-center justify-center rounded-full border-2 border-forest bg-sage text-cream">
+												<Users className="size-3.5" />
 											</span>
 										))}
-										<span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-forest bg-lime text-[10px] font-bold text-forest">
+										<span className="flex size-8 items-center justify-center rounded-full border-2 border-forest bg-lime text-[10px] font-bold text-forest">
 											+{Math.max(0, i.participantsTotal - i.participantInitials.length)}
 										</span>
 									</div>
@@ -126,15 +127,15 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 							{orbit && (
 								<BlurFade delay={0.5}>
 									<aside className="relative mt-8 max-w-md overflow-hidden rounded-2xl border border-white/15 bg-white/5 p-5 backdrop-blur">
-										<BorderBeam size={120} duration={6} colorFrom="#c8f36d" colorTo="#f17e64" />
+										<BorderBeam size={120} duration={6} colorFrom="var(--color-lime)" colorTo="var(--color-coral)" />
 										<div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
 											<span className="text-lime">{t("hero.orbit.nearest")}</span>
 											<span className="flex items-center gap-1.5 rounded-full bg-coral/20 px-2.5 py-1 text-coral">
-												<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-coral" />
+												<span className="size-1.5 animate-pulse rounded-full bg-coral" />
 												{t("hero.orbit.building")}
 											</span>
 										</div>
-										<h3 className="mt-3 font-display text-2xl">{orbit.possibility.title}</h3>
+										<h2 className="mt-3 font-display text-2xl">{orbit.possibility.title}</h2>
 										<p className="mt-1 text-sm text-cream/70">
 											{orbit.possibility.place ?? t("card.anywhere")} · {t("hero.orbit.closes")}{" "}
 											{daysLeft(orbit.possibility.deadline, t("card.overdue"))}
@@ -151,7 +152,7 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 										<div className="mt-4 flex items-center justify-between">
 											<span className="flex -space-x-1.5">
 												{[0, 1, 2].map((x) => (
-													<span key={x} className="h-6 w-6 rounded-full border-2 border-forest bg-teal/60" />
+													<span key={x} className="size-6 rounded-full border-2 border-forest bg-teal/60" />
 												))}
 											</span>
 											<Link to={`/possibilities#${orbit.possibility.id}`} className="text-sm font-semibold text-lime hover:underline">
@@ -166,19 +167,19 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 						<div className="relative z-0 mx-auto w-full max-w-lg lg:max-w-none">
 							{mounted ? (
 								<Suspense fallback={<div className="aspect-square w-full rounded-full bg-white/5" />}>
-									<Globe markers={markers} />
+									<Globe cells={cells} />
 								</Suspense>
 							) : (
 								<div className="aspect-square w-full animate-pulse rounded-full bg-white/5" />
 							)}
 							<div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center gap-3">
 								<a href="/collaborate#outcomes" className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-forest/80 px-4 py-2 text-xs font-semibold backdrop-blur transition-colors hover:border-lime/40">
-									<Check className="h-3.5 w-3.5 text-lime" />
+									<Check className="size-3.5 text-lime" />
 									<strong><NumberTicker value={i.completedCount} /></strong>
 									<span className="text-cream/70">{t("hero.badge.actions")}</span>
 								</a>
 								<a href="/possibilities" className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-forest/80 px-4 py-2 text-xs font-semibold backdrop-blur transition-colors hover:border-lime/40">
-									<span className="text-lime">✚</span>
+									<Plus className="size-3.5 text-lime" aria-hidden />
 									<strong><NumberTicker value={i.cards.length} /></strong>
 									<span className="text-cream/70">{t("hero.badge.open")}</span>
 								</a>
@@ -196,7 +197,7 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 						<Marquee pauseOnHover className="[--duration:40s]">
 							{(i.ticker.length ? i.ticker : [t("ticker.empty")]).map((line, idx) => (
 								<span key={idx} className="mx-4 flex items-center gap-2 text-sm text-ink-mute">
-									<span className="h-1.5 w-1.5 rounded-full bg-coral" />
+									<span className="size-1.5 rounded-full bg-coral" />
 									{line}
 								</span>
 							))}
@@ -374,7 +375,7 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 							<div className="mt-6 flex flex-col gap-2.5 text-sm">
 								{[t("impact.point.1"), t("impact.point.2"), t("impact.point.3")].map((p) => (
 									<span key={p} className="flex items-center gap-2">
-										<Check className="h-4 w-4 text-lime" />
+										<Check className="size-4 text-lime" />
 										{p}
 									</span>
 								))}
@@ -384,13 +385,13 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
 							<aside className="rounded-2xl border border-white/15 bg-white/5 p-8 backdrop-blur">
 								<div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-cream/60">
 									<span>{t("impact.panel")}</span>
-									<span className="text-lime">● {t("landing.live")}</span>
+									<span className="flex items-center gap-1.5 text-lime"><span className="size-1.5 animate-pulse rounded-full bg-lime" aria-hidden />{t("landing.live")}</span>
 								</div>
 								<div className="mt-6">
 									<strong className="font-display text-6xl text-lime">
 										<NumberTicker value={i.hoursTotal} />
 									</strong>
-									<span className="ml-2 text-cream/70">{t("impact.hours")}</span>
+									<span className="ms-2 text-cream/70">{t("impact.hours")}</span>
 								</div>
 								<div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
 									<div>

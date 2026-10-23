@@ -78,7 +78,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from '@springforth/portal';
-import { get, list, put, del, ledgerAppend, ledgerEvents, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, put, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -320,11 +320,17 @@ async function seatCouncil(env: Env, possibilityId: string, actor: string,
   return true;
 }
 
-async function sweepPossibilities(env: Env, actor = 'system'): Promise<void> {
-  const [poss, nodes, recs, parts] = await Promise.all([
-    list<Possibility>(env.DB, 'possibility'), list<PlanNode>(env.DB, 'plannode'),
-    list<OverlapRecord>(env.DB, 'overlap'), list<Participation>(env.DB, 'participation'),
-  ]);
+async function sweepPossibilities(env: Env, actor = 'system',
+  pre?: { poss: Possibility[]; nodes: PlanNode[]; recs: OverlapRecord[]; parts: Participation[] },
+): Promise<void> {
+  const [poss, nodes, recs, parts] = pre
+    ? [pre.poss, pre.nodes, pre.recs, pre.parts]
+    : await Promise.all([
+      // quorum checks only consult possibilityId-scoped nodes
+      list<Possibility>(env.DB, 'possibility'),
+      listWhere<PlanNode>(env.DB, 'plannode', "json_extract(json,'$.possibilityId') IS NOT NULL"),
+      list<OverlapRecord>(env.DB, 'overlap'), list<Participation>(env.DB, 'participation'),
+    ]);
   const now = Date.now(), iso = new Date(now).toISOString();
   for (const p of poss) {
     const eff = effectiveStatus(p, now);
@@ -662,7 +668,11 @@ const searchNodes = async (env: Env, q: string): Promise<NodeHit[]> => {
     const score = Math.max(sem, lexs * 0.85);
     return { node: n, score: Math.round(score * 1000) / 1000,
       via: sem >= lexs ? 'semantic' as const : 'lexical' as const };
-  }).filter((r) => r.score >= 0.2)
+  }).filter((r) => (r.via === 'lexical'
+    ? r.score >= 0.2
+    // bge cosine baseline sits ~0.6 even for unrelated text — a 0.66 floor
+    // keeps real semantic matches (observed ≥0.67) and drops noise queries.
+    : r.score >= 0.66))
     .sort((a, b) => b.score - a.score).slice(0, 25);
 };
 
@@ -881,7 +891,7 @@ export default {
       // GET /partials/ticker — htmx target for the landing activity ticker.
       if (req.method === 'GET' && seg[0] === 'partials' && seg[1] === 'ticker') {
         const [poss, events] = await Promise.all([
-          list<Possibility>(env.DB, 'possibility'), ledgerEvents(env.DB),
+          list<Possibility>(env.DB, 'possibility'), ledgerTail(env.DB, 40),
         ]);
         const possById = new Map(poss.map((p) => [p.id, p]));
         return new Response(tickerHtml(tickerLines(events, possById),
@@ -890,10 +900,13 @@ export default {
       }
       // GET / → the triage landing: how it works + what needs attention
       if (req.method === 'GET' && seg.length === 0) {
+        // Ticker needs only recent events; unmetNeeds/actionNodes need only
+        // need/action plannodes — full-table parses were tripping CPU limits.
         const [poss, parts, recs, nodes, plans, events] = await Promise.all([
           list<Possibility>(env.DB, 'possibility'), list<Participation>(env.DB, 'participation'),
-          list<OverlapRecord>(env.DB, 'overlap'), list<PlanNode>(env.DB, 'plannode'),
-          list<ExternalPlan>(env.DB, 'plan'), ledgerEvents(env.DB),
+          list<OverlapRecord>(env.DB, 'overlap'),
+          listWhere<PlanNode>(env.DB, 'plannode', "json_extract(json,'$.kind') IN ('need','action')"),
+          list<ExternalPlan>(env.DB, 'plan'), ledgerTail(env.DB, 40),
         ]);
         if (url.searchParams.get('format') === 'json')
           return json({ possibilities: poss.length, nodes: nodes.length, plans: plans.length, overlaps: recs.length });
@@ -1897,14 +1910,23 @@ export default {
             : json(p, 201);
         }
         if (req.method === 'GET' && seg.length === 1) {
-          await sweepPossibilities(env);
-          const [poss, nodes, recs, parts, apps, passes, interests, { dons, matchByNeed }] = await Promise.all([
-            list<Possibility>(env.DB, 'possibility'), list<PlanNode>(env.DB, 'plannode'),
+          // Card-scoped plannodes only — every consumer on this path
+          // (quorumMet, scoreCard, needs/bringing, resolvePlace,
+          // loadCardConnections) filters by possibilityId anyway; parsing
+          // all ~1k imported plan nodes per request trips the CPU limit.
+          const [possBefore, nodes, recs, parts, apps, passes, interests, { dons, matchByNeed }] = await Promise.all([
+            list<Possibility>(env.DB, 'possibility'),
+            listWhere<PlanNode>(env.DB, 'plannode', "json_extract(json,'$.possibilityId') IS NOT NULL"),
             list<OverlapRecord>(env.DB, 'overlap'), list<Participation>(env.DB, 'participation'),
             list<Appreciation>(env.DB, 'appreciation'), list<Pass>(env.DB, 'pass'),
             list<Interest>(env.DB, 'interest'),
             fundingMaps(env),
           ]);
+          // Sweep with the same snapshot (it only mutates possibility
+          // statuses/credits/pledges) — then re-read just that small table.
+          await sweepPossibilities(env, 'system',
+            { poss: possBefore, nodes, recs, parts });
+          const poss = await list<Possibility>(env.DB, 'possibility');
           const possByNeed = new Map(nodes.filter((n) => n.kind === 'need')
             .map((n) => [n.id, n.possibilityId]));
           const edges = trustEdges(apps);
@@ -1922,13 +1944,16 @@ export default {
             .filter((o) => o.kind === 'complement' && (o.status === 'confirmed' || o.status === 'coordinated'))
             .map((o) => o.nodeIds[0]));
           const live = ['active', 'quorum', 'draft'];
+          // EigenTrust power-iteration is viewer-scoped, not card-scoped —
+          // compute once for the whole deck instead of once per card.
+          const vec = eigenTrust(edges, { seed: viewer });
           // Identity gradation: participant names hidden until critical mass
           // (cover ≥0.5 or quorum) — counts always public, per the GDD deck.
           const cards = viewerDeck(scoped, passes, viewer).map((p) => {
             const status = effectiveStatus(p, now);
             const myParts = parts.filter((x) => x.possibilityId === p.id);
             const q = quorumMet(p, nodes, recs, myParts.length);
-            const s = scoreCard(p, { nodes, overlaps: recs, participants: parts, edges, viewer, now });
+            const s = scoreCard(p, { nodes, overlaps: recs, participants: parts, edges, viewer, now, vec });
             const revealed = identitiesRevealed(p, s.cover, status);
             return {
               ...p, status, score: s.score, scoring: s, tipping: s.tipping,
@@ -1958,7 +1983,8 @@ export default {
             (live.includes(a.status) ? 0 : 1) - (live.includes(b.status) ? 0 : 1)
             || b.score - a.score);
           if (url.searchParams.get('format') === 'json') return json({ possibilities: cards });
-          const connections = await loadCardConnections(env, cards);
+          const connections = await loadCardConnections(env, cards,
+            { nodes, recs, dons, apps, interests });
           // Viewer-personalized reason data — counts only, no name reveal.
           const me = viewer ?? forActor;
           if (me) {

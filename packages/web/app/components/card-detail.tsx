@@ -4,6 +4,7 @@ import { ActorName } from "~/components/actor-name";
 import type { CardConnections, PossibilityCard } from "@springforth/portal";
 import { cn } from "~/lib/utils";
 import { Badge } from "~/components/ui/badge";
+import { Check } from "lucide-react";
 
 const money = (amount: number, currency: string) =>
 	new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
@@ -36,7 +37,7 @@ function countdown(deadline: string | undefined, t: (k: string) => string): stri
 }
 
 const field =
-	"h-11 flex-1 min-w-[8rem] rounded-lg border border-line bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
+	"h-11 flex-1 min-w-[8rem] rounded-lg border border-line bg-card px-3 text-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
 const submit =
 	"h-11 rounded-full bg-forest px-5 text-xs font-extrabold text-cream transition-colors hover:bg-sage dark:bg-lime dark:text-forest";
 
@@ -108,7 +109,9 @@ export function CardDetail({ c, conn }: { c: PossibilityCard; conn?: CardConnect
 					<ul className="mt-1 space-y-1 text-sm">
 						{c.needs.map((n) => (
 							<li key={n.id} className="flex flex-wrap items-center gap-1.5">
-								<span>{n.met ? "✓" : "•"}</span>
+								{n.met
+									? <Check className="size-4 text-ok" aria-hidden />
+									: <span className="size-1 rounded-full bg-muted" aria-hidden />}
 								<span>{n.label}</span>
 								{n.category && <span className="text-xs text-muted">[{n.category}]</span>}
 								{n.required
@@ -383,7 +386,7 @@ function Forum({ c, conn }: { c: PossibilityCard; conn?: CardConnections }) {
 	const renderPosts = (parent: string | undefined, depth: number): React.ReactNode =>
 		(byParent.get(parent) ?? []).map((p) => (
 			<li key={p.id} className={cn("border-b border-line py-2 text-sm", depth > 0 && "ml-4 border-l-2 pl-3")}>
-				<span className="mr-1.5 rounded bg-forest/10 px-1.5 py-0.5 text-[10px] font-bold uppercase">{t(`forum.k.${p.kind}`)}</span>
+				<span className="me-1.5 rounded bg-forest/10 px-1.5 py-0.5 text-[10px] font-bold uppercase">{t(`forum.k.${p.kind}`)}</span>
 				<strong>{<ActorName id={p.actor} />}</strong>{" "}
 				<time className="text-xs text-muted">{p.at.slice(0, 10)}</time>
 				<br />

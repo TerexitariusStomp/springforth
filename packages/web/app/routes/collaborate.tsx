@@ -384,7 +384,7 @@ export default function Collaborate({ loaderData }: Route.ComponentProps) {
 									<p className="mt-2">
 										<Badge variant="coral">{t("hub.collaborate.needs.zero")}</Badge>
 										{n.possibilityId && (
-											<a href={`/possibilities?card=${n.possibilityId}`} className="ml-2 text-sm font-semibold text-info underline">
+											<a href={`/possibilities?card=${n.possibilityId}`} className="ms-2 text-sm font-semibold text-info underline">
 												{t("hub.collaborate.needs.onCard")} →
 											</a>
 										)}
@@ -592,7 +592,7 @@ export default function Collaborate({ loaderData }: Route.ComponentProps) {
 									<p className="mt-2 text-xs text-muted">
 										{t("hub.collaborate.ask.cited")}{" "}
 										{[...o.ask.out.citedOverlapIds, ...o.ask.out.citedNodeIds].map((id) => (
-											<code key={id} className="mr-1 rounded bg-pale px-1 py-0.5">{id}</code>
+											<code key={id} className="me-1 rounded bg-pale px-1 py-0.5">{id}</code>
 										))}
 									</p>
 								)}

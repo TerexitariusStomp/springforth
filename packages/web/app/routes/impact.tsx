@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/impact";
 import type { renderImpactPage } from "@springforth/portal";
@@ -213,9 +214,9 @@ export default function Impact({ loaderData }: Route.ComponentProps) {
 					<HubSection id="proof" kicker={t("hub.impact.proof.k")} title={t("hub.impact.proof.t")}>
 						<p className="text-sm">
 							{o.verify.ok ? (
-								<strong className="text-ok">✓ {t("hub.impact.proof.ok")}</strong>
+								<strong className="flex items-center gap-1 text-ok"><Check className="size-4" aria-hidden />{t("hub.impact.proof.ok")}</strong>
 							) : (
-								<strong className="text-coral-ink">✗ {t("hub.impact.proof.broken")} {o.verify.brokenAt ?? "?"}</strong>
+								<strong className="flex items-center gap-1 text-coral-ink"><X className="size-4" aria-hidden />{t("hub.impact.proof.broken")} {o.verify.brokenAt ?? "?"}</strong>
 							)}
 							{o.verify.ok && <> — {o.verify.events ?? 0} {t("hub.impact.proof.events")}</>}
 						</p>

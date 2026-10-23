@@ -1,5 +1,5 @@
 // OSS audit — the <5% custom-code accounting. Counts source LOC in
-// packages/**/src (the code we wrote) vs vendored npm deps + cited
+// src/ + web/app (the code we wrote) vs vendored npm deps + cited
 // contract repos (the OSS we stand on). Run: node scripts/oss-audit.mjs
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -14,8 +14,10 @@ const countLines = (dir, match) => {
   } catch { return 0; }
 };
 
-const customSrc = countLines('packages', '-name "*.ts" -not -name "*.test.ts"');
-const customTest = countLines('packages', '-name "*.test.ts"');
+const customSrc = countLines('src', '-name "*.ts"')
+  + countLines('web/app', '-name "*.ts" -o -name "*.tsx"')
+  + countLines('web/workers', '-name "*.ts" -o -name "*.tsx"');
+const customTest = countLines('test', '-name "*.ts"');
 const customScripts = countLines('scripts', '-name "*.mjs"');
 const vendored = countLines('node_modules', '-name "*.js" -o -name "*.ts" -o -name "*.d.ts"');
 

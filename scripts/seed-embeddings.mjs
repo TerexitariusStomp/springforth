@@ -2,7 +2,7 @@
 // AI REST API (wrangler OAuth session — no extra secret needed), writes
 // `embedding` entities + a `embeddings.built` ledger event.
 // Same effect as POST /embeddings/build, runnable without ADMIN_TOKEN.
-// Run:   node scripts/seed-embeddings.mjs            (from packages/edge)
+// Run:   node scripts/seed-embeddings.mjs            (from repo root)
 // Apply: node scripts/seed-embeddings.mjs --apply
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';

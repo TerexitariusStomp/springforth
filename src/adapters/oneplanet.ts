@@ -340,21 +340,6 @@ export async function pushPlanNodes(
   const max = Math.min(Math.max(opts.maxNodes ?? 25, 1), 200);
   return pushNodesWith(mcp, planUuid, nodes.slice(0, max));
 }
-
-// Progress write-back — a recorded value + note on an OAI. This is how
-// Springforth oracle readings land on OnePlanet monitoring timelines.
-export async function pushProgress(
-  url: string, key: string, planUuid: string, oaiUuid: string,
-  value: string, note?: string, fetchFn: McpFetch = fetch,
-): Promise<unknown> {
-  const mcp = new OnePlanetMcp(url, key, fetchFn);
-  return mcp.callTool('create_progress_unit', {
-    plan_uuid: planUuid, oai_uuid: oaiUuid,
-    progress_value: value,
-    ...(note ? { progress_comments: note } : {}),
-  });
-}
-
 // ── Full surface ────────────────────────────────────────────────────────
 // Generic typed passthrough — every tool on the key is callable through
 // one entry point, so read surfaces (get_oai, get_oai_additional_data,

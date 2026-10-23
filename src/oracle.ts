@@ -17,58 +17,6 @@ export const SOURCE_WEIGHT: Record<OracleCheck['source'], number> = {
   'community-report': 0.6,
 };
 
-export interface Triangulation {
-  confidence: number;
-  verified: boolean;
-  sourcesMatched: string[];
-  sourcesTotal: string[];
-  disagreements: { id: string; source: string; detail: string }[];
-}
-
-export function triangulate(
-  checks: OracleCheck[],
-  opts: { minConfidence?: number; requiredValidators?: number } = {},
-): Triangulation {
-  const minConfidence = opts.minConfidence ?? 0.5;
-  const requiredValidators = opts.requiredValidators ?? 2;
-  const matched = checks.filter((c) => c.result === 'match');
-  const mismatched = checks.filter((c) => c.result === 'mismatch');
-  const wNum = matched.reduce((s, c) => s + SOURCE_WEIGHT[c.source] * c.score, 0);
-  const wDen = checks.reduce((s, c) => s + SOURCE_WEIGHT[c.source], 0);
-  const distinctSources = new Set(matched.map((c) => c.source));
-  const confidence = wDen > 0 ? wNum / wDen : 0;
-  return {
-    confidence: Math.round(confidence * 1000) / 1000,
-    // verified requires BOTH ≥N independent matching source classes AND min confidence
-    verified: distinctSources.size >= requiredValidators && confidence >= minConfidence,
-    sourcesMatched: [...distinctSources],
-    sourcesTotal: [...new Set(checks.map((c) => c.source))],
-    // disagreements are preserved — never collapsed (gate: honesty over score)
-    disagreements: mismatched.map((c) => ({ id: c.id, source: c.source, detail: c.detail })),
-  };
-}
-
-// Field-evidence check: an anchored evidence manifest exists in the ledger —
-// integrity-verified, not content-verified (score reflects anchoring only).
-export function checkEvidence(opts: {
-  evidenceSha256: string;
-  manifestVerified: boolean;
-  domain?: OracleCheck['domain'];
-  at: string;
-}): OracleCheck {
-  return OracleCheck.parse({
-    id: `oc-ev-${opts.evidenceSha256.slice(0, 12)}`,
-    source: 'field-evidence', domain: opts.domain ?? 'social',
-    methodologyRef: 'sha256-manifest-anchored',
-    result: opts.manifestVerified ? 'match' : 'pending',
-    score: opts.manifestVerified ? 1 : 0,
-    detail: opts.manifestVerified
-      ? `evidence sha256:${opts.evidenceSha256.slice(0, 16)}… anchored`
-      : 'manifest not found in ledger',
-    at: opts.at,
-  });
-}
-
 // ── sources.ts ───────────────────────────────────────
 // Real data-source adapters — every adapter is a thin fetch→normalize bridge
 // onto freely-licensed, regularly-updated open data (PRD §3 oracle sources).

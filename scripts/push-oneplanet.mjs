@@ -6,7 +6,7 @@
 // Idempotent: find_oai checks the name first; already-present OAIs are
 // skipped. Writes a `oneplanet.exported` ledger event on the remote DB so
 // the push is auditable alongside plan.imported events.
-// Run:   node scripts/push-oneplanet.mjs            (from packages/edge; key in .dev.vars)
+// Run:   node scripts/push-oneplanet.mjs            (from repo root; key in .dev.vars)
 // Apply: node scripts/push-oneplanet.mjs --apply
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';

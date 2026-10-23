@@ -58,7 +58,7 @@ councils + endowment.
 ## Why this shape
 
 - **Thin edge, fat packages** — every rule is testable TypeScript in
-  `packages/`; the worker is an HTTP shell. Portable off Cloudflare.
+  `src/`; the worker is an HTTP shell. Portable off Cloudflare.
 - **Fail-soft data access** — every external read degrades to `null`;
   the coordination core never depends on a third-party SLA.
 - **Provenance everywhere** — imports, readings, and attested outcomes all

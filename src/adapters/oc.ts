@@ -248,24 +248,3 @@ export async function fetchOcOrders(
   return { orders: parsed.data,
     totalCount: typeof inner?.totalCount === 'number' ? inner.totalCount : parsed.data.length };
 }
-
-// Legacy lane — public /<slug>.json profile.
-export async function fetchCollective(
-  slug: string, base = 'https://opencollective.com',
-): Promise<ExternalPlan> {
-  const res = await fetch(`${base.replace(/\/$/, '')}/${slug}.json`);
-  if (!res.ok) throw new Error(`opencollective ${slug} ${res.status}`);
-  const c = await res.json() as {
-    slug?: string; name?: string; description?: string; currency?: string;
-    members?: { MemberId?: number; role?: string; name?: string }[];
-  };
-  return fromJson({
-    collective: {
-      slug: c.slug ?? slug, name: c.name ?? slug,
-      description: c.description, currency: c.currency,
-    },
-    members: (c.members ?? [])
-      .filter((m) => m.name)
-      .map((m) => ({ name: m.name!, role: m.role })),
-  });
-}

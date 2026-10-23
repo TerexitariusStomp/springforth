@@ -3,7 +3,7 @@
 // (canonical token Jaccard) blended with stored-embedding cosine, same
 // source only, thresholded. Writes parentOutcomeId + parentInferred:true
 // and a `hierarchy.inferred` ledger event continuing the hash chain.
-// Run:   node scripts/infer-hierarchy.mjs            (from packages/edge)
+// Run:   node scripts/infer-hierarchy.mjs            (from repo root)
 // Apply: node scripts/infer-hierarchy.mjs --apply
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';

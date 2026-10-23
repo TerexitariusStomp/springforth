@@ -5,12 +5,12 @@
 // outcome overlap detection near our Kenya cards.
 // Input: /tmp/sarafu-extract/data/csv/sarafu_network.field_reports.csv
 // Run:   node scripts/seed-sarafu-reports.mjs /path/to/field_reports.csv
-// Apply: … --apply   (run from packages/edge for wrangler config)
+// Apply: … --apply   (run from repo root; uses wrangler.toml)
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 // h3-js lives in the coordination/edge workspace deps (pnpm isolation);
-// resolve it explicitly so the script runs from repo root or packages/*.
+// resolve it explicitly so the script runs from anywhere.
 import { latLngToCell } from 'h3-js';
 
 const CSV = process.argv.find((a) => a.endsWith('.csv'))

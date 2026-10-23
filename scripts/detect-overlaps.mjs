@@ -3,7 +3,7 @@
 // Pulls all plannodes, runs detectOverlaps + detectComplements, upserts
 // records (prior non-proposed validation state preserved), appends
 // `overlaps.detected` to the ledger continuing the hash chain.
-// Run:   node scripts/detect-overlaps.mjs            (from packages/edge)
+// Run:   node scripts/detect-overlaps.mjs            (from repo root)
 // Apply: node scripts/detect-overlaps.mjs --apply
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';

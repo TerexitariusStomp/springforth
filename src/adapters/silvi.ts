@@ -422,13 +422,3 @@ export async function fetchLeafScore(
       .map((s) => s.scientific_name ?? s.common_name ?? 'unknown'),
   };
 }
-
-// Species research enrichment — AI+human ecological dossier per taxon.
-export async function fetchSpeciesResearch(
-  taxonId: string, f: typeof fetch = fetch, apiBase = TREEKIPEDIA_API,
-): Promise<Record<string, unknown> | null> {
-  const res = await f(`${apiBase}/research/research/${encodeURIComponent(taxonId)}`)
-    .catch(() => null);
-  if (!res || !res.ok) return null;
-  return res.json().catch(() => null) as Promise<Record<string, unknown> | null>;
-}

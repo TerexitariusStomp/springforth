@@ -20,7 +20,6 @@ export const SCHEMAS = {
   'springforth.gap-update.v1':
     'string title, string text, string type, bytes32 refUID',
 } as const;
-export type SchemaRef = keyof typeof SCHEMAS;
 
 const sha256 = (s: string) =>
   `0x${createHash('sha256').update(s).digest('hex')}`;

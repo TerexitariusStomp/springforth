@@ -557,11 +557,6 @@ export function buildCreateFlowTx(opts: {
   flowRate: bigint;
 }) { return flow('createFlow', opts.token, opts.sender, opts.receiver, opts.flowRate); }
 
-export function buildUpdateFlowTx(opts: {
-  token: `0x${string}`; sender: `0x${string}`; receiver: `0x${string}`;
-  flowRate: bigint;
-}) { return flow('updateFlow', opts.token, opts.sender, opts.receiver, opts.flowRate); }
-
 export function buildDeleteFlowTx(opts: {
   token: `0x${string}`; sender: `0x${string}`; receiver: `0x${string}`;
 }) { return flow('deleteFlow', opts.token, opts.sender, opts.receiver); }

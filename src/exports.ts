@@ -1,5 +1,5 @@
 import { Donation, FundingRound } from './core';
-import { NodeMatch } from './funding';
+import type { NodeMatch } from './funding';
 
 // ── 360giving.ts ────────────────────────────────────
 // 360Giving JSON export — the open grantmaking standard

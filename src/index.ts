@@ -1311,10 +1311,7 @@ export default {
             : body.format === 'opencollective' ? fromOcJson(body.data ?? body, body.source ?? 'oc:import')
             : body.format === 'vf' ? fromVfJson(body.data ?? body, body.source ?? 'vf:import')
             : normalizePlan(body);
-          // store plan metadata; nodes persist as plannode rows (keeps the
-          // row small — feeds like Treegens carry 100+ records per plan)
-          await put(env.DB, 'plan', plan.id,
-            { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
+          await putPlanMeta(env, plan.id, plan);
           for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
           await ledgerAppend(env.DB, 'api', 'plan.imported', { id: plan.id, nodes: plan.nodes.length });
           // Composite possibility inside a Holons export — the adapter
@@ -1346,10 +1343,7 @@ export default {
           const plan = await fetchPlan(
             env.ONEPLANET_URL ?? 'https://mcp.oneplanet.com/mcp',
             env.ONEPLANET_API_KEY, planId);
-          // store plan metadata; nodes persist as plannode rows (keeps the
-          // row small — feeds like Treegens carry 100+ records per plan)
-          await put(env.DB, 'plan', plan.id,
-            { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
+          await putPlanMeta(env, plan.id, plan);
           for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
           await ledgerAppend(env.DB, 'api', 'plan.imported', { id: plan.id, nodes: plan.nodes.length, via: 'mcp' });
           return json({ id: plan.id, nodes: plan.nodes.length }, 201);
@@ -1719,28 +1713,11 @@ export default {
       if (req.method === 'POST' && seg[0] === 'treegens' && seg[1] === 'sync') {
         if (!authed(req, env)) return err('unauthorized', 401);
         const plans = await fetchTreegens();
-        for (const plan of [plans.live, plans.archive]) {
-          // store plan metadata; nodes persist as plannode rows (keeps the
-          // row small — feeds like Treegens carry 100+ records per plan)
-          await put(env.DB, 'plan', plan.id,
-            { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
-          for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
-        }
-        const changed = new Set(
-          [...plans.live.nodes, ...plans.archive.nodes].map((n) => n.id));
-        const pool = [
-          ...(await listWhere<PlanNode>(
-            env.DB, 'plannode', 'id NOT LIKE ?', 'treegens-%')),
-          ...plans.live.nodes, ...plans.archive.nodes,
-        ];
-        const st = { pairs: 0, exhausted: false };
-        const detected = [
-          ...detectOverlaps(pool,
-            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ...detectComplements(pool,
-            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-        ];
-        const retired = await persistDetectedOverlaps(env, detected, changed, st.exhausted);
+        const nodes = [...plans.live.nodes, ...plans.archive.nodes];
+        for (const plan of [plans.live, plans.archive])
+          await putPlanMeta(env, plan.id, plan);
+        const { detected, retired } =
+          await syncDetect(env, nodes, { excludePrefix: 'treegens-' });
         await ledgerAppend(env.DB, 'api', 'treegens.synced', {
           records: plans.live.nodes.length + plans.archive.nodes.length,
           plans: [plans.live.id, plans.archive.id], overlaps: detected.length, retired,
@@ -1819,27 +1796,9 @@ export default {
             id: `scl${campaignId}-${c.key}`, obj: { campaignId, ...c },
           })));
           const plan = fromSilviClusters(campaign, clusters, claims.length, 'silvi:app');
-          await put(env.DB, 'plan', plan.id,
-            { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
-          const keep = new Set(plan.nodes.map((n) => n.id));
-          for (const n of await listWhere<PlanNode>(
-            env.DB, 'plannode', 'id LIKE ?', `silvi-c${campaignId}-%`))
-            if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-          await putManyIfChanged(env.DB, 'plannode',
-            plan.nodes.map((n) => ({ id: n.id, obj: n })));
-          const pool = [
-            ...(await listWhere<PlanNode>(
-              env.DB, 'plannode', 'id NOT LIKE ?', 'silvi-%')),
-            ...plan.nodes,
-          ];
-        const st = { pairs: 0, exhausted: false };
-          const detected = [
-            ...detectOverlaps(pool,
-              { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-            ...detectComplements(pool,
-              { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ];
-          await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+          await putPlanMeta(env, plan.id, plan);
+          const { detected } = await syncDetect(env, plan.nodes,
+            { retirePrefix: `silvi-c${campaignId}-`, excludePrefix: 'silvi-' });
           await ledgerAppend(env.DB, 'api', 'silvi.synced', {
             campaign: campaign.id, claims: claims.length,
             clusters: clusters.length, nodes: plan.nodes.length,
@@ -1855,23 +1814,8 @@ export default {
         if (!project)
           return err(`silvi api unreachable or key invalid for project ${projectId}`, 502);
         const plan = fromSilviProjects([project], 'silvi:app');
-        await put(env.DB, 'plan', `${plan.id}-${project.id}`,
-          { ...plan, id: `${plan.id}-${project.id}`, title: `Silvi — ${project.name}`, nodes: undefined, nodeCount: plan.nodes.length });
-        for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
-        const changed = new Set(plan.nodes.map((n) => n.id));
-        const pool = [
-          ...(await listWhere<PlanNode>(
-            env.DB, 'plannode', 'id NOT LIKE ?', 'silvi-%')),
-          ...plan.nodes,
-        ];
-        const st = { pairs: 0, exhausted: false };
-        const detected = [
-          ...detectOverlaps(pool,
-            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ...detectComplements(pool,
-            { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-        ];
-        await persistDetectedOverlaps(env, detected, changed, st.exhausted);
+        await putPlanMeta(env, `${plan.id}-${project.id}`, plan, `Silvi — ${project.name}`);
+        const { detected } = await syncDetect(env, plan.nodes, { excludePrefix: 'silvi-' });
         await ledgerAppend(env.DB, 'api', 'silvi.synced', {
           project: project.id, nodes: plan.nodes.length, overlaps: detected.length,
         });
@@ -1888,26 +1832,8 @@ export default {
         if (!projects)
           return err(`soulutions unreachable — ${soulutionsLastError() || 'bad payload'}`, 502);
         const plan = fromSoulutionsProjects(projects, 'soulutions:web');
-        await put(env.DB, 'plan', plan.id,
-          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
-        // Retire nodes no longer present, upsert the rest.
-        const keep = new Set(plan.nodes.map((n) => n.id));
-        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'sol-%'))
-          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
-        const pool = [
-          ...(await listWhere<PlanNode>(
-            env.DB, 'plannode', 'id NOT LIKE ?', 'sol-%')),
-          ...plan.nodes,
-        ];
-        const st = { pairs: 0, exhausted: false };
-        const detected = [
-          ...detectOverlaps(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ...detectComplements(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-        ];
-        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        await putPlanMeta(env, plan.id, plan);
+        const { detected, retired } = await syncDetect(env, plan.nodes, { prefix: 'sol-' });
         await ledgerAppend(env.DB, 'api', 'soulutions.synced', {
           projects: projects.length, nodes: plan.nodes.length,
           overlaps: detected.length, retired,
@@ -1967,22 +1893,8 @@ export default {
           // backfill script runs the unbounded corpus pass. Same-source
           // pairs are skipped inside detection, so the existing giveth-*
           // corpus is excluded from the candidate pool entirely.
-          if (callNodes.length) {
-            const callIds = new Set(callNodes.map((n) => n.id));
-            const nodes = [
-              ...(await listWhere<PlanNode>(
-                env.DB, 'plannode', 'id NOT LIKE ?', 'giveth-%')),
-              ...callNodes,
-            ];
-        const st = { pairs: 0, exhausted: false };
-            const detected = [
-              ...detectOverlaps(nodes,
-                { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-              ...detectComplements(nodes,
-                { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-            ];
-            await persistDetectedOverlaps(env, detected, callIds, st.exhausted);
-          }
+          if (callNodes.length)
+            await syncDetect(env, callNodes, { excludePrefix: 'giveth-', skipPut: true });
           if (!done)
             return json({ partial: true, fetched, pages, skip, totalCount,
               upstream: givethLastError() || null }, 202);
@@ -2070,29 +1982,12 @@ export default {
         if (!projects)
           return err(`gap api unreachable — ${gapLastError() || 'bad payload'}`, 502);
         const plan = fromGapProjects(projects, 'gap:api');
-        await put(env.DB, 'plan', plan.id,
-          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
-        const keep = new Set(plan.nodes.map((n) => n.id));
-        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'gap-%'))
-          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putPlanMeta(env, plan.id, plan);
         const checks = toGapChecks(projects);
         await putManyIfChanged(env.DB, 'oracle-check', checks.map((c) => ({ id: c.id, obj: c })));
         const endorses = toGapEndorsements(projects);
         await putManyIfChanged(env.DB, 'gap-endorsement', endorses.map((e) => ({ id: e.id, obj: e })));
-        const pool = [
-          ...(await listWhere<PlanNode>(
-            env.DB, 'plannode', 'id NOT LIKE ?', 'gap-%')),
-          ...plan.nodes,
-        ];
-        const st = { pairs: 0, exhausted: false };
-        const detected = [
-          ...detectOverlaps(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ...detectComplements(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-        ];
-        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        const { detected, retired } = await syncDetect(env, plan.nodes, { prefix: 'gap-' });
         await ledgerAppend(env.DB, 'api', 'gap.synced', {
           projects: projects.length, nodes: plan.nodes.length,
           checks: checks.length, overlaps: detected.length, retired,
@@ -2177,20 +2072,8 @@ export default {
           });
           // Bounded incremental detection — restor-* peers are skipped
           // same-source anyway, so they're excluded from the pool too.
-          const callIds = new Set(plan.nodes.map((n) => n.id));
-          const pool = [
-            ...(await listWhere<PlanNode>(
-              env.DB, 'plannode', 'id NOT LIKE ?', 'restor-%')),
-            ...plan.nodes,
-          ];
-        const st = { pairs: 0, exhausted: false };
-          const detected = [
-            ...detectOverlaps(pool,
-              { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-            ...detectComplements(pool,
-              { changedIds: callIds, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ];
-          await persistDetectedOverlaps(env, detected, callIds, st.exhausted);
+          const { detected } = await syncDetect(env, plan.nodes,
+            { excludePrefix: 'restor-', skipPut: true });
           overlaps = detected.length;
         }
         const next = offset + batch.length;
@@ -2256,20 +2139,7 @@ export default {
             // Pool excludes existing oc-* nodes — same-source pairs are
             // skipped inside detection; the embedding scorer stays out of
             // sync routes (its table parse alone nears the CPU cap).
-            const pool = [
-              ...(await listWhere<PlanNode>(
-                env.DB, 'plannode', 'id NOT LIKE ?', 'oc-%')),
-              ...plan.nodes,
-            ];
-            const changed = new Set(plan.nodes.map((n) => n.id));
-        const st = { pairs: 0, exhausted: false };
-            const detected = [
-              ...detectOverlaps(pool,
-                { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-              ...detectComplements(pool,
-                { changedIds: changed, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-            ];
-            await persistDetectedOverlaps(env, detected, changed, st.exhausted);
+            await syncDetect(env, plan.nodes, { excludePrefix: 'oc-', skipPut: true });
           }
           if (done) {
             const count = (await listWhere<PlanNode>(
@@ -2335,28 +2205,11 @@ export default {
         if (!projects)
           return err(`regen lcd unreachable — ${regenLastError() || 'bad payload'}`, 502);
         const plan = fromRegen(projects, classes ?? [], batches ?? [], 'regen:lcd');
-        await put(env.DB, 'plan', plan.id,
-          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
-        const keep = new Set(plan.nodes.map((n) => n.id));
-        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'regen-%'))
-          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putPlanMeta(env, plan.id, plan);
         await putManyIfChanged(env.DB, 'regen-project', projects.map((p) => ({
           id: `rg-${p.id}`, obj: p,
         })));
-        const pool = [
-          ...(await listWhere<PlanNode>(
-            env.DB, 'plannode', 'id NOT LIKE ?', 'regen-%')),
-          ...plan.nodes,
-        ];
-        const st = { pairs: 0, exhausted: false };
-        const detected = [
-          ...detectOverlaps(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ...detectComplements(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-        ];
-        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        const { detected, retired } = await syncDetect(env, plan.nodes, { prefix: 'regen-' });
         await ledgerAppend(env.DB, 'api', 'regen.synced', {
           projects: projects.length, classes: classes?.length ?? 0,
           batches: batches?.length ?? 0, nodes: plan.nodes.length,
@@ -2382,30 +2235,13 @@ export default {
         if (!locations)
           return err(`bloom unreachable — ${bloomLastError() || 'bad payload'}`, 502);
         const plan = fromBloomLocations(locations, 'bloom:supabase');
-        await put(env.DB, 'plan', plan.id,
-          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
-        const keep = new Set(plan.nodes.map((n) => n.id));
-        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'blm-%'))
-          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
-        await putManyIfChanged(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putPlanMeta(env, plan.id, plan);
         await putManyIfChanged(env.DB, 'bloom-location', locations.map((l) => ({
           id: `blm-${(l.systemname ?? l.slug ?? l.brandname ?? 'x')
             .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
           obj: l,
         })));
-        const pool = [
-          ...(await listWhere<PlanNode>(
-            env.DB, 'plannode', 'id NOT LIKE ?', 'blm-%')),
-          ...plan.nodes,
-        ];
-        const st = { pairs: 0, exhausted: false };
-        const detected = [
-          ...detectOverlaps(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-          ...detectComplements(pool,
-            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
-        ];
-        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        const { detected, retired } = await syncDetect(env, plan.nodes, { prefix: 'blm-' });
         await ledgerAppend(env.DB, 'api', 'bloom.synced', {
           locations: locations.length, nodes: plan.nodes.length,
           overlaps: detected.length, retired,

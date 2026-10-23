@@ -89,9 +89,16 @@ ev.hash = eventHash(ev);
 const esc = (s) => s.replace(/'/g, "''");
 const put = (kind, id, obj) =>
   `INSERT INTO entities(kind,id,json,updated_at) VALUES('${kind}','${esc(id)}','${esc(JSON.stringify(obj))}','${NOW}') ON CONFLICT(kind,id) DO UPDATE SET json=excluded.json, updated_at=excluded.updated_at;`;
+// Packed provenance pages — the worker's /silvi/sync finalize flattens
+// `silvi-claim-pg` entities the same way; ~30 rows instead of ~14.6k.
+const claimPages = [];
+for (let i = 0; i < claims.length; i += 500)
+  claimPages.push(put('silvi-claim-pg',
+    `scpg${CAMPAIGN}-${String(i / 500).padStart(4, '0')}`,
+    { records: claims.slice(i, i + 500) }));
 const sql = [
-  put('silvi-sync', `c${CAMPAIGN}`, { after: null, done: true }),
-  ...claims.map((c) => put('silvi-claim', `sc${CAMPAIGN}-${c.id}`, c)),
+  put('silvi-sync', `c${CAMPAIGN}`, { after: null, done: true, pages: claimPages.length }),
+  ...claimPages,
   ...clusters.map((c) => put('silvi-cluster', `scl${CAMPAIGN}-${c.key}`, { campaignId: campaign.id, ...c })),
   put('plan', plan.id, { ...plan, nodes: undefined, nodeCount: plan.nodes.length }),
   ...plan.nodes.map((n) => put('plannode', n.id, n)),

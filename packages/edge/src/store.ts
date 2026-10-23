@@ -49,6 +49,24 @@ export async function putManyIfChanged(
   return { written: changed.length, unchanged };
 }
 
+// Packed provenance — a fetched upstream page stored as ONE entity
+// ({records:[...]}), so bulk imports write ~30 rows instead of ~15k.
+// Packed kinds get a distinct name (<raw>-pg) so LIKE-prefix readers
+// never confuse a page blob with a per-record row; consumers flatten
+// packed pages and legacy per-record rows together.
+export async function putPackedPage(
+  db: D1Database, kind: string, id: string, records: unknown[],
+) {
+  return putManyIfChanged(db, kind, [{ id, obj: { records } }]);
+}
+
+export async function listPacked<T>(
+  db: D1Database, kind: string, like: string,
+): Promise<T[]> {
+  const pages = await listWhere<{ records: T[] }>(db, kind, 'id LIKE ?', like);
+  return pages.flatMap((p) => p.records ?? []);
+}
+
 export async function get<T>(db: D1Database, kind: string, id: string): Promise<T | null> {
   const r = await db.prepare('SELECT json FROM entities WHERE kind=? AND id=?')
     .bind(kind, id).first<{ json: string }>();

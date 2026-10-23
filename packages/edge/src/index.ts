@@ -105,7 +105,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from '@springforth/portal';
-import { get, list, listWhere, put, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -1490,17 +1490,18 @@ export default {
         if (campaignId) {
           // Resumable claim import: campaigns run to five-figure claim
           // counts, so each call pages ≤ maxPages (500/page) and persists
-          // an `after` cursor — repeat until partial:false. Claims land
-          // as `silvi-claim` entities verbatim (GPS, species, photos,
-          // Celo payout proofs); on completion they cluster into
-          // `silvi-cluster` entities + plan-graph nodes.
+          // an `after` cursor — repeat until partial:false. Each upstream
+          // page lands as ONE packed `silvi-claim-pg` entity verbatim (GPS,
+          // species, photos, Celo payout proofs); on completion they
+          // cluster into `silvi-cluster` entities + plan-graph nodes.
           const campaign = await fetchSilviCampaign(campaignId, env.SILVI_API_URL, apiKey);
           if (!campaign)
             return err(`silvi api unreachable or key invalid for campaign ${campaignId} — ${silviLastError() || 'bad payload'}`, 502);
           const cursorId = `c${campaignId}`;
-          const prev = await get<{ after?: number | null; done?: boolean }>(
+          const prev = await get<{ after?: number | null; done?: boolean; pages?: number }>(
             env.DB, 'silvi-sync', cursorId);
           let after = prev?.done ? undefined : prev?.after ?? undefined;
+          let pageSeq = prev?.done ? 0 : prev?.pages ?? 0;
           const maxPages = Math.min(Math.max(body.maxPages ?? 10, 1), 40);
           let pages = 0, fetched = 0, done = false;
           // Persist per page — a mid-call worker kill still leaves claims
@@ -1514,21 +1515,29 @@ export default {
             if (!page) break;               // upstream hiccup — cursor resumes
             pages++;
             fetched += page.claims.length;
-            await putManyIfChanged(env.DB, 'silvi-claim', page.claims.map((c) => ({
-              id: `sc${campaignId}-${c.id}`, obj: c,
-            })));
+            await putPackedPage(env.DB, 'silvi-claim-pg',
+              `scpg${campaignId}-${String(pageSeq).padStart(4, '0')}`, page.claims);
+            pageSeq++;
             if (page.nextAfter == null) { done = true; break; }
             after = page.nextAfter;
-            await put(env.DB, 'silvi-sync', cursorId, { after, done: false });
+            await put(env.DB, 'silvi-sync', cursorId,
+              { after, done: false, pages: pageSeq });
           }
-          await put(env.DB, 'silvi-sync', cursorId, { after: after ?? null, done });
+          await put(env.DB, 'silvi-sync', cursorId,
+            { after: after ?? null, done, pages: pageSeq });
           if (!done)
             return json({ campaign: campaign.title, partial: true, fetched, pages,
               upstream: silviLastError() || null,
               resume: { campaignId, after } }, 202);
-          // Finalize — rebuild claim clusters + plan nodes from stored claims.
-          const claims = await listWhere<SilviClaim>(
-            env.DB, 'silvi-claim', 'id LIKE ?', `sc${campaignId}-%`);
+          // Finalize — rebuild claim clusters + plan nodes from stored
+          // claims (legacy per-claim rows + packed pages, deduped).
+          const seenClaims = new Set<string>();
+          const claims = [
+            ...(await listWhere<SilviClaim>(
+              env.DB, 'silvi-claim', 'id LIKE ?', `sc${campaignId}-%`)),
+            ...(await listPacked<SilviClaim>(
+              env.DB, 'silvi-claim-pg', `scpg${campaignId}-%`)),
+          ].filter((c) => !seenClaims.has(String(c.id)) && !!seenClaims.add(String(c.id)));
           const clusters = clusterSilviClaims(claims);
           await putManyIfChanged(env.DB, 'silvi-cluster', clusters.map((c) => ({
             id: `scl${campaignId}-${c.key}`, obj: { campaignId, ...c },
@@ -1664,9 +1673,8 @@ export default {
             pages++;
             fetched += page.projects.length;
             totalCount = page.totalCount;
-            await putManyIfChanged(env.DB, 'giveth-project', page.projects.map((p) => ({
-              id: `gp-${p.id}`, obj: p,
-            })));
+            await putPackedPage(env.DB, 'giveth-project-pg',
+              `gpp-${String(skip).padStart(6, '0')}`, page.projects);
             // Fold this page into the plan graph right away.
             const part = fromGivethProjects(page.projects, activeQfIds, 'giveth:graphql');
             await putManyIfChanged(env.DB, 'plannode',
@@ -1721,15 +1729,20 @@ export default {
         // sweep — donations + QF rounds for imported projects, bounded.
         const maxProjects = Math.min(Math.max(body.maxProjects ?? 25, 1), 100);
         const maxPages = Math.min(Math.max(body.maxPages ?? 4, 1), 20);
-        const projects = (await listWhere<{ id: string }>(
-          env.DB, 'giveth-project', 'id LIKE ?', 'gp-%'))
-          .slice(0, maxProjects);
+        // Relations live on the stored project objects — legacy per-row
+        // `giveth-project` + packed `giveth-project-pg` pages, deduped.
+        const seenG = new Set<string>();
+        const stored = [
+          ...(await listWhere<{
+            id: string; projectQfRoundRelations?: { qfRoundId?: string | number | null }[];
+          }>(env.DB, 'giveth-project', 'id LIKE ?', 'gp-%')),
+          ...(await listPacked<{
+            id: string; projectQfRoundRelations?: { qfRoundId?: string | number | null }[];
+          }>(env.DB, 'giveth-project-pg', 'gpp-%')),
+        ].filter((p) => !seenG.has(String(p.id)) && !!seenG.add(String(p.id)));
+        const projects = stored.slice(0, maxProjects);
         const rounds = await fetchGivethQfRounds(fetch, baseUrl) ?? [];
-        // Relations live on the stored project objects.
         const relByRound = new Map<string, string[]>();
-        const stored = await listWhere<{
-          id: string; projectQfRoundRelations?: { qfRoundId?: string | number | null }[];
-        }>(env.DB, 'giveth-project', 'id LIKE ?', 'gp-%');
         for (const p of stored)
           for (const r of p.projectQfRoundRelations ?? []) {
             if (r.qfRoundId == null) continue;
@@ -1834,9 +1847,9 @@ export default {
             const entries = await fetchRestorSitemap(index, fetch, baseUrl);
             if (!entries) break;                        // transient — resume
             if (!entries.length) { done = true; break; } // 404 = end of index
-            await putManyIfChanged(env.DB, 'restor-sitemap', entries.map((e) => ({
-              id: `rs-${e.id}`, obj: { id: e.id, lastmod: e.lastmod },
-            })));
+            await putPackedPage(env.DB, 'restor-sitemap-pg',
+              `rsp-${String(index).padStart(4, '0')}`,
+              entries.map((e) => ({ id: e.id, lastmod: e.lastmod })));
             indexed += entries.length; index++;
             await put(env.DB, 'restor-sync', 'enumerate', { index, done: false });
           }
@@ -1845,23 +1858,27 @@ export default {
             upstream: restorLastError() || null }, done ? 201 : 202);
         }
         // hydrate — newest lastmod first; advances a position cursor.
-        // The sitemap index can reach ~200k rows, so the window is read
-        // via SQL projection (id + lastmod only), never a full list().
+        // The index merges packed `restor-sitemap-pg` pages with legacy
+        // per-entry `restor-sitemap` rows (read via SQL projection), then
+        // sorts in-memory — packed pages can't be ORDER BY'd in SQL.
         const maxSites = Math.min(Math.max(body.maxSites ?? 200, 1), 500);
         const prev = await get<{ offset?: number }>(env.DB, 'restor-sync', 'hydrate');
         const offset = prev?.offset ?? 0;
-        const win = await env.DB.prepare(
+        const packedIdx = await listPacked<{ id: string; lastmod: string | null }>(
+          env.DB, 'restor-sitemap-pg', 'rsp-%');
+        const legacyIdx = (await env.DB.prepare(
           `SELECT json_extract(json,'$.id') AS id,
                   json_extract(json,'$.lastmod') AS lastmod
-           FROM entities WHERE kind='restor-sitemap'
-           ORDER BY lastmod DESC, id ASC LIMIT ? OFFSET ?`)
-          .bind(maxSites, offset)
-          .all<{ id: string | null; lastmod: string | null }>();
-        const total = (await env.DB.prepare(
-          `SELECT COUNT(*) AS c FROM entities WHERE kind='restor-sitemap'`)
-          .first<{ c: number }>())?.c ?? 0;
-        const batch = (win.results ?? [])
-          .filter((r): r is { id: string; lastmod: string | null } => r.id != null);
+           FROM entities WHERE kind='restor-sitemap'`)
+          .all<{ id: string | null; lastmod: string | null }>()).results ?? [];
+        const seenS = new Set<string>();
+        const index = [...packedIdx, ...legacyIdx]
+          .filter((r): r is { id: string; lastmod: string | null } => r.id != null)
+          .filter((r) => !seenS.has(r.id) && !!seenS.add(r.id))
+          .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? '')
+            || a.id.localeCompare(b.id));
+        const total = index.length;
+        const batch = index.slice(offset, offset + maxSites);
         const sites: RestorSite[] = [];
         for (const row of batch) {
           const r = await fetchRestorSite(row.id, fetch, baseUrl);

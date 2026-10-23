@@ -21,7 +21,7 @@ import {
   resolvePlace,
 } from '@springforth/coordination';
 import { SOURCES, evidenceBoost } from '@springforth/oracle';
-import { list, ledgerEvents, ledgerVerify } from './store.js';
+import { list, ledgerEventsMentioning, ledgerTail, ledgerVerifyIncremental } from './store.js';
 import type { Env } from './index.js';
 
 // Volunteer-time benchmark (treasury lane): ONS Household Satellite
@@ -204,9 +204,10 @@ export async function loadMetrics(env: Env) {
 
 // GET /commitments — {commitments, byCapital}; params = URLSearchParams
 // (role/org/unmet filters).
-export async function loadCommitments(env: Env, params: URLSearchParams) {
-  const nodes = await list<PlanNode>(env.DB, 'plannode');
-  const recs = await list<OverlapRecord>(env.DB, 'overlap');
+export async function loadCommitments(env: Env, params: URLSearchParams,
+  cache?: { nodes?: PlanNode[]; overlaps?: OverlapRecord[] }) {
+  const nodes = cache?.nodes ?? await list<PlanNode>(env.DB, 'plannode');
+  const recs = cache?.overlaps ?? await list<OverlapRecord>(env.DB, 'overlap');
   const matchedBy = new Map<string, number>();
   for (const r of recs) {
     if (r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated'))
@@ -231,9 +232,10 @@ export async function loadCommitments(env: Env, params: URLSearchParams) {
 }
 
 // GET /resources — every published offer + contribution count.
-export async function loadResources(env: Env) {
-  const nodes = await list<PlanNode>(env.DB, 'plannode');
-  const recs = await list<OverlapRecord>(env.DB, 'overlap');
+export async function loadResources(env: Env,
+  cache?: { nodes?: PlanNode[]; overlaps?: OverlapRecord[] }) {
+  const nodes = cache?.nodes ?? await list<PlanNode>(env.DB, 'plannode');
+  const recs = cache?.overlaps ?? await list<OverlapRecord>(env.DB, 'overlap');
   const times = new Map<string, number>();
   for (const r of recs)
     if (r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated'))
@@ -372,7 +374,7 @@ export async function loadEvidence(env: Env) {
 
 // GET /ledger — verify result + recent events.
 export async function loadLedgerSummary(env: Env) {
-  const [verify, events] = await Promise.all([ledgerVerify(env.DB), ledgerEvents(env.DB)]);
+  const [verify, events] = await Promise.all([ledgerVerifyIncremental(env.DB), ledgerTail(env.DB)]);
   return { verify, events };
 }
 
@@ -406,7 +408,7 @@ export async function loadCardConnections(
     list<PlanNode>(env.DB, 'plannode'), list<OverlapRecord>(env.DB, 'overlap'),
     list<FundingRound>(env.DB, 'round'), list<Donation>(env.DB, 'donation'),
     list<Pledge>(env.DB, 'pledge'), list<ImpactClaim>(env.DB, 'claim'),
-    ledgerEvents(env.DB), list<CouncilSeat>(env.DB, 'council-seat'),
+    ledgerEventsMentioning(env.DB, 'poss-'), list<CouncilSeat>(env.DB, 'council-seat'),
     list<ForumPost>(env.DB, 'forum-post'), list<Appreciation>(env.DB, 'appreciation'),
     list<Interest>(env.DB, 'interest'),
   ]);

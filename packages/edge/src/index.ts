@@ -78,7 +78,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from '@springforth/portal';
-import { get, list, put, ledgerAppend, ledgerEvents, ledgerVerify } from './store.js';
+import { get, list, put, del, ledgerAppend, ledgerEvents, ledgerVerify, ledgerVerifyIncremental } from './store.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -688,13 +688,18 @@ const buildNetwork = (plans: ExternalPlan[], poss: Possibility[],
     edges.set(`${lo}~${hi}`, e);
   }
   if (!edges.size) return { vertices: [], edges: [] };
+  // Layout is O(edges × iterations) — bound it to the strongest links; a
+  // hairball would be unreadable anyway.
+  const laid = [...edges.values()]
+    .sort((a, b) => b.confidence - a.confidence || b.count - a.count)
+    .slice(0, 80);
   const g = new Graph();
-  const ids = [...new Set([...edges.values()].flatMap((e) => [e.a, e.b]))].sort();
+  const ids = [...new Set(laid.flatMap((e) => [e.a, e.b]))].sort();
   ids.forEach((id, i) => {
     const ang = (i / ids.length) * Math.PI * 2;
     g.addNode(id, { x: Math.cos(ang) * 100, y: Math.sin(ang) * 100 });
   });
-  for (const e of edges.values()) g.addEdge(e.a, e.b, { weight: e.count });
+  for (const e of laid) g.addEdge(e.a, e.b, { weight: e.count });
   const pos = forceAtlas2(g, { iterations: 90,
     settings: { gravity: 1, scalingRatio: 12, slowDown: 4 } });
   const xs = ids.map((id) => pos[id]!.x), ys = ids.map((id) => pos[id]!.y);
@@ -712,7 +717,7 @@ const buildNetwork = (plans: ExternalPlan[], poss: Possibility[],
     count: counts.get(id) ?? 1,
     kind: id.startsWith('possibility:') ? 'possibility' : 'plan',
   }));
-  return { vertices, edges: [...edges.values()] };
+  return { vertices, edges: laid };
 };
 
 // Linked-evidence bundle for a node: its plan, inferred/explicit parent,
@@ -735,6 +740,29 @@ const nodeLinks = async (env: Env, node: PlanNode,
     credits: credits.filter((c) => c.nodeId === node.id),
     overlaps: overlaps.filter((r) => r.nodeIds.includes(node.id)),
   };
+};
+
+// Proposals below this floor never render in the review queue — storing
+// them just burns CPU on every hub load, so detection only persists
+// at-or-above-floor records plus complements (which drive matching).
+const OVERLAP_REVIEW_FLOOR = 0.5;
+const persistDetectedOverlaps = async (env: Env, detected: OverlapRecord[]) => {
+  const keep = new Map((await list<OverlapRecord>(env.DB, 'overlap')).map((o) => [o.id, o]));
+  const seen = new Set<string>();
+  for (const rec of detected) {
+    const prior = keep.get(rec.id);
+    if (prior && prior.status !== 'proposed') { seen.add(rec.id); continue; }
+    if (rec.kind !== 'complement' && rec.confidence < OVERLAP_REVIEW_FLOOR) continue;
+    await put(env.DB, 'overlap', rec.id, rec);
+    seen.add(rec.id);
+  }
+  // Retire auto-proposals that fell out of detection (or below floor).
+  let retired = 0;
+  for (const prior of keep.values())
+    if (prior.status === 'proposed' && !seen.has(prior.id)) {
+      await del(env.DB, 'overlap', prior.id); retired++;
+    }
+  return retired;
 };
 
 // Retired top-level surfaces → their hub section. `always` routes had no
@@ -917,12 +945,15 @@ export default {
         const lang = langFrom(url, req.headers.get('cookie'));
         switch (seg[0]) {
           case 'collaborate': {
-            const [commits, res, recs, plans, signals, nodes, poss] = await Promise.all([
-              loadCommitments(env, url.searchParams), loadResources(env),
+            const [recs, plans, signals, nodes, poss] = await Promise.all([
               list<OverlapRecord>(env.DB, 'overlap'),
               list<ExternalPlan>(env.DB, 'plan'), list<Signal>(env.DB, 'signal'),
               list<PlanNode>(env.DB, 'plannode'),
               list<Possibility>(env.DB, 'possibility'),
+            ]);
+            const [commits, res] = await Promise.all([
+              loadCommitments(env, url.searchParams, { nodes, overlaps: recs }),
+              loadResources(env, { nodes, overlaps: recs }),
             ]);
             const network = buildNetwork(plans, poss, nodes, recs);
             // ?node=<id> — linked-evidence bundle for the focused node.
@@ -1300,21 +1331,16 @@ export default {
         if (!authed(req, env)) return err('unauthorized', 401);
         const nodes = await list<PlanNode>(env.DB, 'plannode');
         const emb = await loadEmbeddings(env.DB);
-        const existing = await list<OverlapRecord>(env.DB, 'overlap');
-        const keep = new Map(existing.map((o) => [o.id, o]));
         const detected = [
           ...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }),
           ...detectComplements(nodes),           // need × offer direction
         ];
-        for (const rec of detected) {
-          const prior = keep.get(rec.id);
-          await put(env.DB, 'overlap', rec.id, prior && prior.status !== 'proposed' ? prior : rec);
-        }
+        const retired = await persistDetectedOverlaps(env, detected);
         await ledgerAppend(env.DB, 'api', 'overlaps.detected', {
-          nodes: nodes.length, found: detected.length,
+          nodes: nodes.length, found: detected.length, retired,
           complements: detected.filter((r) => r.kind === 'complement').length,
         });
-        return json({ scanned: nodes.length, overlaps: detected.length, records: detected });
+        return json({ scanned: nodes.length, overlaps: detected.length, retired, records: detected });
       }
       // Treegens evidence sync — pull filmed/AI-counted/DAO-verified
       // planting records (live + field-team archive), upsert nodes, re-run
@@ -1331,15 +1357,11 @@ export default {
         }
         const nodes = await list<PlanNode>(env.DB, 'plannode');
         const emb = await loadEmbeddings(env.DB);
-        const keep = new Map((await list<OverlapRecord>(env.DB, 'overlap')).map((o) => [o.id, o]));
         const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }), ...detectComplements(nodes)];
-        for (const rec of detected) {
-          const prior = keep.get(rec.id);
-          await put(env.DB, 'overlap', rec.id, prior && prior.status !== 'proposed' ? prior : rec);
-        }
+        const retired = await persistDetectedOverlaps(env, detected);
         await ledgerAppend(env.DB, 'api', 'treegens.synced', {
           records: plans.live.nodes.length + plans.archive.nodes.length,
-          plans: [plans.live.id, plans.archive.id], overlaps: detected.length,
+          plans: [plans.live.id, plans.archive.id], overlaps: detected.length, retired,
         });
         return json({
           live: plans.live.nodes.length, archive: plans.archive.nodes.length,
@@ -1365,12 +1387,8 @@ export default {
         for (const n of plan.nodes) await put(env.DB, 'plannode', n.id, n);
         const nodes = await list<PlanNode>(env.DB, 'plannode');
         const emb = await loadEmbeddings(env.DB);
-        const keep = new Map((await list<OverlapRecord>(env.DB, 'overlap')).map((o) => [o.id, o]));
         const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }), ...detectComplements(nodes)];
-        for (const rec of detected) {
-          const prior = keep.get(rec.id);
-          await put(env.DB, 'overlap', rec.id, prior && prior.status !== 'proposed' ? prior : rec);
-        }
+        await persistDetectedOverlaps(env, detected);
         await ledgerAppend(env.DB, 'api', 'silvi.synced', {
           project: project.id, nodes: plan.nodes.length, overlaps: detected.length,
         });
@@ -3025,7 +3043,7 @@ export default {
         }
         const events = await ledgerEvents(env.DB);
         if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
-          return page(req, renderLedgerPage, events, await ledgerVerify(env.DB), langFrom(url, req.headers.get('cookie')));
+          return page(req, renderLedgerPage, events, await ledgerVerifyIncremental(env.DB), langFrom(url, req.headers.get('cookie')));
         return json({ events });
       }
       if ((req.headers.get('accept') ?? '').includes('text/html')) {

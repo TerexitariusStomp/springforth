@@ -34,7 +34,7 @@ appreciation→trust graph on `/community#trust`, councils.
 **Pooran Desai** (OnePlanet — BRP challenge owner)
 Care about: joined-up funding for BRP, co-benefit quantification, avoided
 costs harvested for community work, the MCP connection working.
-Show: `packages/oneplanet-adapter` (implemented per the official MCP guide —
+Show: `src/adapters/oneplanet.ts` (implemented per the official MCP guide —
 **verified live**: the SFLive Sandbox flood + climate plans are imported,
 183 real OAI nodes in `/collaborate`, Brighton outcomes like "Reduce Flood
 Risk to Property in Brighton and Hove" surface with contribution-gap
@@ -59,7 +59,7 @@ viz.sarafu.network, sarafu.network/map.
 (Satellite Applications Catapult / EO Data Hub)
 Care about: Sentinel-2 and EO evidence actually used, not name-dropped;
 physical risk priced, not asserted.
-Show: `packages/oracle/src/sources.ts` — keyless Sentinel-2 Earth Search
+Show: `src/oracle/sources.ts` — keyless Sentinel-2 Earth Search
 STAC lane live today; EO Data Hub lane implemented but key-gated
 (`EODATAHUB_KEY` requested via Help Desk); Alpha-Klima physrisk source for
 hazard→asset-impact→portfolio-loss; evidence rows with methodology refs on

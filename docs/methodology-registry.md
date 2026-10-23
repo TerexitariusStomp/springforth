@@ -33,4 +33,4 @@ Rules:
 - A methodologyRef is a *claim about method*, not a verdict — readings
   are evidence for human review, never auto-truth.
 - New sources register here with the public spec link before merging.
-- `EXPECTED_DIRECTION` in `packages/oracle/src/sources.ts` must agree.
+- `EXPECTED_DIRECTION` in `src/oracle/sources.ts` must agree.

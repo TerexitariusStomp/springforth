@@ -16,21 +16,21 @@
   },
   "implementation": {
     "sourceRoots": [
-      "packages/edge/src/views.ts",
-      "packages/portal/src/impact.ts",
-      "packages/portal/src/ledger.ts",
-      "packages/portal/src/strings",
-      "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts",
-      "packages/web/app/routes/impact.tsx",
-      "packages/web/app/routes/ledger.tsx",
-      "packages/web/app/routes/ledger-verify.tsx",
-      "packages/web/app/routes/plans.tsx",
-      "packages/web/app/routes/plan.tsx"
+      "src/views.ts",
+      "src/portal/impact.ts",
+      "src/portal/ledger.ts",
+      "src/portal/strings",
+      "src/portal/theme.ts",
+      "src/portal/i18n.ts",
+      "web/app/routes/impact.tsx",
+      "web/app/routes/ledger.tsx",
+      "web/app/routes/ledger-verify.tsx",
+      "web/app/routes/plans.tsx",
+      "web/app/routes/plan.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts",
-      "packages/web/app/app.css"
+      "src/portal/theme.ts",
+      "web/app/app.css"
     ]
   },
   "validation": {

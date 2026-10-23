@@ -20,7 +20,7 @@ curl -s https://springforth.widespread.workers.dev/?format=json    # counts
 #    (401s? the secret drifted once before — restore it:
 #     grep SPRINGFORTH_ADMIN_TOKEN ~/.hermes/.env | cut -d= -f2 \
 #       | npx wrangler secret put ADMIN_TOKEN)
-cd packages/edge && source <(grep ADMIN_TOKEN .dev.vars) && cd ../..
+source <(grep ADMIN_TOKEN .dev.vars) && cd ../..
 ADMIN_TOKEN=$ADMIN_TOKEN node scripts/seed-demo.mjs
 
 # 3. Confirm a live-flip card sits at quorum-1 ('active', 2/3 in).
@@ -44,7 +44,7 @@ curl -s "https://springforth.widespread.workers.dev/possibilities?format=json" \
 
 ## If prod is down or slow
 
-- Rollback: `cd packages/edge && npx wrangler deployments list` →
+- Rollback: `npx wrangler deployments list` →
   `npx wrangler rollback <previous-version-id>`
 - Known-good tag: `git tag pitch-2026-10-28` — redeploy that commit if
   HEAD drifted.

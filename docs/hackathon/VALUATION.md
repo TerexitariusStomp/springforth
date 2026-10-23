@@ -131,4 +131,4 @@ maps to named standards rather than ad-hoc claims:
   `quorumRate`
 - `/rounds` — committed totals per currency
 - Card "Verified context" — the cited risk/cost benchmarks
-- Implementation: `packages/core/src/valuation.ts` (pure, unit-tested)
+- Implementation: `src/valuation.ts` (pure, unit-tested)

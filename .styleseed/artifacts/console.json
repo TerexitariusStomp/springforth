@@ -16,26 +16,26 @@
   },
   "implementation": {
     "sourceRoots": [
-      "packages/portal/src/fund.ts",
-      "packages/portal/src/collaborate.ts",
-      "packages/portal/src/community.ts",
-      "packages/portal/src/rounds.ts",
-      "packages/portal/src/strings",
-      "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts",
-      "packages/web/app/routes/collaborate.tsx",
-      "packages/web/app/routes/fund.tsx",
-      "packages/web/app/routes/community.tsx",
-      "packages/web/app/routes/round.tsx",
-      "packages/web/app/routes/round-admin.tsx",
-      "packages/web/app/routes/donor.tsx",
-      "packages/web/app/routes/map.tsx",
-      "packages/web/app/components/hub.tsx",
-      "packages/web/app/components/tx-button.tsx"
+      "src/portal/fund.ts",
+      "src/portal/collaborate.ts",
+      "src/portal/community.ts",
+      "src/portal/rounds.ts",
+      "src/portal/strings",
+      "src/portal/theme.ts",
+      "src/portal/i18n.ts",
+      "web/app/routes/collaborate.tsx",
+      "web/app/routes/fund.tsx",
+      "web/app/routes/community.tsx",
+      "web/app/routes/round.tsx",
+      "web/app/routes/round-admin.tsx",
+      "web/app/routes/donor.tsx",
+      "web/app/routes/map.tsx",
+      "web/app/components/hub.tsx",
+      "web/app/components/tx-button.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts",
-      "packages/web/app/app.css"
+      "src/portal/theme.ts",
+      "web/app/app.css"
     ]
   },
   "validation": {

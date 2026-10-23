@@ -50,7 +50,7 @@ environment/climate risk. What follows is her guidance, distilled.
 - [x] VALUATION.md — framework-alignment section (ISO, Capitals
       Coalition, damage-avoidance framing, verifier-replay rule).
 - [x] Geo: `place` is already on every card — shipped as a
-      server-rendered SVG world map (`/map`, `packages/portal/src/map.ts`)
+      server-rendered SVG world map (`/map`, `src/portal/map.ts`)
       with h3-anchored markers; zero JS/tile dependency so it runs
       entirely on the Worker. (OSM+Leaflet considered; server-SVG won on
       the no-CDN constraint.)

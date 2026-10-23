@@ -10,9 +10,9 @@ the monorepo itself; this maps it.
 
 | Surface | Component | Notes |
 |---|---|---|
-| Web portal | `packages/portal` | Server-rendered HTML; no JS build step; every route reachable by a judge |
-| Chat | `packages/edge` Telegram webhook | Declare, join, appreciate, quorum announcements back to the group |
-| API client | `packages/client` + `/docs` | Typed SDK generated from the OpenAPI surface; `/tour` is the guided judge path |
+| Web portal | `src/portal` | Server-rendered HTML; no JS build step; every route reachable by a judge |
+| Chat | `src` (edge worker) Telegram webhook | Declare, join, appreciate, quorum announcements back to the group |
+| API client | `src/client.ts` + `/docs` | Typed SDK generated from the OpenAPI surface; `/tour` is the guided judge path |
 
 ## Business-logic layer (domain packages)
 

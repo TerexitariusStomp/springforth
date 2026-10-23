@@ -45,24 +45,25 @@ happened.
 
 ## Stack
 
-TypeScript monorepo (pnpm workspaces) → Cloudflare Worker + D1.
-Domain logic lives in `packages/`; the worker is a thin HTTP shell.
+Single TypeScript package → Cloudflare Worker + D1 (plus a React Router
+frontend worker in `web/`). Domain logic lives in `src/`; the worker entry
+(`src/index.ts`) is a thin HTTP shell.
 
-| Package | Role |
+| Module | Role |
 |---|---|
-| `core` | entity schemas + hash-chained audit ledger |
-| `coordination` | plan graph, overlap detection/validation, possibility lifecycle, trust |
-| `edge` | Cloudflare Worker API + Telegram webhook + hourly oracle cron |
-| `portal` | server-rendered pages (landing, possibilities, coordination, portfolio, outcomes, verify) |
-| `oracle` | open-source readers (remote sensing, air quality, biodiversity, field evidence) |
-| `agent` | deterministic NL query over the coordination graph — cited, read-only |
-| `*-adapter` | OnePlanet (incl. MCP), Sarafu/CLC, Holons, Artizen, Open Collective, ValueFlows, Treegens, Silvi |
-| `evidence-anchor` | sha256 manifests → ledger; OpenTimestamps anchoring |
-| `funding` | quadratic matching, assurance pledges, retro tally, claim builder |
-| `attest` | EAS schema payloads (off-chain builder) |
-| `export-*` | public-spec emitters: hypercerts lexicon, 360Giving, IATI |
-| `chain-celo` | viem clients: EAS attest, Allo rounds, hypercert mint, Superfluid streams, Aave yield — celo-sepolia/celo |
-| `client` | typed SDK — `new SpringforthClient({baseUrl}).rounds()` |
+| `src/entities·gate·ledger·valuation` (`core.ts`) | entity schemas + hash-chained audit ledger |
+| `src/graph·resolve·possibility·tri·geo` (`coordination.ts`) | plan graph, overlap detection/validation, possibility lifecycle, trust |
+| `src/index` (`edge`) | Cloudflare Worker API + Telegram webhook + hourly oracle cron |
+| `src/portal/` | server-rendered pages (landing, possibilities, coordination, portfolio, outcomes, verify) |
+| `src/oracle.ts` | open-source readers (remote sensing, air quality, biodiversity, field evidence) |
+| `src/agent.ts` | deterministic NL query over the coordination graph — cited, read-only |
+| `src/adapters/` | OnePlanet (incl. MCP write lane), Sarafu/CLC, Holons, Artizen, Open Collective, ValueFlows, Treegens, Silvi, Giveth, GAP, Restor, Regen, Bloom, Soulutions, Atlas |
+| `src/attest.ts` | EAS schema payloads + sha256 manifests → ledger; OpenTimestamps anchoring |
+| `src/funding.ts` | quadratic matching, assurance pledges, retro tally, claim builder |
+| `src/exports.ts` | public-spec emitters: 360Giving, IATI |
+| `src/chain.ts` | viem clients: EAS attest, Allo rounds, hypercert mint, Superfluid streams, Aave yield — celo-sepolia/celo |
+| `src/client.ts` | typed SDK — `new SpringforthClient({baseUrl}).rounds()` |
+| `web/` | React Router frontend worker (own vite/wrangler config, deps hoisted from root) |
 
 ## How it compares
 
@@ -92,7 +93,8 @@ signal competitors would need our whole coordination layer to replicate.
 pnpm install
 pnpm typecheck
 pnpm test
-cd packages/edge && wrangler dev        # local worker
+pnpm dev                              # wrangler dev — local worker
+pnpm web:dev                          # React frontend dev server
 ```
 
 ## Deploy
@@ -100,7 +102,8 @@ cd packages/edge && wrangler dev        # local worker
 ```bash
 wrangler d1 create springforth-coord    # then set database_id in wrangler.toml
 wrangler d1 migrations apply springforth-coord --remote
-cd packages/edge && wrangler deploy
+pnpm deploy                           # edge worker
+pnpm web:deploy                       # frontend worker
 node --experimental-strip-types scripts/seed-d1.mjs   # demo fixture
 ```
 

@@ -16,15 +16,15 @@
   },
   "implementation": {
     "sourceRoots": [
-      "packages/portal/src/howitworks.ts",
-      "packages/portal/src/strings",
-      "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts",
-      "packages/web/app/routes/how-it-works.tsx"
+      "src/portal/howitworks.ts",
+      "src/portal/strings",
+      "src/portal/theme.ts",
+      "src/portal/i18n.ts",
+      "web/app/routes/how-it-works.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts",
-      "packages/web/app/app.css"
+      "src/portal/theme.ts",
+      "web/app/app.css"
     ]
   },
   "validation": {

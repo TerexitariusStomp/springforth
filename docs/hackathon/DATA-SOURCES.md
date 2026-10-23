@@ -76,7 +76,7 @@ coordinated-value block — see `VALUATION.md` for methodology.
 
 OpenAQ, Sensor.Community, NASA POWER, Sentinel-2 (earth-search STAC),
 World Bank, GBIF, envhealth-atlas, Treegens, Silvi + LEAF — see
-`packages/oracle/src/sources.ts`.
+`src/oracle/sources.ts`.
 
 ## Notes
 

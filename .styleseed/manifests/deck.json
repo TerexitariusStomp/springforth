@@ -36,8 +36,8 @@
     {
       "id": "artifact",
       "path": ".styleseed/artifacts/deck.json",
-      "sha256": "sha256:49c75d93569ad39d3fc53de876a357260519a5b666188663477d65f4dad390ae",
-      "bytes": 1449
+      "sha256": "sha256:d563092688c368a9818d8127ede4183866d15a27336df3810f3c2bba1dd27f54",
+      "bytes": 1359
     }
   ],
   "sources": [
@@ -97,10 +97,10 @@
     }
   ],
   "methodHash": "sha256:b0936afd8db253cd899c4d962735b29c200df999bb1bd66f7583a4c7d85c3bdd",
-  "validationHash": "sha256:03cf5d63ff85963251c4adca254472d13d0d8c7e454b8083b841f334a25b629c",
+  "validationHash": "sha256:1b70e946a55afe7ae95cafbb7abc59d31f30627923c597055e3efbfcda0cf605",
   "validationSlices": {
     "target": "sha256:51e4f85af0eb8e0417e8fe4a152ee57ed94777c4ebb994882548f13e1750cfa0",
-    "implementation": "sha256:780970e2c0a8102db5c5b44ae7eb0d2b5a2d858f0c4365c968fdbee21383b723",
+    "implementation": "sha256:de56f843aa132c65abc60fab371bf226d3df24d8d824e5483b40b7a4408298aa",
     "scoreFloor": "sha256:b4944c6ff08dc6f43da2e9c824669b7d927dd1fa976fadc7b456881f51bf5ccc",
     "requiredRenders": "sha256:e2cbc22ce7be59d23cd2e88d6fdbc576aa98f69928e4ff1e61fda02e15ccca2f",
     "temporal": "sha256:c5ec5a78d8447626a8d2c39addbf2843320eb8e491b9e7c1e92927a135b06bba",

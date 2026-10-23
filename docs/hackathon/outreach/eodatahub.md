@@ -26,7 +26,7 @@ We'll wire it as `EODATAHUB_KEY` on our edge worker; the source is
 registered and fail-softs until the key lands.
 
 Live demo: https://springforth.widespread.workers.dev · repo:
-github.com/TerexitariusStomp/springforth (oracle lane: `packages/oracle`).
+github.com/TerexitariusStomp/springforth (oracle lane: `src/oracle.ts`).
 
 Thanks!
 — Team Two

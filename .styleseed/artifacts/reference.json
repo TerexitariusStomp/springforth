@@ -16,25 +16,25 @@
   },
   "implementation": {
     "sourceRoots": [
-      "packages/portal/src/docs.ts",
-      "packages/portal/src/actor.ts",
-      "packages/portal/src/claim.ts",
-      "packages/portal/src/report.ts",
-      "packages/portal/src/whitepaper.ts",
-      "packages/portal/src/strings",
-      "packages/portal/src/theme.ts",
-      "packages/portal/src/i18n.ts",
-      "packages/web/app/routes/docs.tsx",
-      "packages/web/app/routes/actor.tsx",
-      "packages/web/app/routes/claim.tsx",
-      "packages/web/app/routes/report.tsx",
-      "packages/web/app/routes/whitepaper.tsx",
-      "packages/web/app/routes/search.tsx",
-      "packages/web/app/routes/not-found.tsx"
+      "src/portal/docs.ts",
+      "src/portal/actor.ts",
+      "src/portal/claim.ts",
+      "src/portal/report.ts",
+      "src/portal/whitepaper.ts",
+      "src/portal/strings",
+      "src/portal/theme.ts",
+      "src/portal/i18n.ts",
+      "web/app/routes/docs.tsx",
+      "web/app/routes/actor.tsx",
+      "web/app/routes/claim.tsx",
+      "web/app/routes/report.tsx",
+      "web/app/routes/whitepaper.tsx",
+      "web/app/routes/search.tsx",
+      "web/app/routes/not-found.tsx"
     ],
     "tokenFiles": [
-      "packages/portal/src/theme.ts",
-      "packages/web/app/app.css"
+      "src/portal/theme.ts",
+      "web/app/app.css"
     ]
   },
   "validation": {

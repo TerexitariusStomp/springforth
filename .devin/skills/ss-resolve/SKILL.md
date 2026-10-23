@@ -1,7 +1,10 @@
 ---
 name: ss-resolve
-description: Compile a small, deterministic StyleSeed rule bundle for one agent, output grammar, surface adapter, domain, page type, brand recipe, palette recipe, and optional profile. Use before setup or build, when project configuration changes, when updating StyleSeed, or to diagnose local installation, rule drift, and evidence health without changing files.
+description: Compile the effective StyleSeed rule bundle for one artifact, or inspect install and evidence health read-only. Use before setup or build, or to diagnose rule drift.
 ---
+
+Before this workflow, follow the once-per-session [update preflight](../ss-update/references/update-preflight.md).
+
 
 # Resolve effective StyleSeed context
 
@@ -21,7 +24,21 @@ Use the bundled `scripts/resolve-context.mjs`; do not hand-compose the rule stac
    `.styleseed/manifests/<artifact-id>.json`.
 6. Use `--check` to detect context drift without rewriting files.
 
+For spacing recommendations and scoped control, see the [spatial roles guide](references/spacing.md).
+Optional project/artifact `spacing` compiles into a role table and artifact-scoped CSS in the bundle.
+`recommend-spacing.mjs --project-root . --artifact <id>` emits a read-only starting proposal; it does
+not inspect or rewrite implementation tokens and does not establish design acceptance. Optional
+`--measurement <project-relative-report.json>` adds source-bound rendered diagnostics; stale or
+inconsistent reports are rejected, and starting values remain explicitly heuristic.
+
 For installation or project-health questions, run the read-only diagnostic first:
+
+For a requested legacy-to-registry migration, inspect `migrate-project.mjs --dry-run` first.
+Follow the [reviewed migration guide](references/migration.md) for the plan format and apply sequence.
+The bare `--write` path deliberately refuses unreviewed defaults. Applying a migration requires
+a complete human-reviewed plan, the current lock hash, a one-to-one section-to-artifact mapping,
+and `--confirm-plan` matching that plan's exact hash. A valid schema or dry-run is not proof that
+the design decisions were preserved; never infer approval or run a write from a diagnosis request.
 
 ```bash
 node <installed-ss-resolve>/scripts/styleseed-doctor.mjs --project-root . --json

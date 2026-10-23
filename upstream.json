@@ -42,8 +42,8 @@
       "path": ".devin/skills/",
       "kind": "repo",
       "repo": "bitjaru/styleseed",
-      "rev": "sha256:eeb89d12b518c178162f72ffe39a7126dd611953d2f66be0f5507de1bfbe7073",
-      "syncedRev": "f608e466476e",
+      "rev": "sha256:82a1b8071fc8fb2ab034e8b24d8e254f48eff906ab55838f6e9d8f6f748d2d2c",
+      "syncedRev": "6a310b0368a6",
       "license": "MIT",
       "sync": "npx skills add bitjaru/styleseed",
       "note": "See .devin/skills/PROVENANCE.md — includes styleseed-engine, claude-design, popular-web-designs, design-md"

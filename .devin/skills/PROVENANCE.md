@@ -2,8 +2,8 @@
 
 | Skill | Upstream | License | Version |
 |---|---|---|---|
-| `styleseed/` (router + 22 `ss-*` workflows + node scripts) | https://github.com/bitjaru/styleseed (`npx skills add bitjaru/styleseed`, edge channel) | MIT (LICENSE included) | engine 4.2.0, rev `sha256:eeb89d12b518c178162f72ffe39a7126dd611953d2f66be0f5507de1bfbe7073` |
-| `styleseed-engine/` (method knowledge base) | same distribution | MIT | 4.2.0 |
+| `styleseed/` (router + 22 `ss-*` workflows + node scripts) | https://github.com/bitjaru/styleseed (`npx skills add bitjaru/styleseed`, edge channel) | MIT (LICENSE included) | engine 5.0.0, rev `sha256:82a1b8071fc8fb2ab034e8b24d8e254f48eff906ab55838f6e9d8f6f748d2d2c` |
+| `styleseed-engine/` (method knowledge base) | same distribution | MIT | 5.0.0 |
 | `claude-design/` | Hermes `creative/` skill (BadTechBandit) | MIT | 1.1.0 |
 | `popular-web-designs/` (54 real design systems) | VoltAgent/awesome-design-md via Hermes | MIT | 1.0.0 |
 | `design-md/` (Google DESIGN.md spec) | Hermes `creative/` skill | MIT | — |

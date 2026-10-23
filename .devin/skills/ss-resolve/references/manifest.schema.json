@@ -15,14 +15,14 @@
       "properties": {
         "target": { "$ref": "#/$defs/hash" }, "implementation": { "$ref": "#/$defs/hash" },
         "scoreFloor": { "$ref": "#/$defs/hash" }, "requiredRenders": { "$ref": "#/$defs/hash" },
-        "temporal": { "$ref": "#/$defs/hash" }, "humanAcceptance": { "$ref": "#/$defs/hash" }
+        "temporal": { "$ref": "#/$defs/hash" }, "humanAcceptance": { "$ref": "#/$defs/hash" }, "functional": { "$ref": "#/$defs/hash" }
       }
     },
     "bundle": { "$ref": "#/$defs/file" }, "outputs": { "type": "array", "items": { "$ref": "#/$defs/file" } }
   },
   "$defs": {
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$" }, "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-    "file": { "type": "object", "additionalProperties": false, "required": ["path", "sha256", "bytes"], "properties": { "path": { "type": "string" }, "sha256": { "$ref": "#/$defs/hash" }, "bytes": { "type": "integer", "minimum": 0 } } },
+    "file": { "type": "object", "additionalProperties": false, "required": ["kind", "path", "sha256", "bytes"], "properties": { "kind": { "enum": ["bundle", "palette-json", "palette-css"] }, "path": { "type": "string" }, "sha256": { "$ref": "#/$defs/hash" }, "bytes": { "type": "integer", "minimum": 0 } } },
     "namedFile": { "type": "object", "additionalProperties": false, "required": ["id", "path", "sha256", "bytes"], "properties": { "id": { "type": "string" }, "path": { "type": "string" }, "sha256": { "$ref": "#/$defs/hash" }, "bytes": { "type": "integer", "minimum": 0 } } }
   }
 }

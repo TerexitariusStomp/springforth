@@ -1,3 +1,4 @@
+import { spacingSection } from "./spacing-contract.mjs";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -249,7 +250,7 @@ export function compileContext({
       `- Surface temperature: ${paletteGeneration.input.temperature}`,
       `- Semantic roles: ${Object.entries(paletteGeneration.roles).map(([role, value]) => `${role}=${value}`).join(" · ")}`,
       `- Contrast gates: ${paletteGeneration.contrast.map((item) => `${item.foreground}/${item.background}=${item.ratio}:1`).join(" · ")}`,
-      "- Allocation: 60% canvas/surfaces · 30% chrome/type/structure · at most 10% primary and accent emphasis combined.",
+      "- Allocation follows the task and approved color roles; there is no universal surface-area percentage for canvas, structure, or accent emphasis.",
       "- This override replaces the recipe hex values while preserving its product posture and semantic restrictions.",
       "- Components consume semantic roles. Raw ramp values remain reference tokens.",
     ].join("\n");
@@ -272,6 +273,7 @@ export function compileContext({
     profile: selection.profile,
   };
 
+  const spatialContent = registryMode ? spacingSection(normalizedProject, normalizedArtifact) : null;
   const sections = [
     { id: "agent-execution", path: "catalog:agents", content: catalog.agents[agent] },
     { id: "core", path: "catalog:core", content: catalog.core },
@@ -283,6 +285,7 @@ export function compileContext({
     { id: "palette", path: `catalog:palettes/${palette}`, content: paletteContent },
     ...(profileContent ? [{ id: "profile", path: `catalog:profiles/${selection.profile}`, content: profileContent }] : []),
     ...(legacyLock ? [{ id: "lock", path: legacyLock.path ?? "legacy:STYLESEED.md", content: buildLegacyLockSection(legacyLock) }] : []),
+    ...(spatialContent ? [{ id: "spacing", path: "config:spacing", content: spatialContent }] : []),
     { id: "craft", path: "catalog:craft", content: catalog.craft },
   ].filter((section) => section.content && section.content.trim().length > 0);
 
@@ -371,6 +374,7 @@ export function compileContext({
     requiredRenders: sha256(normalizedArtifact.validation.requiredRenders),
     temporal: sha256(normalizedArtifact.validation.temporal),
     humanAcceptance: sha256(normalizedArtifact.validation.humanAcceptance),
+    ...(normalizedArtifact.validation.functional ? { functional: sha256(normalizedArtifact.validation.functional) } : {}),
   };
   const manifest = {
     schemaVersion: 2,

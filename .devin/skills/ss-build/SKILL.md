@@ -1,9 +1,12 @@
 ---
 name: ss-build
-description: Build a screen with StyleSeed's composed design method — choose or compile an output grammar, apply a brand recipe plus domain/page/profile/lock constraints, then run the code and pixel gates before presenting.
+description: Build a screen with StyleSeed's composed method, then run the code and pixel gates before presenting. Use when building or rebuilding a screen; sets up the project first if needed.
 argument-hint: "[what to build]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch
 ---
+
+Before this workflow, follow the once-per-session [update preflight](../ss-update/references/update-preflight.md).
+
 
 # Build with the composed StyleSeed method
 ## Registry-first artifact boundary
@@ -52,7 +55,8 @@ accessibility.
 ## Step 3 — Build with design judgment
 
 - Make the grammar's user job and primary decision visible in the first viewport.
-- Establish one focal point; avoid equal-weight template grids.
+- Establish task-appropriate attention: a primary decision, reading promise, or coordinated
+  comparison regions. Equivalent panels may share weight; do not add novelty to break repetition.
 - Use the grammar's composition, density, type, color, surface, imagery/data, action, state,
   responsive, and motion contracts.
 - Use the recipe's containment, geometry, control, collection, and navigation morphology.
@@ -60,11 +64,32 @@ accessibility.
 - Use product-specific content and evidence. Never copy the StyleSeed demo or a reference screen.
 - Implement loading, empty, error, focus, reduced-motion, and responsive behavior where relevant.
 
+For spacing work, use the resolver's [spatial roles guide](../ss-resolve/references/spacing.md).
+Read any compiled `spacing` section before choosing gaps. Map its scoped variables to existing
+components and preserve undeclared roles. Group related content deliberately; do not multiply
+nested insets or shrink type to achieve density. An implementation must consume the variables;
+config alone does not change rendered layout.
+
 ## Step 4 — Code gate loop
+
+For interactive work, name the required user outcomes before testing: for example, a saved
+setting survives reload, a failed save preserves the draft, or a viewer cannot perform an
+editor action. Reuse the project's real implementation and test tools; a disconnected demo
+or a source-text assertion does not establish that the action works.
+
+Registry builds record applicable outcomes as `validation.functional.scenarios` in the artifact
+and cover the tests and their implementation dependencies with `implementation.sourceRoots`.
+Use the installed `ss-score` reference `references/functional-checks.md` to run and retain
+evidence. A failed, skipped, missing, or unexecuted required scenario blocks completion even
+with a high code score. If the available runner cannot execute the project, report the exact
+unverified outcome; do not omit its requirement to obtain a pass. Static artifacts may omit
+functional scenarios with an explicit not-applicable explanation.
 
 Run `/ss-score` on the actual implementation. The score must name the effective rule set and
 check both core invariants and grammar-specific tells. Fix the highest-gain failures and
-re-score, up to roughly three passes, until ≥80. If it cannot pass, report the real blocker.
+re-score for at most three correction passes, stopping earlier on ≥80. Prioritize broken flows
+and core failures before optional score gains. If it cannot pass, report the actual score and
+remaining failures; do not restart the pass budget by invoking a different skill.
 
 ## Step 5 — Pixel gate loop
 

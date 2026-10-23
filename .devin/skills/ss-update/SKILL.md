@@ -5,6 +5,9 @@ argument-hint: "(no arguments needed)"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
 
+Before this workflow, follow the once-per-session [update preflight](references/update-preflight.md).
+
+
 # StyleSeed update
 ## Registry-first artifact boundary
 
@@ -34,7 +37,7 @@ archive directly to edge `main` unless the user explicitly requests a channel sw
 
 ## Ownership boundary
 
-StyleSeed owns installed `ss-*` skill payloads and compiled `.styleseed/effective-rules.md`.
+StyleSeed owns the installed `styleseed` skill and its internal workflows and compiled `.styleseed/effective-rules.md`.
 The project owns `STYLESEED.md`, application code, components, tokens, assets, and any existing
 `AGENTS.md`, `CLAUDE.md`, or Cursor instructions. Never overwrite project-owned files merely to
 update StyleSeed.
@@ -42,6 +45,13 @@ update StyleSeed.
 An update may change design-method behavior, especially across major versions. It is reversible
 through the user's version control, but it is not correct to promise that every update is
 additive or non-breaking.
+
+## One update request, one completed transition
+
+An authorized update includes refreshing the same install scope, checking old registrations,
+archiving verified unmodified siblings, recompiling affected existing bundles, and reporting
+verification plus remaining issues. Do not stop after reinstall to ask the user to request cleanup
+again. Availability-only checks remain read-only. Preserve explicit pins and channel choices.
 
 ## Step 1 — Read-only revision check
 
@@ -53,13 +63,17 @@ node <installed-ss-update>/scripts/check-update.mjs --project-root . --json
 
 Interpret the result exactly:
 
-- `current` — installed and published revisions match; stop unless the user explicitly wants a
-  reinstall.
+- `current` — installed and published revisions and existing registry artifacts match; stop
+  unless the user explicitly wants a reinstall. This is not a visual/evidence pass.
 - `update-available` — refresh the installed payload even when the semantic versions match.
 - `project-bundle-stale` — skills are current; skip reinstall and re-resolve the project.
-- `legacy-skill-conflict` — the retired standalone seven-category reviewer remains beside the
-  canonical skills. Show its path and hash; remove it only after confirming it is not a
-  project-modified skill.
+- `legacy-skill-conflict` — inspect `legacyRegistrations` and `legacyConflicts`. For old sibling
+  registrations, continue to consolidation below within this update request. A retired standalone
+  reviewer needs a separate ownership review; do not treat it as an automatically archivable file.
+- `remote-check-unavailable` — the remote request failed; report unknown, not current.
+- `project-config-invalid` — repair the incomplete/invalid registry before claiming currency.
+- `installed-revision-unverified` / `installed-revision-tampered` — inspect the local payload;
+  never overwrite a fork blindly.
 - `remote-revision-unavailable` — version-only evidence cannot prove currency. Report the
   boundary and do not say “up to date.”
 
@@ -119,6 +133,41 @@ Do not silently change `stable` to `edge` or `edge` to `stable` during refresh.
 If this skill was invoked only to inspect availability, stop before the external refresh and
 present the report.
 
+After the installer returns, read the **newly installed**
+`styleseed/workflows/ss-update/WORKFLOW.md` and use its script paths. Do not keep invoking a
+leftover `ss-update/scripts/check-update.mjs` from the previous installation. Resolve the actual
+installed directory instead of assuming `.agents/skills` for every provider.
+
+If the authorized installer refreshed more than one provider directory, track those exact roots
+and complete consolidation and checks for each. Do not expand into unrelated global/project
+installs or remove a plugin just because a second provider exists.
+
+## Consolidate old registrations after installing the unified skill
+
+The core now registers only `styleseed`. Its `workflows/ss-*` folders contain `WORKFLOW.md`,
+not additional host skills. Old `/ss-*` slash commands are no longer registered on a fresh
+install; use `/styleseed build`, `$styleseed build`, or describe the task normally.
+
+A normal reinstall may leave the previous 22 sibling skills behind. Continue within the same update request. After installing the
+complete unified skill through the same channel, run:
+
+```bash
+node <installed-styleseed>/workflows/ss-update/scripts/consolidate-skills.mjs --skills-root <physical-skills-directory>
+```
+
+Read the report. Within an authorized update/consolidation task, repeat with `--apply` without requesting another task to move
+only inventory-matching legacy directories into the sibling `styleseed-backups/<id>/` folder.
+Modified, unknown, linked, or incomplete entries remain untouched and need manual review.
+Report backup and remaining paths. Never delete them by a broad `ss-*` wildcard.
+The script preserves project files and the new skill; it does not modify global installs when
+pointed at a project install. Restore by moving archived directories back to the original root
+only if those names are still absent. Keep the backup outside host skill discovery.
+
+If both a plugin and a global installation provide StyleSeed, choose one installation channel
+and back up the redundant managed copy only after verifying the retained installation. The
+migration script handles sibling legacy workflows; it does not remove another provider's plugin.
+Start a new agent session to refresh the visible skill list.
+
 ## Step 4 — Prove the installed revision
 
 Run the new checker's path again. Require the installed and published `engineRevision` values to
@@ -159,11 +208,14 @@ or removing stale duplicate method files after review.
 
 Updating the engine does not redesign existing screens. If the user wants a retrofit:
 
-1. confirm or create `STYLESEED.md`;
+1. resolve the selected artifact and its project-owned configuration for registry projects; only when neither registry file exists, confirm or create the legacy `STYLESEED.md`. A partial or invalid registry is an error, not a fallback;
 2. re-score the highest-traffic screen against the new effective bundle;
-3. apply approved fixes with `/ss-review` or `$ss-review`;
+3. use `/ss-review` or `$ss-review` for read-only findings, then apply approved fixes in the authorized implementation step;
 4. render and inspect with `/ss-verify` or `$ss-verify`;
 5. report before/after evidence without claiming the old score was measured when it was not.
+
+Stop on pass or after three correction passes per gate, including delegated passes. Report
+remaining failures and actual evidence; invoking another skill does not reset this budget.
 
 ## Completion report
 

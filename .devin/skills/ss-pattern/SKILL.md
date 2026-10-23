@@ -5,6 +5,9 @@ argument-hint: "[pattern-type] [description]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
 
+Before this workflow, follow the once-per-session [update preflight](../ss-update/references/update-preflight.md).
+
+
 # UI Pattern Generator
 ## Registry-first artifact boundary
 
@@ -43,7 +46,12 @@ Description: $ARGUMENTS
 
 ## Instructions
 
-1. Read `.styleseed/effective-rules.md` and `.styleseed/manifest.json`. Resolve first when stale.
+1. If either registry file exists, require a complete valid registry. Resolve the selected
+   artifact with `--artifact <id>` and read only `.styleseed/bundles/<id>.md` and
+   `.styleseed/manifests/<id>.json`. Missing/stale output needs a scoped resolve and re-check;
+   invalid configuration is not permission to fall back or restart setup.
+   Only when neither registry file exists, resolve the legacy `STYLESEED.md` and read
+   `.styleseed/effective-rules.md` and `.styleseed/manifest.json`.
    Then inspect:
    - `components/ui/` for available primitives
    - `components/patterns/` for existing patterns

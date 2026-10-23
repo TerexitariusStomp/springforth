@@ -1,9 +1,12 @@
 ---
 name: ss-tokens
-description: Generate an accessible semantic palette from a key color, or view, add, and modify StyleSeed design tokens. Use when a user supplies a brand color, asks which colors combine well, needs light/dark theme roles, or needs token files for implementation.
+description: Generate an accessible semantic palette from a key color, or view, add, and modify design tokens. Use when a user supplies a brand color or needs light/dark theme roles.
 argument-hint: "[action: generate|list|add|update] [token-type: color|spacing|shadow|radius|typography]"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
+
+Before this workflow, follow the once-per-session [update preflight](../ss-update/references/update-preflight.md).
+
 
 # Design Token Manager
 ## Registry-first artifact boundary
@@ -55,7 +58,11 @@ The generator preserves the key hue, maps chroma into sRGB without channel clipp
 maps primitives to semantic roles, and adjusts fill lightness until text/action/focus pairs pass.
 
 Use `--format css` for CSS variables or JSON for an auditable result. Never mark the palette
-valid unless `valid` is true and every item in `contrast` passes. In `STYLESEED.md`, persist
+valid unless `valid` is true and every item in `contrast` passes. This validates those declared
+pairs only. It does not validate every border, component state, actual background, or photograph.
+Use the [applied color checks](../ss-verify/references/applied-checks.md#color-inspect-the-consumer-state-and-background)
+when implementing the roles. Preserve an existing approved multicolor system; unsupported input
+is a limitation to report, not permission to regenerate its identity. In `STYLESEED.md`, persist
 `Key color`, `Palette character`, `Palette mode`, `Palette harmony`, and `Surface temperature`,
 then run `$ss-resolve`; the resolver emits the same `.styleseed/palette.json` and `palette.css`.
 

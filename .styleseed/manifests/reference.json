@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "artifactId": "reference",
-  "engineVersion": "4.2.0",
-  "engineRevision": "sha256:eeb89d12b518c178162f72ffe39a7126dd611953d2f66be0f5507de1bfbe7073",
+  "engineVersion": "5.0.0",
+  "engineRevision": "sha256:101258147c3c950ad2e65971ebb5a5cfc41753cf0ba3d4a199ba9ec8ba773f2e",
   "distributionIntegrity": "verified",
   "selection": {
     "agent": "codex",
@@ -44,20 +44,20 @@
     {
       "id": "agent-execution",
       "path": "catalog:agents",
-      "sha256": "sha256:dfe4b0a2de36209ca50a04b39e35c248ac13fb8b059428fdb68a484cffc190cb",
-      "bytes": 329
+      "sha256": "sha256:7432f369c99d3d0b10a5c96d76b418b7dfbfb83e57a6b25e480f79ee86a1cd81",
+      "bytes": 358
     },
     {
       "id": "core",
       "path": "catalog:core",
-      "sha256": "sha256:b8386021967bb5cea954dbe3b3f8c36574457457d5e4bbe7277b5218a539af54",
-      "bytes": 7968
+      "sha256": "sha256:c266458625238fc647b40eb15a80476ee116d3b8e4fbd9bee71db917f2c7a33d",
+      "bytes": 8400
     },
     {
       "id": "grammar",
       "path": "built-in:editorial-reading",
-      "sha256": "sha256:ffc4cb18738d1a36b9ce564fc1fa18987e22a5bbb5787683841e25c401718fca",
-      "bytes": 970
+      "sha256": "sha256:ff1f3ca417cb27454cc7d7dcf2d2b4454761b6a9d5709d4c19ad7b80faa39986",
+      "bytes": 991
     },
     {
       "id": "adapter",
@@ -68,35 +68,35 @@
     {
       "id": "domain",
       "path": "catalog:domains/marketplace",
-      "sha256": "sha256:6695b98c0896cd277367ef4fd85cee65f022edb7def257f77ae374f59e1cc4d1",
-      "bytes": 857
+      "sha256": "sha256:b6cb9364725d6120796392f193ec3e184e9a7c322c1a799e10256d969c5bd7a0",
+      "bytes": 1124
     },
     {
       "id": "page",
       "path": "catalog:pages/detail",
-      "sha256": "sha256:0b4321abc5e338d444ee8ac569f6d03059e33eae2a70bfc5502876cf48b15fc7",
-      "bytes": 679
+      "sha256": "sha256:379a0fb01c98674ff4dc048bd107bada304c12196398637abc70dd531d569bce",
+      "bytes": 910
     },
     {
       "id": "recipe",
       "path": "catalog:recipes/expressive-brand",
-      "sha256": "sha256:3b5a536c7127554a106219c26d39c502f53eea1fefe87b7d350a03a0af7c171a",
-      "bytes": 1924
+      "sha256": "sha256:95befeb0a0a3ffaecdfebde333231f33cb29052a13523c087d3b10ffc3c3be82",
+      "bytes": 1984
     },
     {
       "id": "palette",
       "path": "catalog:palettes/deep-lime-studio",
-      "sha256": "sha256:df4959092aad3a77a2b4809b1213f3cb5813495f6f5e288c2e2eec416760b8d8",
-      "bytes": 2234
+      "sha256": "sha256:d23613e4c0cb56c877c5dc1625969e69fc83557d020242caf3688cec227f5adb",
+      "bytes": 2263
     },
     {
       "id": "craft",
       "path": "catalog:craft",
-      "sha256": "sha256:9f8b9c38d3ec1dc6d476a149b7c3502b27c51cbb55bce397a696b44335a22d21",
-      "bytes": 3564
+      "sha256": "sha256:cf337a06f68960ee01e99fa734da2955fe67db990e7cda3fb1d2729acd0bd1bd",
+      "bytes": 4870
     }
   ],
-  "methodHash": "sha256:064ef090ac19af13926c139609d97a8c8fbcaf0ce6267b4e40e85f62d455c38b",
+  "methodHash": "sha256:07b38c04b57c3b707bb54cfec5c7d3472762d3986d5845151f4a8a09f76b9d19",
   "validationHash": "sha256:8497de8d6d15ffa4add4095a8bac221c248871a8cc8b3f4dcc0220177c2bc8a8",
   "validationSlices": {
     "target": "sha256:17d482ee8b50f7cc1c03e7cc90fa488e31098dc655e2e0a34040be748cce0760",
@@ -109,21 +109,21 @@
   "bundle": {
     "kind": "bundle",
     "path": ".styleseed/bundles/reference.md",
-    "sha256": "sha256:0faad6684914c89fea3bcd9a2fe1eaae11379a6f61ec2dc150cfb5d9ef3dc65d",
-    "bytes": 20152
+    "sha256": "sha256:301aebf233e13abc44f98c98cfd806695e6e8b4372f662a5fa951813950cb781",
+    "bytes": 22527
   },
   "outputs": [
     {
       "kind": "bundle",
       "path": ".styleseed/bundles/reference.md",
-      "sha256": "sha256:0faad6684914c89fea3bcd9a2fe1eaae11379a6f61ec2dc150cfb5d9ef3dc65d",
-      "bytes": 20152
+      "sha256": "sha256:301aebf233e13abc44f98c98cfd806695e6e8b4372f662a5fa951813950cb781",
+      "bytes": 22527
     },
     {
       "kind": "palette-json",
       "path": ".styleseed/palettes/reference.json",
-      "sha256": "sha256:734589e72839981eb5722173f587b0152d78b6c4de9d498f7304fa192ef89ed7",
-      "bytes": 5911
+      "sha256": "sha256:3e449e011dc0973b9e847ba45eb55c1805a63aa693a45fb33f87d6e1db4ea11f",
+      "bytes": 6051
     },
     {
       "kind": "palette-css",

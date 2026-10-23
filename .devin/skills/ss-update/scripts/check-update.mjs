@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyDistribution } from "../../ss-resolve/scripts/distribution-integrity.mjs";
 
@@ -16,10 +16,11 @@ function parseArgs(argv) {
     const value = argv[index];
     if (!value.startsWith("--")) throw new Error(`Unexpected argument: ${value}`);
     const key = value.slice(2);
-    if (["json", "help"].includes(key)) {
+    if (["json", "help", "require-current"].includes(key)) {
       out[key] = true;
       continue;
     }
+    if (!["project-root", "remote"].includes(key)) throw new Error(`Unknown option: --${key}`);
     const next = argv[index + 1];
     if (!next || next.startsWith("--")) throw new Error(`Missing value for --${key}`);
     out[key] = next;
@@ -89,18 +90,26 @@ if (args.help) {
   console.log(`StyleSeed update checker
 
 Usage:
-  check-update.mjs [--project-root <path>] [--remote <URL-or-file>] [--json]
+  check-update.mjs [--project-root <path>] [--remote <URL-or-file>] [--json] [--require-current]
 
 Compares the installed distribution revision, the project's last resolved revision, and the
-published revision. It is read-only and never updates project or skill files.`);
+published revision. It is read-only and never updates project or skill files.
+--require-current exits 1 unless both installation and existing project bundles are current.
+Without this flag, diagnostic results exit 0; unavailable remote checks are explicitly unknown.`);
   process.exit(0);
 }
 
 const projectRoot = resolve(args["project-root"] ?? process.cwd());
+const ownCatalog = resolve(scriptDir, "../../ss-resolve/references/catalog.json");
+const ownRelative = relative(existsSync(projectRoot) ? realpathSync(projectRoot) : projectRoot, existsSync(ownCatalog) ? realpathSync(ownCatalog) : ownCatalog);
+const runningInsideProject = ownRelative !== ".." && !ownRelative.startsWith(`..${sep}`) && !isAbsolute(ownRelative);
 const installed = firstJson([
-  resolve(projectRoot, "engine/.claude/skills/ss-resolve/references/catalog.json"),
-  resolve(projectRoot, ".claude/skills/ss-resolve/references/catalog.json"),
-  resolve(projectRoot, ".agents/skills/ss-resolve/references/catalog.json"),
+  // If invoked from this project's install, inspect that exact provider's payload first.
+  // An external/global checker still discovers a project-local installation before itself.
+  ...(runningInsideProject ? [ownCatalog] : []),
+  resolve(projectRoot, "engine/.claude/skills/styleseed/workflows/ss-resolve/references/catalog.json"),
+  resolve(projectRoot, ".claude/skills/styleseed/workflows/ss-resolve/references/catalog.json"),
+  resolve(projectRoot, ".agents/skills/styleseed/workflows/ss-resolve/references/catalog.json"),
   resolve(scriptDir, "../../ss-resolve/references/catalog.json"),
 ]);
 const installedSource = installed?.value.distributionSource ?? {
@@ -130,7 +139,18 @@ const legacyConflicts = [
     reason: "Retired standalone seven-category reviewer can conflict with canonical ss-score.",
   }];
 });
-const remote = normalizeRemote(await readRemote(remoteSource));
+// The active installation, not every global/project provider, owns this reconciliation.
+const activeSkillsRoot = installed ? resolve(dirname(installed.path), "../../../..") : null;
+const legacyRegistrations = activeSkillsRoot && existsSync(activeSkillsRoot)
+  ? (await import("./consolidate-skills.mjs")).inspectLegacySkills(activeSkillsRoot) : [];
+let remoteError = null;
+let remote;
+try {
+  remote = normalizeRemote(await readRemote(remoteSource));
+} catch (error) {
+  remoteError = error instanceof Error ? error.message : String(error);
+  remote = normalizeRemote(null);
+}
 
 const installedVersion = installed?.value.engineVersion ?? null;
 const installedDeclaredRevision = installed?.value.distributions?.core?.revision ?? installed?.value.engineRevision ?? null;
@@ -167,13 +187,18 @@ const remoteDistributionRevision = installedDistribution === "skills"
   ? remote.skillsRevision
   : remoteRevision;
 const registryPresent = existsSync(resolve(projectRoot, ".styleseed/project.json"))
-  && existsSync(resolve(projectRoot, ".styleseed/artifacts/index.json"));
-const artifactImpact = registryPresent
-  ? (await import("./artifact-impact.mjs")).inspectArtifactImpact({
-      projectRoot,
-      installedCatalog: installed?.value ?? null,
-    })
-  : { artifacts: [] };
+  || existsSync(resolve(projectRoot, ".styleseed/artifacts/index.json"));
+let artifactImpact = { artifacts: [] };
+let projectError = null;
+if (registryPresent) {
+  try {
+    artifactImpact = (await import("./artifact-impact.mjs")).inspectArtifactImpact({
+      projectRoot, installedCatalog: installed?.value ?? null,
+    });
+  } catch (error) {
+    projectError = error instanceof Error ? error.message : String(error);
+  }
+}
 
 let status;
 let reason;
@@ -186,6 +211,9 @@ if (installed && installedVerification?.status === "unverified") {
 } else if (installedVerification?.status === "tampered") {
   status = "installed-revision-tampered";
   reason = `Installed ${installedDistribution ?? "core"} distribution bytes differ from the catalog inventory, so the declared revision is not current.`;
+} else if (remoteError) {
+  status = "remote-check-unavailable";
+  reason = `Could not verify the published revision: ${remoteError}`;
 } else if (!installedDistributionRevision && remoteDistributionRevision) {
   status = "update-available";
   reason = "The installed payload predates revision tracking; refresh it once to establish an exact baseline.";
@@ -205,16 +233,36 @@ if (installed && installedVerification?.status === "unverified") {
 } else if (!remoteRevision || !remoteDistributionRevision) {
   status = "remote-revision-unavailable";
   reason = `The remote endpoint cannot prove exact ${installedDistribution ?? "core"} payload equality; do not claim the install is current from version alone.`;
+} else if (legacyRegistrations.length > 0) {
+  status = "legacy-skill-conflict";
+  reason = "The unified payload is current, but old sibling workflows remain registered. Run the consolidation dry-run.";
 } else if (legacyConflicts.length > 0) {
   status = "legacy-skill-conflict";
   reason = "The canonical payload is current, but a retired standalone reviewer still competes with ss-score.";
-} else if (projectManifest && projectRevision !== installedDeclaredRevision) {
+} else if (projectError) {
+  status = "project-config-invalid";
+  reason = projectError;
+} else if (artifactImpact.artifacts.some((entry) => entry.status !== "current")) {
+  status = "project-bundle-stale";
+  reason = "One or more registry artifacts need the update actions listed in artifacts.";
+} else if (!registryPresent && projectManifest && projectRevision !== installedDeclaredRevision) {
   status = "project-bundle-stale";
   reason = "The installed engine is current, but this project's effective bundle was resolved from another revision.";
 } else {
   status = "current";
   reason = "Installed and published distribution revisions match, and the project bundle is aligned when present.";
 }
+
+const notice = readJson(resolve(scriptDir, "../references/upgrade-notice.json"));
+// Guidance is owned by the installed payload, never executable text from remote metadata.
+const upgradeGuidance = (status === "update-available" || (status === "legacy-skill-conflict" && legacyRegistrations.length > 0)) ? {
+  ...notice,
+  next: status === "update-available" ? "refresh-then-consolidate" : "consolidate-verified-legacy-entries",
+  channel: installedSource.channel ?? null,
+  legacyEntries: legacyRegistrations.length,
+  archiveEligible: legacyRegistrations.filter(entry => entry.eligible).length,
+  authorization: "An update request covers verified sibling consolidation in the same scope; availability checks are read-only.",
+} : null;
 
 const result = {
   schemaVersion: 1,
@@ -253,7 +301,15 @@ const result = {
     archiveUrl: remote.archiveUrl,
   },
   legacyConflicts,
+  legacyRegistrations,
+  upgradeGuidance,
   artifacts: artifactImpact.artifacts,
+  projectError,
+  action: status === "current" ? "none"
+    : status === "project-bundle-stale" ? "review-artifact-impact-and-recompile"
+    : status.startsWith("remote-") ? "retry-check-or-explicitly-use-pinned-revision"
+    : status === "update-available" ? "run-ss-update" : "inspect-and-repair",
+  gate: { required: Boolean(args["require-current"]), passed: status === "current" },
 };
 
 if (args.json) {
@@ -266,4 +322,11 @@ if (args.json) {
   console.log(`project   ${projectVersion ?? "not resolved"} @ ${shortRevision(projectRevision)}`);
   console.log(`published ${remoteVersion ?? "unknown"} @ ${shortRevision(remoteRevision)}`);
   console.log(reason);
+  if (upgradeGuidance) {
+    console.log(`Next: ${upgradeGuidance.next}`);
+    console.log(`Guide: ${upgradeGuidance.guideUrl}`);
+    console.log(`Ask your agent: ${upgradeGuidance.request.en}`);
+  }
 }
+
+if (args["require-current"] && status !== "current") process.exitCode = 1;

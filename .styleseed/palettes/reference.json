@@ -32,9 +32,9 @@
     "primaryAdjustedForContrast": false,
     "accentAdjustedForContrast": false,
     "allocation": {
-      "dominant": "60% canvas and surfaces",
-      "secondary": "30% chrome, type, and supporting structure",
-      "accent": "10% primary/accent emphasis combined"
+      "dominant": "canvas and surfaces",
+      "secondary": "chrome, type, and supporting structure",
+      "accent": "task-appropriate primary/accent emphasis; no universal percentage"
     }
   },
   "ramps": {
@@ -171,11 +171,11 @@
       "#055B42",
       "#216586"
     ],
-    "hierarchy": "background dominant; primary identifies the product/action; accent is rare supporting emphasis",
+    "hierarchy": "Assign background, primary, and accent emphasis to the approved image role and content; preserve readable relationships without a fixed area ratio",
     "avoid": [
-      "equal-area competing accents",
-      "rainbow category decoration",
-      "text baked into generated imagery"
+      "color roles that conflict with the approved task or brand",
+      "decorative color that obscures content or state meaning",
+      "essential text baked into generated imagery"
     ]
   },
   "reasoning": [

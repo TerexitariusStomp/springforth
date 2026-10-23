@@ -5,6 +5,9 @@ argument-hint: "(no arguments needed)"
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch
 ---
 
+Before this workflow, follow the once-per-session [update preflight](../ss-update/references/update-preflight.md).
+
+
 # StyleSeed setup
 
 StyleSeed setup chooses a **design method for the result**, not a favorite brand to imitate.
@@ -81,6 +84,14 @@ an unbounded mood word. Then confirm light/dark mode, `neutral|warm|cool` surfac
 `auto|tonal|adjacent|contrast` accent relationship. Confirm font/language, density, radius,
 elevation, imagery/data role, and motion inside the grammar's allowed ranges. Do not use generic
 indigo or a stale purple mislabeled as Toss.
+
+### 7a. Spatial relationships
+
+Explain the intended groups and spacing tradeoff before selecting numbers. Preserve existing
+spacing tokens. For registry product UI, use the resolver's [spatial roles guide](../ss-resolve/references/spacing.md)
+to recommend and persist page inset, section/group/stack/inline gaps, and component inset separately.
+Keep typography and hit targets independent. Legacy setup keeps native tokens; do not invent
+unparsed lock fields. Recommendations are starting proposals, not approved or measured quality.
 
 ### 8. Write the design lock
 

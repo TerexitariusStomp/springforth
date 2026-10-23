@@ -1,3 +1,4 @@
+import { normalizeSpacing } from "./spacing-contract.mjs";
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
@@ -144,7 +145,7 @@ export function safeProjectPath(projectRoot, relativePath) {
 }
 
 export function normalizeProject(input, catalog) {
-  exactObject(input, ["schemaVersion", "projectId", "defaults", "brand"], "project");
+  exactObject(input, ["schemaVersion", "projectId", "defaults", "brand", "spacing"], "project");
   if (required(input.schemaVersion, "project.schemaVersion") !== 1) fail("project.schemaVersion must be 1");
   const defaults = exactObject(required(input.defaults, "project.defaults"), ["agent", "domain", "adapter", "recipe", "palette", "profile", "fallback"], "project.defaults");
   const brand = exactObject(required(input.brand, "project.brand"), ["keyColor", "paletteCharacter", "paletteMode", "paletteHarmony", "surfaceTemperature", "fontFamilies", "radius", "elevation", "density", "motion", "imageryRole"], "project.brand");
@@ -157,6 +158,7 @@ export function normalizeProject(input, catalog) {
   if (typeof brand.keyColor !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(brand.keyColor)) fail("keyColor must be six-digit hex");
   return {
     schemaVersion: 1,
+    ...(input.spacing === undefined ? {} : { spacing: normalizeSpacing(input.spacing, "project.spacing") }),
     projectId: id(required(input.projectId, "project.projectId"), "project.projectId"),
     defaults: {
       agent: oneOf(required(defaults.agent, "defaults.agent"), enums.agents, "defaults.agent"),
@@ -199,13 +201,14 @@ export function normalizeIndex(input) {
 }
 
 export function normalizeArtifact(input, project, catalog) {
-  exactObject(input, ["schemaVersion", "id", "target", "selection", "decisions", "implementation", "validation"], "artifact");
+  exactObject(input, ["schemaVersion", "id", "target", "selection", "decisions", "implementation", "validation", "spacing"], "artifact");
   if (input.schemaVersion !== 1) fail("artifact.schemaVersion must be 1");
+  if (input.spacing !== undefined && (input.selection?.adapter ?? project.defaults.adapter) !== "product-ui") fail("Artifact spacing currently supports product-ui only");
   const target = exactObject(required(input.target, "artifact.target"), ["kind", "locator"], "artifact.target");
   const selection = exactObject(required(input.selection, "artifact.selection"), ["grammar", "adapter", "domain", "page", "recipe", "palette", "profile", "fallback"], "artifact.selection");
   const decisions = exactObject(required(input.decisions, "artifact.decisions"), ["primaryDecision", "primaryAction", "signatureMove"], "artifact.decisions");
   const implementation = exactObject(required(input.implementation, "artifact.implementation"), ["sourceRoots", "tokenFiles"], "artifact.implementation");
-  const validation = exactObject(required(input.validation, "artifact.validation"), ["scoreFloor", "requiredRenders", "temporal", "humanAcceptance"], "artifact.validation");
+  const validation = exactObject(required(input.validation, "artifact.validation"), ["scoreFloor", "requiredRenders", "temporal", "humanAcceptance", "functional"], "artifact.validation");
   const temporal = exactObject(required(validation.temporal, "validation.temporal"), ["required", "scenarios"], "validation.temporal");
   const kind = oneOf(required(target.kind, "target.kind"), enums.targetKind, "target.kind");
   let locator;
@@ -229,11 +232,20 @@ export function normalizeArtifact(input, project, catalog) {
   const scenarios = temporal.scenarios.map((scenario) => id(scenario, "temporal scenario"));
   if (new Set(scenarios).size !== scenarios.length) fail("temporal scenarios contain duplicate IDs");
   if (!temporal.required && scenarios.length) fail("temporal scenarios require temporal.required=true");
+  let functional;
+  if (validation.functional !== undefined) {
+    exactObject(validation.functional, ["scenarios"], "validation.functional");
+    if (!Array.isArray(validation.functional.scenarios) || !validation.functional.scenarios.length) fail("functional scenarios must not be empty");
+    const ids = validation.functional.scenarios.map((scenario) => id(scenario, "functional scenario"));
+    if (new Set(ids).size !== ids.length) fail("functional scenarios contain duplicate IDs");
+    functional = { scenarios: ids.sort() };
+  }
   if (!Number.isInteger(validation.scoreFloor) || validation.scoreFloor < 80 || validation.scoreFloor > 100) fail("scoreFloor must be 80-100");
   if (typeof validation.humanAcceptance !== "boolean") fail("humanAcceptance must be boolean");
   return {
     schemaVersion: 1,
     id: id(input.id, "artifact.id"),
+    ...(input.spacing === undefined ? {} : { spacing: normalizeSpacing(input.spacing, "artifact.spacing") }),
     target: { kind, locator },
     selection: {
       grammar: grammarId(catalog, selection.grammar, "selection.grammar"),
@@ -247,7 +259,7 @@ export function normalizeArtifact(input, project, catalog) {
     },
     decisions: { primaryDecision: text(decisions.primaryDecision, "primaryDecision"), primaryAction: text(decisions.primaryAction, "primaryAction"), signatureMove: text(decisions.signatureMove, "signatureMove") },
     implementation: { sourceRoots: implementation.sourceRoots.map((path) => projectPath(path, "sourceRoot")).sort(), tokenFiles: implementation.tokenFiles.map((path) => projectPath(path, "tokenFile")).sort() },
-    validation: { scoreFloor: validation.scoreFloor, requiredRenders, temporal: { required: temporal.required, scenarios: [...new Set(scenarios)].sort() }, humanAcceptance: validation.humanAcceptance },
+    validation: { scoreFloor: validation.scoreFloor, requiredRenders, temporal: { required: temporal.required, scenarios: [...new Set(scenarios)].sort() }, humanAcceptance: validation.humanAcceptance, ...(functional ? { functional } : {}) },
   };
 }
 

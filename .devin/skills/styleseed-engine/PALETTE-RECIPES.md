@@ -43,15 +43,26 @@ node engine/color/generate-palette.mjs \
 - **Character precedes harmony.** Lightness and chroma determine calm, intensity, depth, and
   legibility more reliably than complementary or triadic hue geometry alone.
 - **Key hue is preserved.** Out-of-gamut colors reduce chroma at fixed lightness and hue instead
-  of clipping RGB channels and shifting identity.
+  of clipping RGB channels and shifting identity. An achromatic key (black, charcoal, grey) has no
+  hue to preserve: its primary stays ink in light mode and paper in dark mode, neutral surfaces
+  stay untinted, and only the companion accent carries hue.
 - **Companions are scored.** Candidate hues are evaluated for distance from the key and reserved
   success, warning, and danger families. `auto` changes its search envelope by character.
 - **Roles are derived.** Reference ramps feed stable semantic tokens; components never consume
   arbitrary swatches directly.
 - **Contrast corrects the result.** Text/fill and focus pairs are checked after role mapping. A
   failing fill moves in lightness while retaining its hue identity.
-- **Allocation stays bounded.** Canvas and surfaces dominate, structural color supports, and
-  primary plus companion emphasis stays near ten percent of the rendered field.
+- **Allocation follows the task.** Choose relative canvas, structural, and accent emphasis for
+  the selected grammar and approved color roles. A neutral canvas with restrained accents is
+  one valid option; brand-led or categorical content may allocate color differently. Preserve
+  readable hierarchy and contrast without imposing a universal surface-area percentage.
+
+A generated `valid` result covers the declared role pairs only. Actual consumers, state colors,
+required control boundaries, and photo/gradient backgrounds need their own applicability and render
+checks. Reuse existing project tokens and follow the
+[applied color procedure](.claude/skills/styleseed/workflows/ss-verify/references/applied-checks.md#color-inspect-the-consumer-state-and-background).
+Generated-media anchors support the approved image role; they do not impose a universal background
+or accent area hierarchy on categorical, editorial, or multicolor brand content.
 
 The deterministic output records inputs, normalized OKLCH, chosen accent logic, ramps, semantic
 roles, contrast evidence, generated-media anchors, and CSS variables. The eight built-ins remain
@@ -128,7 +139,7 @@ For each direction state:
 
 1. palette recipe ID and product reason;
 2. navigation chrome ↔ content canvas relationship;
-3. primary/action usage and maximum visual share;
+3. primary/action usage and task-specific visual emphasis; use area observations only when useful;
 4. semantic status mapping and non-color cue;
 5. generated-image anchor colors and colors to avoid;
 6. contrast validation result and any project override requiring revalidation.

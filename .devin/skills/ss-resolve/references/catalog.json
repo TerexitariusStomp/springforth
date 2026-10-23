@@ -1,7 +1,7 @@
 {
   "schemaVersion": 5,
-  "engineVersion": "4.2.0",
-  "engineRevision": "sha256:eeb89d12b518c178162f72ffe39a7126dd611953d2f66be0f5507de1bfbe7073",
+  "engineVersion": "5.0.0",
+  "engineRevision": "sha256:101258147c3c950ad2e65971ebb5a5cfc41753cf0ba3d4a199ba9ec8ba773f2e",
   "distributionSource": {
     "schemaVersion": 1,
     "channel": "edge",
@@ -10,7 +10,7 @@
   },
   "distributions": {
     "core": {
-      "revision": "sha256:eeb89d12b518c178162f72ffe39a7126dd611953d2f66be0f5507de1bfbe7073",
+      "revision": "sha256:101258147c3c950ad2e65971ebb5a5cfc41753cf0ba3d4a199ba9ec8ba773f2e",
       "files": [
         {
           "path": "LICENSE",
@@ -23,324 +23,404 @@
           "bytes": 1951
         },
         {
-          "path": "engine/.claude/skills/ss-a11y/SKILL.md",
-          "sha256": "866c41a61b6b295b84d000938c3380171f527c7610ac17367c93e3eb7111595f",
-          "bytes": 3405
+          "path": "engine/.claude/skills/styleseed/SKILL.md",
+          "sha256": "84b77a89d2652ef39f9a2e464d33197c199740ea9ef8a899a0bb89d71e2dfe09",
+          "bytes": 4581
         },
         {
-          "path": "engine/.claude/skills/ss-audit/SKILL.md",
-          "sha256": "77dd98c3cc465a1013f3f8d9dd19451c611449c25c302ca3a095946193083ab6",
-          "bytes": 5270
+          "path": "engine/.claude/skills/styleseed/workflows/ss-a11y/WORKFLOW.md",
+          "sha256": "dbd5d76fb24d7895878d9c020e3fa7973644534ca7b702ca1cdffce509b8fb66",
+          "bytes": 3731
         },
         {
-          "path": "engine/.claude/skills/ss-build/SKILL.md",
-          "sha256": "79a9d4130284675cead5ed24ed9ac91b923dccb60f8710b0613088294a711169",
-          "bytes": 4986
+          "path": "engine/.claude/skills/styleseed/workflows/ss-audit/WORKFLOW.md",
+          "sha256": "ee7ad01db0f2aed1659130981c14612ffcec7e7bfab54403290fa54c7435f8d5",
+          "bytes": 6959
         },
         {
-          "path": "engine/.claude/skills/ss-component/SKILL.md",
-          "sha256": "440e228e5175804a471bfc953206c9f81dbfa0f464f7d27fc8dc117d7c0cafd0",
-          "bytes": 5065
+          "path": "engine/.claude/skills/styleseed/workflows/ss-build/WORKFLOW.md",
+          "sha256": "4702411b149f9de1620353b24572d913b72f8b79ad4630aa121a8536272e1425",
+          "bytes": 6770
         },
         {
-          "path": "engine/.claude/skills/ss-copy/SKILL.md",
-          "sha256": "1e946cca20fe590814a40650880838a0d6fdb8e8432135d12dd56c077a89305a",
-          "bytes": 3774
+          "path": "engine/.claude/skills/styleseed/workflows/ss-component/WORKFLOW.md",
+          "sha256": "b4626d31b4ecde7faaf0923d12c632afa525b5db229ea23b97dea16e5097a5c0",
+          "bytes": 5329
         },
         {
-          "path": "engine/.claude/skills/ss-dial/SKILL.md",
-          "sha256": "cb2961f041fc3ece017fec2835c197d5d4d8eb806c70ca1ecedaea1aa422dfbe",
-          "bytes": 9914
+          "path": "engine/.claude/skills/styleseed/workflows/ss-copy/WORKFLOW.md",
+          "sha256": "404d52914d488257f3633692d1e7edf355261fb6452a7299a4adb59e92640b8c",
+          "bytes": 3953
         },
         {
-          "path": "engine/.claude/skills/ss-feedback/SKILL.md",
-          "sha256": "0668bc271a8c4e45ff412c1671cf5b11c88073b5c0af8d2549303dd102d1e3e6",
-          "bytes": 3689
+          "path": "engine/.claude/skills/styleseed/workflows/ss-dial/WORKFLOW.md",
+          "sha256": "e18013d71d9c699d170b79eee06334f5ec502ee274139827c8580cc92f1713cc",
+          "bytes": 11220
         },
         {
-          "path": "engine/.claude/skills/ss-flow/SKILL.md",
-          "sha256": "f4c16d0daa05b4ccfe03a03b8aaa960dcc84f87a3bac2c7563858d22a3fcc1d1",
-          "bytes": 3219
+          "path": "engine/.claude/skills/styleseed/workflows/ss-feedback/WORKFLOW.md",
+          "sha256": "c50b4cea7e8bc1d06945b96cf19ba12734c818674fe7ff8ac910c0e09f647d2d",
+          "bytes": 3806
         },
         {
-          "path": "engine/.claude/skills/ss-lint/SKILL.md",
-          "sha256": "d7949e53db1dbd5a9324f5938d8da8366a47d5ffb91d0f417c430d87d56bae9b",
-          "bytes": 4619
+          "path": "engine/.claude/skills/styleseed/workflows/ss-flow/WORKFLOW.md",
+          "sha256": "e4248ea741a6ce308f1b1339e8fe2167f2532d56e6a1b80c97211879e2ad633d",
+          "bytes": 3336
         },
         {
-          "path": "engine/.claude/skills/ss-motion/SKILL.md",
-          "sha256": "50aa240d681a68cec4c493dd0230e3046d8ed2b62a66334a68f540353f88f0c9",
-          "bytes": 10417
+          "path": "engine/.claude/skills/styleseed/workflows/ss-lint/WORKFLOW.md",
+          "sha256": "ed61af821b2bd0771ce1f724edc9efa111e7a92260bc83629e513d736a37e81b",
+          "bytes": 5253
         },
         {
-          "path": "engine/.claude/skills/ss-page/SKILL.md",
-          "sha256": "261403a913978cd289e06686c99e0f8d3d8d0674749121ec1ca528b63ed1f9e9",
-          "bytes": 3766
+          "path": "engine/.claude/skills/styleseed/workflows/ss-motion/WORKFLOW.md",
+          "sha256": "26db36012732ad37bc019c42c052b57a3aac50e1ef0075681da0f94b7fedd60c",
+          "bytes": 11269
         },
         {
-          "path": "engine/.claude/skills/ss-pattern/SKILL.md",
-          "sha256": "9532150f6732c541a00fdedf428b07a7e9895b47ecd56d4b02d17020a2b5bcca",
-          "bytes": 3086
+          "path": "engine/.claude/skills/styleseed/workflows/ss-page/WORKFLOW.md",
+          "sha256": "1898f1f98adde68f3d5d1d4c75dfdc04e5d0cbca4ac1bbca6968a0a90d8508f1",
+          "bytes": 4656
         },
         {
-          "path": "engine/.claude/skills/ss-reference/SKILL.md",
-          "sha256": "1575bbb98c05958c01a0b80e59be650a40f877eba3ef0ed37023e7a7df567846",
-          "bytes": 2638
+          "path": "engine/.claude/skills/styleseed/workflows/ss-pattern/WORKFLOW.md",
+          "sha256": "40cde775439ab447645e814529a22f2b76e32cb8e84b92f0c41ee91e92cfb0c5",
+          "bytes": 3600
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/SKILL.md",
-          "sha256": "678a94a773ab39a002288aa3c586cee7ded9ad3f6ee06c61d56de89b725dc306",
-          "bytes": 4258
+          "path": "engine/.claude/skills/styleseed/workflows/ss-reference/WORKFLOW.md",
+          "sha256": "3f7abb1f1d01d2a682cdc346cfc5723c65af1a86d40ff03e723141a3cb9a582e",
+          "bytes": 3986
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/artifact-index.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/WORKFLOW.md",
+          "sha256": "5bf33cfe9b1430a77c41f63d7c7e70296b1e54b600239b4a4bff121473d4bc0b",
+          "bytes": 5360
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/artifact-index.schema.json",
           "sha256": "22239cff0acc869e333fef72437d323a6e7c708fefbd6a51e6ea35189660fa38",
           "bytes": 639
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/artifact.schema.json",
-          "sha256": "53e7755ea2956ea0a29477aa35ad28796ec09fca05dacc8ce855ff31a5bcb1d2",
-          "bytes": 4535
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/artifact.schema.json",
+          "sha256": "d8ccb2e35c14ea2f6dd9846a3680cbe3b7920de75f63b6e9b1268f76680ae9b4",
+          "bytes": 5723
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/manifest.schema.json",
-          "sha256": "894f9bff3146df9ad1d7391e1de87c69339cae69b58086d3819d7568abf486de",
-          "bytes": 2221
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/manifest.schema.json",
+          "sha256": "ab8f7444fc6949ecc9ce9147389f2867e60cab012700c526c6461407ca40e6db",
+          "bytes": 2334
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/project.schema.json",
-          "sha256": "ec1fc187d0ebe2c627d68e322a8dd07c74a1696504a82054d1725bd9ad341b23",
-          "bytes": 3279
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/migration.md",
+          "sha256": "d2b6d9603e71450183014912876f972f25126c107812f0ea98917c15882aa83c",
+          "bytes": 3129
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/compiler.mjs",
-          "sha256": "0a0469345d9c553b2912b09ff0663297dfd8e0db60b294e6c48406cfd737749b",
-          "bytes": 19123
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/project.schema.json",
+          "sha256": "f25d06166f66918ea2c3c75aeb89524f8761f0824c9b35fc51ce1e802f7a95a9",
+          "bytes": 4242
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/distribution-integrity.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/spacing.md",
+          "sha256": "5216a8d8bfadbdbb4647ab8713d06f121fda3224607a9d624c3923dbae29a1ec",
+          "bytes": 11859
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/compiler.mjs",
+          "sha256": "0924182f430e61710d7ebe96216e6fa4f3a13ad79ce0c1f98ed34ebaa2b7e578",
+          "bytes": 19535
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/distribution-integrity.mjs",
           "sha256": "067f80bb2f6b881e840c5c3e7ffe00bc1d744fb477059c887ea23cabc981e1ba",
           "bytes": 6480
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/migrate-project.mjs",
-          "sha256": "3dd61030a9925f4128c95d3f8948986b082af77ed5f313400846e80b072dc6d3",
-          "bytes": 17044
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/legacy-lock-analysis.mjs",
+          "sha256": "99d0489e6b760a56a64ae9314944004861fbd9bd0ab43f799e2ac87147f9abaf",
+          "bytes": 3927
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/palette-generator.mjs",
-          "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-          "bytes": 14209
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/migrate-project.mjs",
+          "sha256": "f6966868a16f78352dc2abcd031d90553e63ab51ae60ab8d49845309ad6e2368",
+          "bytes": 34820
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/project-registry.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/palette-generator.mjs",
+          "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+          "bytes": 15077
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/project-registry.mjs",
           "sha256": "bceb386c75778fdfd5f91253af4cbb5f349c28c063392bb986a8a6e6df6217c5",
           "bytes": 3449
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/resolve-context.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/recommend-spacing.mjs",
+          "sha256": "58d386423baab3eebf1093b59635662345a33f49259580394682507ea15e388a",
+          "bytes": 2127
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/resolve-context.mjs",
           "sha256": "834b9acc27137a86b1fbd210703a00d8a32e62df9d74760a1a7d3550b790e92a",
           "bytes": 16677
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/runtime-contract.mjs",
-          "sha256": "d1e26fe07911b6dd640bf7514b955b41c159264dfa6dc6b0cd60103cef40c611",
-          "bytes": 17130
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/runtime-contract.mjs",
+          "sha256": "99168be4e2511b378e41e81f8fa33c57f5b4abe19645c492654f1e0c669ab097",
+          "bytes": 18191
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/styleseed-doctor.mjs",
-          "sha256": "4765d74f759ef10e8c9adb9807d65467e3f08a3f238bbb6d3ec4bf95ccb5bc1f",
-          "bytes": 10161
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/spacing-contract.mjs",
+          "sha256": "275cc123618266e730082569d3d612220a98621eea2745c861d04252dbeeeb24",
+          "bytes": 8229
         },
         {
-          "path": "engine/.claude/skills/ss-restyle/SKILL.md",
-          "sha256": "fa451824b42a802728897111a02820fb4b4573d9f48be4c0dbfd40a2bb85a07e",
-          "bytes": 2202
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/spacing-measurement.mjs",
+          "sha256": "b486ff21c778f4b4b1402df92ff0e09f961ca74670e0e32b188ce3d7361aadcf",
+          "bytes": 6424
         },
         {
-          "path": "engine/.claude/skills/ss-review/SKILL.md",
-          "sha256": "e543a87448660c79abd66576768847348fde0200543a28a1a8f9be815ffba6b1",
-          "bytes": 5520
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/styleseed-doctor.mjs",
+          "sha256": "8324345d792a67af6957fbc2079d9ec2a663d1a58b751c71639db3ee6d5f45e9",
+          "bytes": 11917
         },
         {
-          "path": "engine/.claude/skills/ss-score/SKILL.md",
-          "sha256": "c8a8bb0e903afdf66b583f148f9392fec56ee09bb96d2b63da2fd604f243f346",
-          "bytes": 12500
+          "path": "engine/.claude/skills/styleseed/workflows/ss-restyle/WORKFLOW.md",
+          "sha256": "86ddf842f018bb6cf579c18a0eae9f2d5466692c32346266f030f2d03db41b5a",
+          "bytes": 2319
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/acceptance-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-review/WORKFLOW.md",
+          "sha256": "79a91639a3ef4f0633317c6c8423e21204d6ccc2ffb730df1369b0b2c3dc6061",
+          "bytes": 7718
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/WORKFLOW.md",
+          "sha256": "b7e0c4c0930b2e8de7c3c788d275cb995eeb7dbcbd4d97274447b47b7ad5c6b9",
+          "bytes": 15925
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/acceptance-report.schema.json",
           "sha256": "e7214f274ebced91c0dae084f7306a9b42a186ea64cb75aaa2fd9eb2a87ed46f",
           "bytes": 434
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/code-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/code-report.schema.json",
           "sha256": "318bab68589e7b065cb4944d65d7dcf0070ca0861d9e94fc958a30347d7d66ce",
           "bytes": 344
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/deterministic-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/deterministic-report.schema.json",
           "sha256": "0c37c923772377ed2d770cedb4de8dd6d26ff773ff6b596d6a840114b665a985",
           "bytes": 350
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/gate-run.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/functional-checks.md",
+          "sha256": "24dd0cd931c2e52cea83643cb99eb672d3c1cc292de31efb147ebeb0af5e2a35",
+          "bytes": 4392
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/gate-run.schema.json",
           "sha256": "6327078f855176822d6e3f4013ddf6bf23849633c072565e5a3a2f79518d7181",
           "bytes": 1738
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/temporal-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/temporal-report.schema.json",
           "sha256": "44b5c39926719d2022a2e5c057c2c3ed1fd7f65397e5b5fb07a4090fde2cba95",
           "bytes": 276
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/visual-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/visual-report.schema.json",
           "sha256": "5dc1fd0eb0015c56c7a1be244f6f20933349b873378c852553d20f9e1a167159",
           "bytes": 301
         },
         {
-          "path": "engine/.claude/skills/ss-score/scripts/evidence-contract.mjs",
-          "sha256": "6a74b4a692963cbb8a58b19ead4cfa16b9ed8b990c99c4cb4ba5cdcf2e0b38be",
-          "bytes": 14337
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/evidence-contract.mjs",
+          "sha256": "14f8ae1e8b8e27c51d7b324d6304fce5f4e733fc06d6f129d2c0e7a51310f6d1",
+          "bytes": 15944
         },
         {
-          "path": "engine/.claude/skills/ss-score/scripts/evidence-gate.mjs",
-          "sha256": "d58692cb1ed42dd8204a0952737eaa104b37eff1350663269c331f7179c65718",
-          "bytes": 16860
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/evidence-gate.mjs",
+          "sha256": "1dee383239ca6376ca830fad1b010508c93de043e28efa15967824b4e471948b",
+          "bytes": 18076
         },
         {
-          "path": "engine/.claude/skills/ss-score/scripts/styleseed-check.mjs",
-          "sha256": "6c06648e9925bcff5e80180ddeff477ada11b54f9b86fbbbdf775836988bb1ea",
-          "bytes": 13478
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/functional-reporter.mjs",
+          "sha256": "dad3ecc68e21b4f94cfcb07238a4acf46f0d9681d6e2f82ab943af100684f732",
+          "bytes": 203
         },
         {
-          "path": "engine/.claude/skills/ss-setup/SKILL.md",
-          "sha256": "fd25cbebb6d32e2c9f7c30f089d0b8f11019954e7c2c9c3896a0f49960b3e9ed",
-          "bytes": 6493
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/functional-results.mjs",
+          "sha256": "392feefd458c2c1d80d77c485bb8ded988d71a6f92e156e650a35fa1973745ae",
+          "bytes": 1683
         },
         {
-          "path": "engine/.claude/skills/ss-studio/SKILL.md",
-          "sha256": "4e97714d2f757c06ee3b3ba8692ef5edace25cedc4e97b21d8033c265825b513",
-          "bytes": 7034
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/run-functional-tests.mjs",
+          "sha256": "ef833706ec391d3c199ae7b34fcbf8a875aa3e9ba7ba57e22108d327bdea7e16",
+          "bytes": 5859
         },
         {
-          "path": "engine/.claude/skills/ss-studio/agents/openai.yaml",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/styleseed-check.mjs",
+          "sha256": "3e44341fea3c4a9dabd1a87658bf12ec01644cb31f02e53be0b9315fb847b0c0",
+          "bytes": 13522
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-setup/WORKFLOW.md",
+          "sha256": "84f64b7ba68329c45ad3c39293b82c5aac83bffabdc5a0eb67b05f9dacd06d12",
+          "bytes": 7145
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/WORKFLOW.md",
+          "sha256": "efc74af49fc84a7f00746d7d220ec928bfd7b6e168a03fde0c17760fa8416937",
+          "bytes": 6949
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/agents/openai.yaml",
           "sha256": "03001a5bba8a50f13c1b36f1624b60794f25521f43ed680133803b87af0d5f82",
           "bytes": 372
         },
         {
-          "path": "engine/.claude/skills/ss-studio/references/artifact-contract.md",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/references/artifact-contract.md",
           "sha256": "98a20c0a7cd4299ab6a81852d710f4540b6b1a73cfc53b5d52a6744010065766",
           "bytes": 4393
         },
         {
-          "path": "engine/.claude/skills/ss-studio/references/provider-adapters.md",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/references/provider-adapters.md",
           "sha256": "2447093b277509bfa9f73a194bf90e136cac3464085a23b0ddb3ba27e39ad421",
           "bytes": 1803
         },
         {
-          "path": "engine/.claude/skills/ss-studio/scripts/studio-run.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/scripts/studio-run.mjs",
           "sha256": "4369429176cc35ce88d88c90981045f2070a49868dc5685d063c15ffa0a2189b",
           "bytes": 19179
         },
         {
-          "path": "engine/.claude/skills/ss-tokens/SKILL.md",
-          "sha256": "7b2d47255cb83f7674cefa79991ccb2b0b6a716c3c6536ee2aa7e3ff6c2d0583",
-          "bytes": 4073
+          "path": "engine/.claude/skills/styleseed/workflows/ss-tokens/WORKFLOW.md",
+          "sha256": "4c176cf1652c3025ecf8fa7cb56fad55d5985f7359cf385619922e427d6a7f34",
+          "bytes": 4525
         },
         {
-          "path": "engine/.claude/skills/ss-tokens/scripts/generate-palette.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-tokens/scripts/generate-palette.mjs",
           "sha256": "001de08269e3065d7e08e79bd64530f1bc56c4b4f0aaa6dd40ee0ae7f539a819",
           "bytes": 2545
         },
         {
-          "path": "engine/.claude/skills/ss-tokens/scripts/generator.mjs",
-          "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-          "bytes": 14209
+          "path": "engine/.claude/skills/styleseed/workflows/ss-tokens/scripts/generator.mjs",
+          "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+          "bytes": 15077
         },
         {
-          "path": "engine/.claude/skills/ss-update/SKILL.md",
-          "sha256": "daeaa0c0a210e951ac55e2e03161efd3be3ad74c6928a1c620a25690bfe06e6e",
-          "bytes": 9159
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/WORKFLOW.md",
+          "sha256": "9c8152db33cfb6b445271f4db936fea726b5db2927d9f66d5d17d7e1e9f9e007",
+          "bytes": 12885
         },
         {
-          "path": "engine/.claude/skills/ss-update/scripts/artifact-impact.mjs",
-          "sha256": "e10b5da5a58ebd73552c162cd5b7b1cbb0a97a7c1bac33f22026e9836c21969d",
-          "bytes": 6241
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/references/update-preflight.md",
+          "sha256": "fb891abd9e3ef165cb45e6c9a73516e5877c14e35919fcf1dab7f2725c7ab4f3",
+          "bytes": 3596
         },
         {
-          "path": "engine/.claude/skills/ss-update/scripts/check-update.mjs",
-          "sha256": "642331d8d91d06109e537eea76a8ad97ec9913b8ecdf64e285a3b7547dea3595",
-          "bytes": 11238
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/references/upgrade-notice.json",
+          "sha256": "3a35b56fba12ed50e61ebac824249294dcafe3326c40726f178b0b67d3568642",
+          "bytes": 1619
         },
         {
-          "path": "engine/.claude/skills/ss-verify/SKILL.md",
-          "sha256": "dc4fe9918b6b4543e294ecd5983a1e19faf5a4c93ce505c45880774f5b5c7ade",
-          "bytes": 9241
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/scripts/artifact-impact.mjs",
+          "sha256": "d2f9224c02b11fa71771902cde9c453a0500b532a77ad9bc5d6538f4e91156fa",
+          "bytes": 6626
         },
         {
-          "path": "engine/.claude/skills/styleseed/SKILL.md",
-          "sha256": "10ffdaefbd174a1e3f4f32e2ce7623ae7c0e81241f788050edc79d13204180cc",
-          "bytes": 4504
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/scripts/check-update.mjs",
+          "sha256": "f7fb1bf8541e39c33be3b2988d59df032db5f14830da50ab6bc78ff9cf289e80",
+          "bytes": 15013
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/scripts/consolidate-skills.mjs",
+          "sha256": "596cb16844a18722ce5ab57d8eeed42be54f16543f53b77adae199a1fcc07265",
+          "bytes": 6327
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/WORKFLOW.md",
+          "sha256": "ff3137b7335c22de06289bb7a7c99ebdfc746394bfe7089378a766f8864f9c3e",
+          "bytes": 12003
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/references/applied-checks.md",
+          "sha256": "cfff446e4d8637cd8439408d55ad2e2a780b476027a4b5b2f91f2ced07056db2",
+          "bytes": 11352
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/scripts/inspect-appearance.mjs",
+          "sha256": "995d5c99df71c83131864e38b285fea03da45d4c402c63ccab08f8cbe8064b35",
+          "bytes": 12269
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/scripts/inspect-spacing.mjs",
+          "sha256": "88499bb31060728a4d13548fc76f291d975b33f9a80a9513e2aa0beeb3becc9c",
+          "bytes": 6722
         },
         {
           "path": "engine/.cursorrules",
-          "sha256": "63656a3da7b08c8ca4679baaf6f5ecdcd61981bae697ed1662f0f9ad2c6bfed0",
-          "bytes": 3111
+          "sha256": "2817da36006d6d427dc9aba02d634f18f3fafc79e9eb0dc58d26575414743829",
+          "bytes": 4577
         },
         {
           "path": "engine/ADAPTERS.md",
-          "sha256": "e9f295540d331a517edbf956a1549d24077943cccc7b54532e9a1f7255380d7f",
-          "bytes": 5921
+          "sha256": "5c21aeb3b8fd1fb98e5cda97d75ee72785e0e9fc9ce1d135fd3abf9c72a8bed7",
+          "bytes": 7101
         },
         {
           "path": "engine/AGENTS.md",
-          "sha256": "d18543ab7e39f656e4b09e1e68586e7b77118ce02440cad8973df11045600d93",
-          "bytes": 8871
+          "sha256": "57d76d72feb1b2c5798ea00b5f4c190d246734411ce0985bfa7e2faa836af52c",
+          "bytes": 11405
         },
         {
           "path": "engine/APP-PLAYBOOKS.md",
-          "sha256": "cfa8709498024cab62de55879c1a15e60f2e005a2923f542da7ec3ae574161ed",
-          "bytes": 13880
+          "sha256": "27f377812cf7613f8d0e68da815dd732507ebc6ce938df721d3c78f56189844f",
+          "bytes": 18042
         },
         {
           "path": "engine/ARCHITECTURE.md",
-          "sha256": "48b138a712e582cf3b3b0ed1c921946997ec2de9ee41ecb5f85d984facaa2d5b",
-          "bytes": 9030
+          "sha256": "6ba4c258f96d8c45aa08ed6728e3aab1977b200a4c8ec110af1ceb6f0810b9c2",
+          "bytes": 10928
         },
         {
           "path": "engine/BRAND-RECIPES.md",
-          "sha256": "c942ad7138e00659c757ae9bedb3fb28775265de77e26f1b31017bce7bf1706f",
-          "bytes": 15861
+          "sha256": "0da7bda079d5b61b100825e358956a772a3b9b4610ea5090e6b490ccdbb51e34",
+          "bytes": 16163
         },
         {
           "path": "engine/CLAUDE.md",
-          "sha256": "32e43f9d51a35134a616a8cb8ef8153eadcfda9f46c18fb8e79759f8465dcf7e",
-          "bytes": 50961
+          "sha256": "458736e14613bb3a72b8ecdf7a2102a8c5242d6a3754bdc4286a2de12cac7484",
+          "bytes": 49657
         },
         {
           "path": "engine/CRAFT-BASELINE.md",
-          "sha256": "6b5ac0ee36ae20654d421ac71c373cfe63dbbd626082b62dbe17584fc87f3aa1",
-          "bytes": 3565
+          "sha256": "1ebed484af45bd956207ecc2f74b49882b1ce7d5b8575d85ccb8e9787360863f",
+          "bytes": 4871
         },
         {
           "path": "engine/DESIGN-LANGUAGE.md",
-          "sha256": "d38a33f86be228caf3f55ac79ec204e9bb5839d139f0400b9cfbcffc07b9a4ab",
-          "bytes": 107295
+          "sha256": "2dc7196fafcd06dcbd298c9e5e10059cd03d054b447923f534cef7d2657b8fd9",
+          "bytes": 97876
         },
         {
           "path": "engine/METHODOLOGY.md",
-          "sha256": "cc5154aa5b688c8b74ee4f794c1675b81157c9c879272ad20b419fb29a7f487e",
-          "bytes": 16113
+          "sha256": "cd7bd2faa0ce2625be0ea88064c7b5baf99c92cb499fef67e81cb4c434ac7218",
+          "bytes": 14567
         },
         {
           "path": "engine/PAGE-TYPES.md",
-          "sha256": "49e072506100820ac9d779ef8d54b328919a09c8c8ce322c271b99ed8419f0ea",
-          "bytes": 7962
+          "sha256": "762a3ddb8643aec9cb89716183eb3b4c8271697b5eee6e9dde186c851b1bb096",
+          "bytes": 8951
         },
         {
           "path": "engine/PALETTE-RECIPES.md",
-          "sha256": "4c0e7537d577b183ed9acbc7be5f7477c6178dbae93f5d7a9d302e7e9b28a435",
-          "bytes": 6978
+          "sha256": "729ee86506c37186d7f995f997ffbc691b840743e743906283a112b90ab5784a",
+          "bytes": 8009
         },
         {
           "path": "engine/PRESETS.md",
@@ -349,23 +429,23 @@
         },
         {
           "path": "engine/PRODUCT-PRINCIPLES.md",
-          "sha256": "16ba3f07c940dc0a5e96524e712b668df4f731ffffe4b5c42b2222d195a341f2",
-          "bytes": 7969
+          "sha256": "0b17a8b3e698c218ca51e715e2f695ada148e4229db95c4fbea9528c53ac3237",
+          "bytes": 8401
         },
         {
           "path": "engine/README.md",
-          "sha256": "475805d9d2e26fd31f0182cb2a566a2c9be9333fa168ffa9a973a9ff0e94675c",
-          "bytes": 2086
+          "sha256": "132f462053c6fa37604f65231792092b2e6edfeeafa8c313546a3c8979ba8c40",
+          "bytes": 2127
         },
         {
           "path": "engine/REFERENCE-COMPILER.md",
-          "sha256": "17cced4ab383ceda245c094ae457d9ca29b98155d00c4c68d8bd5958e1855e82",
-          "bytes": 3737
+          "sha256": "70919dd41a78478a5639c57761a248ffe32d50f02673206b411d51d7a9d0e741",
+          "bytes": 6137
         },
         {
           "path": "engine/RULESETS.md",
-          "sha256": "7ef0d0286f1b80c0069f931bdbc62ea63fa6fe68f416d5a0c977723f59c0c270",
-          "bytes": 10680
+          "sha256": "724b083bc283c80071ba5af81b96e3b9a85f15264159ede75a42896b2cef20f6",
+          "bytes": 11100
         },
         {
           "path": "engine/STUDIO-PIPELINE.md",
@@ -374,23 +454,23 @@
         },
         {
           "path": "engine/UPDATE.md",
-          "sha256": "2eafeb45c0f207b9c3df6fc84d095be74c758f9e8a1d41abb62fd3bd0d5c3b30",
-          "bytes": 4725
+          "sha256": "f9e30825895e7d1bb82a613ac75a4e7a9454118500d74567b10fa79c371bcbd8",
+          "bytes": 8068
         },
         {
           "path": "engine/UX-WRITING.md",
-          "sha256": "8762afc773f31bfef606e2ddf7dcf5c68a648cfb087822f80b54bddfd063090c",
-          "bytes": 9830
+          "sha256": "27a2a7df9f84ecad8bdd1760a225de4650d376cfc2788f1802bc0681fb63d98b",
+          "bytes": 12870
         },
         {
           "path": "engine/VERSION",
-          "sha256": "8fb33dadbe981cf5847df269c10c2a3fe107f2b269d5ccb6db37d1f61ffc3bba",
+          "sha256": "1cc3d76ac7c21a664e79848fd481e9791016451b244e7de5feeeb9bea5fd2184",
           "bytes": 6
         },
         {
           "path": "engine/VISUAL-CRAFT.md",
-          "sha256": "cf1e820187e4b754a6e36d84e5d6ede54794cad784a0f8685ce9a884f6bae5bf",
-          "bytes": 25351
+          "sha256": "d37731fcbcbcfa3fd7bf08e5ec167be56351373e9fbc9f1bb04bc12f7c5a486c",
+          "bytes": 23445
         },
         {
           "path": "engine/color/generate-palette.mjs",
@@ -399,13 +479,13 @@
         },
         {
           "path": "engine/color/generator.d.mts",
-          "sha256": "2a047fa4c03b6b0a2764e507d31d8f1047533a70b304674a7459a680a71be64d",
-          "bytes": 1780
+          "sha256": "ff5e648a0c7747371135781d379809061c3deebd14e663b0394c16acaca73dd4",
+          "bytes": 1808
         },
         {
           "path": "engine/color/generator.mjs",
-          "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-          "bytes": 14209
+          "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+          "bytes": 15077
         },
         {
           "path": "engine/color/index.ts",
@@ -414,273 +494,353 @@
         },
         {
           "path": "engine/color/palettes.json",
-          "sha256": "d4d52423a078140f672820f13378b8e63f1ab97431542feced7f903927099dc5",
-          "bytes": 8967
+          "sha256": "b2c7eb30c5d3a746d1cd612813d2c111ff04d8864e3f299c13f1d91d4bc605e8",
+          "bytes": 9042
         }
       ]
     },
     "skills": {
-      "revision": "sha256:773778e1151be25c9a51cd66c1749dd70732b0aeaa2bd5dadee65735a4c0eca8",
+      "revision": "sha256:12009b4baea883d23289eac221cd8617cacf1e058fd3dadea9aeac7a9ad1c96b",
       "files": [
         {
-          "path": "engine/.claude/skills/ss-a11y/SKILL.md",
-          "sha256": "866c41a61b6b295b84d000938c3380171f527c7610ac17367c93e3eb7111595f",
-          "bytes": 3405
+          "path": "engine/.claude/skills/styleseed/SKILL.md",
+          "sha256": "84b77a89d2652ef39f9a2e464d33197c199740ea9ef8a899a0bb89d71e2dfe09",
+          "bytes": 4581
         },
         {
-          "path": "engine/.claude/skills/ss-audit/SKILL.md",
-          "sha256": "77dd98c3cc465a1013f3f8d9dd19451c611449c25c302ca3a095946193083ab6",
-          "bytes": 5270
+          "path": "engine/.claude/skills/styleseed/workflows/ss-a11y/WORKFLOW.md",
+          "sha256": "dbd5d76fb24d7895878d9c020e3fa7973644534ca7b702ca1cdffce509b8fb66",
+          "bytes": 3731
         },
         {
-          "path": "engine/.claude/skills/ss-build/SKILL.md",
-          "sha256": "79a9d4130284675cead5ed24ed9ac91b923dccb60f8710b0613088294a711169",
-          "bytes": 4986
+          "path": "engine/.claude/skills/styleseed/workflows/ss-audit/WORKFLOW.md",
+          "sha256": "ee7ad01db0f2aed1659130981c14612ffcec7e7bfab54403290fa54c7435f8d5",
+          "bytes": 6959
         },
         {
-          "path": "engine/.claude/skills/ss-component/SKILL.md",
-          "sha256": "440e228e5175804a471bfc953206c9f81dbfa0f464f7d27fc8dc117d7c0cafd0",
-          "bytes": 5065
+          "path": "engine/.claude/skills/styleseed/workflows/ss-build/WORKFLOW.md",
+          "sha256": "4702411b149f9de1620353b24572d913b72f8b79ad4630aa121a8536272e1425",
+          "bytes": 6770
         },
         {
-          "path": "engine/.claude/skills/ss-copy/SKILL.md",
-          "sha256": "1e946cca20fe590814a40650880838a0d6fdb8e8432135d12dd56c077a89305a",
-          "bytes": 3774
+          "path": "engine/.claude/skills/styleseed/workflows/ss-component/WORKFLOW.md",
+          "sha256": "b4626d31b4ecde7faaf0923d12c632afa525b5db229ea23b97dea16e5097a5c0",
+          "bytes": 5329
         },
         {
-          "path": "engine/.claude/skills/ss-dial/SKILL.md",
-          "sha256": "cb2961f041fc3ece017fec2835c197d5d4d8eb806c70ca1ecedaea1aa422dfbe",
-          "bytes": 9914
+          "path": "engine/.claude/skills/styleseed/workflows/ss-copy/WORKFLOW.md",
+          "sha256": "404d52914d488257f3633692d1e7edf355261fb6452a7299a4adb59e92640b8c",
+          "bytes": 3953
         },
         {
-          "path": "engine/.claude/skills/ss-feedback/SKILL.md",
-          "sha256": "0668bc271a8c4e45ff412c1671cf5b11c88073b5c0af8d2549303dd102d1e3e6",
-          "bytes": 3689
+          "path": "engine/.claude/skills/styleseed/workflows/ss-dial/WORKFLOW.md",
+          "sha256": "e18013d71d9c699d170b79eee06334f5ec502ee274139827c8580cc92f1713cc",
+          "bytes": 11220
         },
         {
-          "path": "engine/.claude/skills/ss-flow/SKILL.md",
-          "sha256": "f4c16d0daa05b4ccfe03a03b8aaa960dcc84f87a3bac2c7563858d22a3fcc1d1",
-          "bytes": 3219
+          "path": "engine/.claude/skills/styleseed/workflows/ss-feedback/WORKFLOW.md",
+          "sha256": "c50b4cea7e8bc1d06945b96cf19ba12734c818674fe7ff8ac910c0e09f647d2d",
+          "bytes": 3806
         },
         {
-          "path": "engine/.claude/skills/ss-lint/SKILL.md",
-          "sha256": "d7949e53db1dbd5a9324f5938d8da8366a47d5ffb91d0f417c430d87d56bae9b",
-          "bytes": 4619
+          "path": "engine/.claude/skills/styleseed/workflows/ss-flow/WORKFLOW.md",
+          "sha256": "e4248ea741a6ce308f1b1339e8fe2167f2532d56e6a1b80c97211879e2ad633d",
+          "bytes": 3336
         },
         {
-          "path": "engine/.claude/skills/ss-motion/SKILL.md",
-          "sha256": "50aa240d681a68cec4c493dd0230e3046d8ed2b62a66334a68f540353f88f0c9",
-          "bytes": 10417
+          "path": "engine/.claude/skills/styleseed/workflows/ss-lint/WORKFLOW.md",
+          "sha256": "ed61af821b2bd0771ce1f724edc9efa111e7a92260bc83629e513d736a37e81b",
+          "bytes": 5253
         },
         {
-          "path": "engine/.claude/skills/ss-page/SKILL.md",
-          "sha256": "261403a913978cd289e06686c99e0f8d3d8d0674749121ec1ca528b63ed1f9e9",
-          "bytes": 3766
+          "path": "engine/.claude/skills/styleseed/workflows/ss-motion/WORKFLOW.md",
+          "sha256": "26db36012732ad37bc019c42c052b57a3aac50e1ef0075681da0f94b7fedd60c",
+          "bytes": 11269
         },
         {
-          "path": "engine/.claude/skills/ss-pattern/SKILL.md",
-          "sha256": "9532150f6732c541a00fdedf428b07a7e9895b47ecd56d4b02d17020a2b5bcca",
-          "bytes": 3086
+          "path": "engine/.claude/skills/styleseed/workflows/ss-page/WORKFLOW.md",
+          "sha256": "1898f1f98adde68f3d5d1d4c75dfdc04e5d0cbca4ac1bbca6968a0a90d8508f1",
+          "bytes": 4656
         },
         {
-          "path": "engine/.claude/skills/ss-reference/SKILL.md",
-          "sha256": "1575bbb98c05958c01a0b80e59be650a40f877eba3ef0ed37023e7a7df567846",
-          "bytes": 2638
+          "path": "engine/.claude/skills/styleseed/workflows/ss-pattern/WORKFLOW.md",
+          "sha256": "40cde775439ab447645e814529a22f2b76e32cb8e84b92f0c41ee91e92cfb0c5",
+          "bytes": 3600
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/SKILL.md",
-          "sha256": "678a94a773ab39a002288aa3c586cee7ded9ad3f6ee06c61d56de89b725dc306",
-          "bytes": 4258
+          "path": "engine/.claude/skills/styleseed/workflows/ss-reference/WORKFLOW.md",
+          "sha256": "3f7abb1f1d01d2a682cdc346cfc5723c65af1a86d40ff03e723141a3cb9a582e",
+          "bytes": 3986
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/artifact-index.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/WORKFLOW.md",
+          "sha256": "5bf33cfe9b1430a77c41f63d7c7e70296b1e54b600239b4a4bff121473d4bc0b",
+          "bytes": 5360
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/artifact-index.schema.json",
           "sha256": "22239cff0acc869e333fef72437d323a6e7c708fefbd6a51e6ea35189660fa38",
           "bytes": 639
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/artifact.schema.json",
-          "sha256": "53e7755ea2956ea0a29477aa35ad28796ec09fca05dacc8ce855ff31a5bcb1d2",
-          "bytes": 4535
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/artifact.schema.json",
+          "sha256": "d8ccb2e35c14ea2f6dd9846a3680cbe3b7920de75f63b6e9b1268f76680ae9b4",
+          "bytes": 5723
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/manifest.schema.json",
-          "sha256": "894f9bff3146df9ad1d7391e1de87c69339cae69b58086d3819d7568abf486de",
-          "bytes": 2221
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/manifest.schema.json",
+          "sha256": "ab8f7444fc6949ecc9ce9147389f2867e60cab012700c526c6461407ca40e6db",
+          "bytes": 2334
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/references/project.schema.json",
-          "sha256": "ec1fc187d0ebe2c627d68e322a8dd07c74a1696504a82054d1725bd9ad341b23",
-          "bytes": 3279
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/migration.md",
+          "sha256": "d2b6d9603e71450183014912876f972f25126c107812f0ea98917c15882aa83c",
+          "bytes": 3129
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/compiler.mjs",
-          "sha256": "0a0469345d9c553b2912b09ff0663297dfd8e0db60b294e6c48406cfd737749b",
-          "bytes": 19123
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/project.schema.json",
+          "sha256": "f25d06166f66918ea2c3c75aeb89524f8761f0824c9b35fc51ce1e802f7a95a9",
+          "bytes": 4242
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/distribution-integrity.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/references/spacing.md",
+          "sha256": "5216a8d8bfadbdbb4647ab8713d06f121fda3224607a9d624c3923dbae29a1ec",
+          "bytes": 11859
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/compiler.mjs",
+          "sha256": "0924182f430e61710d7ebe96216e6fa4f3a13ad79ce0c1f98ed34ebaa2b7e578",
+          "bytes": 19535
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/distribution-integrity.mjs",
           "sha256": "067f80bb2f6b881e840c5c3e7ffe00bc1d744fb477059c887ea23cabc981e1ba",
           "bytes": 6480
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/migrate-project.mjs",
-          "sha256": "3dd61030a9925f4128c95d3f8948986b082af77ed5f313400846e80b072dc6d3",
-          "bytes": 17044
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/legacy-lock-analysis.mjs",
+          "sha256": "99d0489e6b760a56a64ae9314944004861fbd9bd0ab43f799e2ac87147f9abaf",
+          "bytes": 3927
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/palette-generator.mjs",
-          "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-          "bytes": 14209
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/migrate-project.mjs",
+          "sha256": "f6966868a16f78352dc2abcd031d90553e63ab51ae60ab8d49845309ad6e2368",
+          "bytes": 34820
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/project-registry.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/palette-generator.mjs",
+          "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+          "bytes": 15077
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/project-registry.mjs",
           "sha256": "bceb386c75778fdfd5f91253af4cbb5f349c28c063392bb986a8a6e6df6217c5",
           "bytes": 3449
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/resolve-context.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/recommend-spacing.mjs",
+          "sha256": "58d386423baab3eebf1093b59635662345a33f49259580394682507ea15e388a",
+          "bytes": 2127
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/resolve-context.mjs",
           "sha256": "834b9acc27137a86b1fbd210703a00d8a32e62df9d74760a1a7d3550b790e92a",
           "bytes": 16677
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/runtime-contract.mjs",
-          "sha256": "d1e26fe07911b6dd640bf7514b955b41c159264dfa6dc6b0cd60103cef40c611",
-          "bytes": 17130
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/runtime-contract.mjs",
+          "sha256": "99168be4e2511b378e41e81f8fa33c57f5b4abe19645c492654f1e0c669ab097",
+          "bytes": 18191
         },
         {
-          "path": "engine/.claude/skills/ss-resolve/scripts/styleseed-doctor.mjs",
-          "sha256": "4765d74f759ef10e8c9adb9807d65467e3f08a3f238bbb6d3ec4bf95ccb5bc1f",
-          "bytes": 10161
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/spacing-contract.mjs",
+          "sha256": "275cc123618266e730082569d3d612220a98621eea2745c861d04252dbeeeb24",
+          "bytes": 8229
         },
         {
-          "path": "engine/.claude/skills/ss-restyle/SKILL.md",
-          "sha256": "fa451824b42a802728897111a02820fb4b4573d9f48be4c0dbfd40a2bb85a07e",
-          "bytes": 2202
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/spacing-measurement.mjs",
+          "sha256": "b486ff21c778f4b4b1402df92ff0e09f961ca74670e0e32b188ce3d7361aadcf",
+          "bytes": 6424
         },
         {
-          "path": "engine/.claude/skills/ss-review/SKILL.md",
-          "sha256": "e543a87448660c79abd66576768847348fde0200543a28a1a8f9be815ffba6b1",
-          "bytes": 5520
+          "path": "engine/.claude/skills/styleseed/workflows/ss-resolve/scripts/styleseed-doctor.mjs",
+          "sha256": "8324345d792a67af6957fbc2079d9ec2a663d1a58b751c71639db3ee6d5f45e9",
+          "bytes": 11917
         },
         {
-          "path": "engine/.claude/skills/ss-score/SKILL.md",
-          "sha256": "c8a8bb0e903afdf66b583f148f9392fec56ee09bb96d2b63da2fd604f243f346",
-          "bytes": 12500
+          "path": "engine/.claude/skills/styleseed/workflows/ss-restyle/WORKFLOW.md",
+          "sha256": "86ddf842f018bb6cf579c18a0eae9f2d5466692c32346266f030f2d03db41b5a",
+          "bytes": 2319
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/acceptance-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-review/WORKFLOW.md",
+          "sha256": "79a91639a3ef4f0633317c6c8423e21204d6ccc2ffb730df1369b0b2c3dc6061",
+          "bytes": 7718
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/WORKFLOW.md",
+          "sha256": "b7e0c4c0930b2e8de7c3c788d275cb995eeb7dbcbd4d97274447b47b7ad5c6b9",
+          "bytes": 15925
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/acceptance-report.schema.json",
           "sha256": "e7214f274ebced91c0dae084f7306a9b42a186ea64cb75aaa2fd9eb2a87ed46f",
           "bytes": 434
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/code-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/code-report.schema.json",
           "sha256": "318bab68589e7b065cb4944d65d7dcf0070ca0861d9e94fc958a30347d7d66ce",
           "bytes": 344
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/deterministic-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/deterministic-report.schema.json",
           "sha256": "0c37c923772377ed2d770cedb4de8dd6d26ff773ff6b596d6a840114b665a985",
           "bytes": 350
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/gate-run.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/functional-checks.md",
+          "sha256": "24dd0cd931c2e52cea83643cb99eb672d3c1cc292de31efb147ebeb0af5e2a35",
+          "bytes": 4392
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/gate-run.schema.json",
           "sha256": "6327078f855176822d6e3f4013ddf6bf23849633c072565e5a3a2f79518d7181",
           "bytes": 1738
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/temporal-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/temporal-report.schema.json",
           "sha256": "44b5c39926719d2022a2e5c057c2c3ed1fd7f65397e5b5fb07a4090fde2cba95",
           "bytes": 276
         },
         {
-          "path": "engine/.claude/skills/ss-score/references/visual-report.schema.json",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/references/visual-report.schema.json",
           "sha256": "5dc1fd0eb0015c56c7a1be244f6f20933349b873378c852553d20f9e1a167159",
           "bytes": 301
         },
         {
-          "path": "engine/.claude/skills/ss-score/scripts/evidence-contract.mjs",
-          "sha256": "6a74b4a692963cbb8a58b19ead4cfa16b9ed8b990c99c4cb4ba5cdcf2e0b38be",
-          "bytes": 14337
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/evidence-contract.mjs",
+          "sha256": "14f8ae1e8b8e27c51d7b324d6304fce5f4e733fc06d6f129d2c0e7a51310f6d1",
+          "bytes": 15944
         },
         {
-          "path": "engine/.claude/skills/ss-score/scripts/evidence-gate.mjs",
-          "sha256": "d58692cb1ed42dd8204a0952737eaa104b37eff1350663269c331f7179c65718",
-          "bytes": 16860
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/evidence-gate.mjs",
+          "sha256": "1dee383239ca6376ca830fad1b010508c93de043e28efa15967824b4e471948b",
+          "bytes": 18076
         },
         {
-          "path": "engine/.claude/skills/ss-score/scripts/styleseed-check.mjs",
-          "sha256": "6c06648e9925bcff5e80180ddeff477ada11b54f9b86fbbbdf775836988bb1ea",
-          "bytes": 13478
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/functional-reporter.mjs",
+          "sha256": "dad3ecc68e21b4f94cfcb07238a4acf46f0d9681d6e2f82ab943af100684f732",
+          "bytes": 203
         },
         {
-          "path": "engine/.claude/skills/ss-setup/SKILL.md",
-          "sha256": "fd25cbebb6d32e2c9f7c30f089d0b8f11019954e7c2c9c3896a0f49960b3e9ed",
-          "bytes": 6493
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/functional-results.mjs",
+          "sha256": "392feefd458c2c1d80d77c485bb8ded988d71a6f92e156e650a35fa1973745ae",
+          "bytes": 1683
         },
         {
-          "path": "engine/.claude/skills/ss-studio/SKILL.md",
-          "sha256": "4e97714d2f757c06ee3b3ba8692ef5edace25cedc4e97b21d8033c265825b513",
-          "bytes": 7034
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/run-functional-tests.mjs",
+          "sha256": "ef833706ec391d3c199ae7b34fcbf8a875aa3e9ba7ba57e22108d327bdea7e16",
+          "bytes": 5859
         },
         {
-          "path": "engine/.claude/skills/ss-studio/agents/openai.yaml",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-score/scripts/styleseed-check.mjs",
+          "sha256": "3e44341fea3c4a9dabd1a87658bf12ec01644cb31f02e53be0b9315fb847b0c0",
+          "bytes": 13522
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-setup/WORKFLOW.md",
+          "sha256": "84f64b7ba68329c45ad3c39293b82c5aac83bffabdc5a0eb67b05f9dacd06d12",
+          "bytes": 7145
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/WORKFLOW.md",
+          "sha256": "efc74af49fc84a7f00746d7d220ec928bfd7b6e168a03fde0c17760fa8416937",
+          "bytes": 6949
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/agents/openai.yaml",
           "sha256": "03001a5bba8a50f13c1b36f1624b60794f25521f43ed680133803b87af0d5f82",
           "bytes": 372
         },
         {
-          "path": "engine/.claude/skills/ss-studio/references/artifact-contract.md",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/references/artifact-contract.md",
           "sha256": "98a20c0a7cd4299ab6a81852d710f4540b6b1a73cfc53b5d52a6744010065766",
           "bytes": 4393
         },
         {
-          "path": "engine/.claude/skills/ss-studio/references/provider-adapters.md",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/references/provider-adapters.md",
           "sha256": "2447093b277509bfa9f73a194bf90e136cac3464085a23b0ddb3ba27e39ad421",
           "bytes": 1803
         },
         {
-          "path": "engine/.claude/skills/ss-studio/scripts/studio-run.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-studio/scripts/studio-run.mjs",
           "sha256": "4369429176cc35ce88d88c90981045f2070a49868dc5685d063c15ffa0a2189b",
           "bytes": 19179
         },
         {
-          "path": "engine/.claude/skills/ss-tokens/SKILL.md",
-          "sha256": "7b2d47255cb83f7674cefa79991ccb2b0b6a716c3c6536ee2aa7e3ff6c2d0583",
-          "bytes": 4073
+          "path": "engine/.claude/skills/styleseed/workflows/ss-tokens/WORKFLOW.md",
+          "sha256": "4c176cf1652c3025ecf8fa7cb56fad55d5985f7359cf385619922e427d6a7f34",
+          "bytes": 4525
         },
         {
-          "path": "engine/.claude/skills/ss-tokens/scripts/generate-palette.mjs",
+          "path": "engine/.claude/skills/styleseed/workflows/ss-tokens/scripts/generate-palette.mjs",
           "sha256": "001de08269e3065d7e08e79bd64530f1bc56c4b4f0aaa6dd40ee0ae7f539a819",
           "bytes": 2545
         },
         {
-          "path": "engine/.claude/skills/ss-tokens/scripts/generator.mjs",
-          "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-          "bytes": 14209
+          "path": "engine/.claude/skills/styleseed/workflows/ss-tokens/scripts/generator.mjs",
+          "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+          "bytes": 15077
         },
         {
-          "path": "engine/.claude/skills/ss-update/SKILL.md",
-          "sha256": "daeaa0c0a210e951ac55e2e03161efd3be3ad74c6928a1c620a25690bfe06e6e",
-          "bytes": 9159
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/WORKFLOW.md",
+          "sha256": "9c8152db33cfb6b445271f4db936fea726b5db2927d9f66d5d17d7e1e9f9e007",
+          "bytes": 12885
         },
         {
-          "path": "engine/.claude/skills/ss-update/scripts/artifact-impact.mjs",
-          "sha256": "e10b5da5a58ebd73552c162cd5b7b1cbb0a97a7c1bac33f22026e9836c21969d",
-          "bytes": 6241
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/references/update-preflight.md",
+          "sha256": "fb891abd9e3ef165cb45e6c9a73516e5877c14e35919fcf1dab7f2725c7ab4f3",
+          "bytes": 3596
         },
         {
-          "path": "engine/.claude/skills/ss-update/scripts/check-update.mjs",
-          "sha256": "642331d8d91d06109e537eea76a8ad97ec9913b8ecdf64e285a3b7547dea3595",
-          "bytes": 11238
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/references/upgrade-notice.json",
+          "sha256": "3a35b56fba12ed50e61ebac824249294dcafe3326c40726f178b0b67d3568642",
+          "bytes": 1619
         },
         {
-          "path": "engine/.claude/skills/ss-verify/SKILL.md",
-          "sha256": "dc4fe9918b6b4543e294ecd5983a1e19faf5a4c93ce505c45880774f5b5c7ade",
-          "bytes": 9241
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/scripts/artifact-impact.mjs",
+          "sha256": "d2f9224c02b11fa71771902cde9c453a0500b532a77ad9bc5d6538f4e91156fa",
+          "bytes": 6626
         },
         {
-          "path": "engine/.claude/skills/styleseed/SKILL.md",
-          "sha256": "10ffdaefbd174a1e3f4f32e2ce7623ae7c0e81241f788050edc79d13204180cc",
-          "bytes": 4504
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/scripts/check-update.mjs",
+          "sha256": "f7fb1bf8541e39c33be3b2988d59df032db5f14830da50ab6bc78ff9cf289e80",
+          "bytes": 15013
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-update/scripts/consolidate-skills.mjs",
+          "sha256": "596cb16844a18722ce5ab57d8eeed42be54f16543f53b77adae199a1fcc07265",
+          "bytes": 6327
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/WORKFLOW.md",
+          "sha256": "ff3137b7335c22de06289bb7a7c99ebdfc746394bfe7089378a766f8864f9c3e",
+          "bytes": 12003
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/references/applied-checks.md",
+          "sha256": "cfff446e4d8637cd8439408d55ad2e2a780b476027a4b5b2f91f2ced07056db2",
+          "bytes": 11352
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/scripts/inspect-appearance.mjs",
+          "sha256": "995d5c99df71c83131864e38b285fea03da45d4c402c63ccab08f8cbe8064b35",
+          "bytes": 12269
+        },
+        {
+          "path": "engine/.claude/skills/styleseed/workflows/ss-verify/scripts/inspect-spacing.mjs",
+          "sha256": "88499bb31060728a4d13548fc76f291d975b33f9a80a9513e2aa0beeb3becc9c",
+          "bytes": 6722
         }
       ]
     }
@@ -697,324 +857,404 @@
       "bytes": 1951
     },
     {
-      "path": ".claude/skills/ss-a11y/SKILL.md",
-      "sha256": "866c41a61b6b295b84d000938c3380171f527c7610ac17367c93e3eb7111595f",
-      "bytes": 3405
+      "path": ".claude/skills/styleseed/SKILL.md",
+      "sha256": "84b77a89d2652ef39f9a2e464d33197c199740ea9ef8a899a0bb89d71e2dfe09",
+      "bytes": 4581
     },
     {
-      "path": ".claude/skills/ss-audit/SKILL.md",
-      "sha256": "77dd98c3cc465a1013f3f8d9dd19451c611449c25c302ca3a095946193083ab6",
-      "bytes": 5270
+      "path": ".claude/skills/styleseed/workflows/ss-a11y/WORKFLOW.md",
+      "sha256": "dbd5d76fb24d7895878d9c020e3fa7973644534ca7b702ca1cdffce509b8fb66",
+      "bytes": 3731
     },
     {
-      "path": ".claude/skills/ss-build/SKILL.md",
-      "sha256": "79a9d4130284675cead5ed24ed9ac91b923dccb60f8710b0613088294a711169",
-      "bytes": 4986
+      "path": ".claude/skills/styleseed/workflows/ss-audit/WORKFLOW.md",
+      "sha256": "ee7ad01db0f2aed1659130981c14612ffcec7e7bfab54403290fa54c7435f8d5",
+      "bytes": 6959
     },
     {
-      "path": ".claude/skills/ss-component/SKILL.md",
-      "sha256": "440e228e5175804a471bfc953206c9f81dbfa0f464f7d27fc8dc117d7c0cafd0",
-      "bytes": 5065
+      "path": ".claude/skills/styleseed/workflows/ss-build/WORKFLOW.md",
+      "sha256": "4702411b149f9de1620353b24572d913b72f8b79ad4630aa121a8536272e1425",
+      "bytes": 6770
     },
     {
-      "path": ".claude/skills/ss-copy/SKILL.md",
-      "sha256": "1e946cca20fe590814a40650880838a0d6fdb8e8432135d12dd56c077a89305a",
-      "bytes": 3774
+      "path": ".claude/skills/styleseed/workflows/ss-component/WORKFLOW.md",
+      "sha256": "b4626d31b4ecde7faaf0923d12c632afa525b5db229ea23b97dea16e5097a5c0",
+      "bytes": 5329
     },
     {
-      "path": ".claude/skills/ss-dial/SKILL.md",
-      "sha256": "cb2961f041fc3ece017fec2835c197d5d4d8eb806c70ca1ecedaea1aa422dfbe",
-      "bytes": 9914
+      "path": ".claude/skills/styleseed/workflows/ss-copy/WORKFLOW.md",
+      "sha256": "404d52914d488257f3633692d1e7edf355261fb6452a7299a4adb59e92640b8c",
+      "bytes": 3953
     },
     {
-      "path": ".claude/skills/ss-feedback/SKILL.md",
-      "sha256": "0668bc271a8c4e45ff412c1671cf5b11c88073b5c0af8d2549303dd102d1e3e6",
-      "bytes": 3689
+      "path": ".claude/skills/styleseed/workflows/ss-dial/WORKFLOW.md",
+      "sha256": "e18013d71d9c699d170b79eee06334f5ec502ee274139827c8580cc92f1713cc",
+      "bytes": 11220
     },
     {
-      "path": ".claude/skills/ss-flow/SKILL.md",
-      "sha256": "f4c16d0daa05b4ccfe03a03b8aaa960dcc84f87a3bac2c7563858d22a3fcc1d1",
-      "bytes": 3219
+      "path": ".claude/skills/styleseed/workflows/ss-feedback/WORKFLOW.md",
+      "sha256": "c50b4cea7e8bc1d06945b96cf19ba12734c818674fe7ff8ac910c0e09f647d2d",
+      "bytes": 3806
     },
     {
-      "path": ".claude/skills/ss-lint/SKILL.md",
-      "sha256": "d7949e53db1dbd5a9324f5938d8da8366a47d5ffb91d0f417c430d87d56bae9b",
-      "bytes": 4619
+      "path": ".claude/skills/styleseed/workflows/ss-flow/WORKFLOW.md",
+      "sha256": "e4248ea741a6ce308f1b1339e8fe2167f2532d56e6a1b80c97211879e2ad633d",
+      "bytes": 3336
     },
     {
-      "path": ".claude/skills/ss-motion/SKILL.md",
-      "sha256": "50aa240d681a68cec4c493dd0230e3046d8ed2b62a66334a68f540353f88f0c9",
-      "bytes": 10417
+      "path": ".claude/skills/styleseed/workflows/ss-lint/WORKFLOW.md",
+      "sha256": "ed61af821b2bd0771ce1f724edc9efa111e7a92260bc83629e513d736a37e81b",
+      "bytes": 5253
     },
     {
-      "path": ".claude/skills/ss-page/SKILL.md",
-      "sha256": "261403a913978cd289e06686c99e0f8d3d8d0674749121ec1ca528b63ed1f9e9",
-      "bytes": 3766
+      "path": ".claude/skills/styleseed/workflows/ss-motion/WORKFLOW.md",
+      "sha256": "26db36012732ad37bc019c42c052b57a3aac50e1ef0075681da0f94b7fedd60c",
+      "bytes": 11269
     },
     {
-      "path": ".claude/skills/ss-pattern/SKILL.md",
-      "sha256": "9532150f6732c541a00fdedf428b07a7e9895b47ecd56d4b02d17020a2b5bcca",
-      "bytes": 3086
+      "path": ".claude/skills/styleseed/workflows/ss-page/WORKFLOW.md",
+      "sha256": "1898f1f98adde68f3d5d1d4c75dfdc04e5d0cbca4ac1bbca6968a0a90d8508f1",
+      "bytes": 4656
     },
     {
-      "path": ".claude/skills/ss-reference/SKILL.md",
-      "sha256": "1575bbb98c05958c01a0b80e59be650a40f877eba3ef0ed37023e7a7df567846",
-      "bytes": 2638
+      "path": ".claude/skills/styleseed/workflows/ss-pattern/WORKFLOW.md",
+      "sha256": "40cde775439ab447645e814529a22f2b76e32cb8e84b92f0c41ee91e92cfb0c5",
+      "bytes": 3600
     },
     {
-      "path": ".claude/skills/ss-resolve/SKILL.md",
-      "sha256": "678a94a773ab39a002288aa3c586cee7ded9ad3f6ee06c61d56de89b725dc306",
-      "bytes": 4258
+      "path": ".claude/skills/styleseed/workflows/ss-reference/WORKFLOW.md",
+      "sha256": "3f7abb1f1d01d2a682cdc346cfc5723c65af1a86d40ff03e723141a3cb9a582e",
+      "bytes": 3986
     },
     {
-      "path": ".claude/skills/ss-resolve/references/artifact-index.schema.json",
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/WORKFLOW.md",
+      "sha256": "5bf33cfe9b1430a77c41f63d7c7e70296b1e54b600239b4a4bff121473d4bc0b",
+      "bytes": 5360
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/references/artifact-index.schema.json",
       "sha256": "22239cff0acc869e333fef72437d323a6e7c708fefbd6a51e6ea35189660fa38",
       "bytes": 639
     },
     {
-      "path": ".claude/skills/ss-resolve/references/artifact.schema.json",
-      "sha256": "53e7755ea2956ea0a29477aa35ad28796ec09fca05dacc8ce855ff31a5bcb1d2",
-      "bytes": 4535
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/references/artifact.schema.json",
+      "sha256": "d8ccb2e35c14ea2f6dd9846a3680cbe3b7920de75f63b6e9b1268f76680ae9b4",
+      "bytes": 5723
     },
     {
-      "path": ".claude/skills/ss-resolve/references/manifest.schema.json",
-      "sha256": "894f9bff3146df9ad1d7391e1de87c69339cae69b58086d3819d7568abf486de",
-      "bytes": 2221
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/references/manifest.schema.json",
+      "sha256": "ab8f7444fc6949ecc9ce9147389f2867e60cab012700c526c6461407ca40e6db",
+      "bytes": 2334
     },
     {
-      "path": ".claude/skills/ss-resolve/references/project.schema.json",
-      "sha256": "ec1fc187d0ebe2c627d68e322a8dd07c74a1696504a82054d1725bd9ad341b23",
-      "bytes": 3279
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/references/migration.md",
+      "sha256": "d2b6d9603e71450183014912876f972f25126c107812f0ea98917c15882aa83c",
+      "bytes": 3129
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/compiler.mjs",
-      "sha256": "0a0469345d9c553b2912b09ff0663297dfd8e0db60b294e6c48406cfd737749b",
-      "bytes": 19123
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/references/project.schema.json",
+      "sha256": "f25d06166f66918ea2c3c75aeb89524f8761f0824c9b35fc51ce1e802f7a95a9",
+      "bytes": 4242
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/distribution-integrity.mjs",
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/references/spacing.md",
+      "sha256": "5216a8d8bfadbdbb4647ab8713d06f121fda3224607a9d624c3923dbae29a1ec",
+      "bytes": 11859
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/compiler.mjs",
+      "sha256": "0924182f430e61710d7ebe96216e6fa4f3a13ad79ce0c1f98ed34ebaa2b7e578",
+      "bytes": 19535
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/distribution-integrity.mjs",
       "sha256": "067f80bb2f6b881e840c5c3e7ffe00bc1d744fb477059c887ea23cabc981e1ba",
       "bytes": 6480
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/migrate-project.mjs",
-      "sha256": "3dd61030a9925f4128c95d3f8948986b082af77ed5f313400846e80b072dc6d3",
-      "bytes": 17044
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/legacy-lock-analysis.mjs",
+      "sha256": "99d0489e6b760a56a64ae9314944004861fbd9bd0ab43f799e2ac87147f9abaf",
+      "bytes": 3927
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/palette-generator.mjs",
-      "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-      "bytes": 14209
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/migrate-project.mjs",
+      "sha256": "f6966868a16f78352dc2abcd031d90553e63ab51ae60ab8d49845309ad6e2368",
+      "bytes": 34820
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/project-registry.mjs",
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/palette-generator.mjs",
+      "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+      "bytes": 15077
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/project-registry.mjs",
       "sha256": "bceb386c75778fdfd5f91253af4cbb5f349c28c063392bb986a8a6e6df6217c5",
       "bytes": 3449
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/resolve-context.mjs",
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/recommend-spacing.mjs",
+      "sha256": "58d386423baab3eebf1093b59635662345a33f49259580394682507ea15e388a",
+      "bytes": 2127
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/resolve-context.mjs",
       "sha256": "834b9acc27137a86b1fbd210703a00d8a32e62df9d74760a1a7d3550b790e92a",
       "bytes": 16677
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/runtime-contract.mjs",
-      "sha256": "d1e26fe07911b6dd640bf7514b955b41c159264dfa6dc6b0cd60103cef40c611",
-      "bytes": 17130
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/runtime-contract.mjs",
+      "sha256": "99168be4e2511b378e41e81f8fa33c57f5b4abe19645c492654f1e0c669ab097",
+      "bytes": 18191
     },
     {
-      "path": ".claude/skills/ss-resolve/scripts/styleseed-doctor.mjs",
-      "sha256": "4765d74f759ef10e8c9adb9807d65467e3f08a3f238bbb6d3ec4bf95ccb5bc1f",
-      "bytes": 10161
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/spacing-contract.mjs",
+      "sha256": "275cc123618266e730082569d3d612220a98621eea2745c861d04252dbeeeb24",
+      "bytes": 8229
     },
     {
-      "path": ".claude/skills/ss-restyle/SKILL.md",
-      "sha256": "fa451824b42a802728897111a02820fb4b4573d9f48be4c0dbfd40a2bb85a07e",
-      "bytes": 2202
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/spacing-measurement.mjs",
+      "sha256": "b486ff21c778f4b4b1402df92ff0e09f961ca74670e0e32b188ce3d7361aadcf",
+      "bytes": 6424
     },
     {
-      "path": ".claude/skills/ss-review/SKILL.md",
-      "sha256": "e543a87448660c79abd66576768847348fde0200543a28a1a8f9be815ffba6b1",
-      "bytes": 5520
+      "path": ".claude/skills/styleseed/workflows/ss-resolve/scripts/styleseed-doctor.mjs",
+      "sha256": "8324345d792a67af6957fbc2079d9ec2a663d1a58b751c71639db3ee6d5f45e9",
+      "bytes": 11917
     },
     {
-      "path": ".claude/skills/ss-score/SKILL.md",
-      "sha256": "c8a8bb0e903afdf66b583f148f9392fec56ee09bb96d2b63da2fd604f243f346",
-      "bytes": 12500
+      "path": ".claude/skills/styleseed/workflows/ss-restyle/WORKFLOW.md",
+      "sha256": "86ddf842f018bb6cf579c18a0eae9f2d5466692c32346266f030f2d03db41b5a",
+      "bytes": 2319
     },
     {
-      "path": ".claude/skills/ss-score/references/acceptance-report.schema.json",
+      "path": ".claude/skills/styleseed/workflows/ss-review/WORKFLOW.md",
+      "sha256": "79a91639a3ef4f0633317c6c8423e21204d6ccc2ffb730df1369b0b2c3dc6061",
+      "bytes": 7718
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-score/WORKFLOW.md",
+      "sha256": "b7e0c4c0930b2e8de7c3c788d275cb995eeb7dbcbd4d97274447b47b7ad5c6b9",
+      "bytes": 15925
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-score/references/acceptance-report.schema.json",
       "sha256": "e7214f274ebced91c0dae084f7306a9b42a186ea64cb75aaa2fd9eb2a87ed46f",
       "bytes": 434
     },
     {
-      "path": ".claude/skills/ss-score/references/code-report.schema.json",
+      "path": ".claude/skills/styleseed/workflows/ss-score/references/code-report.schema.json",
       "sha256": "318bab68589e7b065cb4944d65d7dcf0070ca0861d9e94fc958a30347d7d66ce",
       "bytes": 344
     },
     {
-      "path": ".claude/skills/ss-score/references/deterministic-report.schema.json",
+      "path": ".claude/skills/styleseed/workflows/ss-score/references/deterministic-report.schema.json",
       "sha256": "0c37c923772377ed2d770cedb4de8dd6d26ff773ff6b596d6a840114b665a985",
       "bytes": 350
     },
     {
-      "path": ".claude/skills/ss-score/references/gate-run.schema.json",
+      "path": ".claude/skills/styleseed/workflows/ss-score/references/functional-checks.md",
+      "sha256": "24dd0cd931c2e52cea83643cb99eb672d3c1cc292de31efb147ebeb0af5e2a35",
+      "bytes": 4392
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-score/references/gate-run.schema.json",
       "sha256": "6327078f855176822d6e3f4013ddf6bf23849633c072565e5a3a2f79518d7181",
       "bytes": 1738
     },
     {
-      "path": ".claude/skills/ss-score/references/temporal-report.schema.json",
+      "path": ".claude/skills/styleseed/workflows/ss-score/references/temporal-report.schema.json",
       "sha256": "44b5c39926719d2022a2e5c057c2c3ed1fd7f65397e5b5fb07a4090fde2cba95",
       "bytes": 276
     },
     {
-      "path": ".claude/skills/ss-score/references/visual-report.schema.json",
+      "path": ".claude/skills/styleseed/workflows/ss-score/references/visual-report.schema.json",
       "sha256": "5dc1fd0eb0015c56c7a1be244f6f20933349b873378c852553d20f9e1a167159",
       "bytes": 301
     },
     {
-      "path": ".claude/skills/ss-score/scripts/evidence-contract.mjs",
-      "sha256": "6a74b4a692963cbb8a58b19ead4cfa16b9ed8b990c99c4cb4ba5cdcf2e0b38be",
-      "bytes": 14337
+      "path": ".claude/skills/styleseed/workflows/ss-score/scripts/evidence-contract.mjs",
+      "sha256": "14f8ae1e8b8e27c51d7b324d6304fce5f4e733fc06d6f129d2c0e7a51310f6d1",
+      "bytes": 15944
     },
     {
-      "path": ".claude/skills/ss-score/scripts/evidence-gate.mjs",
-      "sha256": "d58692cb1ed42dd8204a0952737eaa104b37eff1350663269c331f7179c65718",
-      "bytes": 16860
+      "path": ".claude/skills/styleseed/workflows/ss-score/scripts/evidence-gate.mjs",
+      "sha256": "1dee383239ca6376ca830fad1b010508c93de043e28efa15967824b4e471948b",
+      "bytes": 18076
     },
     {
-      "path": ".claude/skills/ss-score/scripts/styleseed-check.mjs",
-      "sha256": "6c06648e9925bcff5e80180ddeff477ada11b54f9b86fbbbdf775836988bb1ea",
-      "bytes": 13478
+      "path": ".claude/skills/styleseed/workflows/ss-score/scripts/functional-reporter.mjs",
+      "sha256": "dad3ecc68e21b4f94cfcb07238a4acf46f0d9681d6e2f82ab943af100684f732",
+      "bytes": 203
     },
     {
-      "path": ".claude/skills/ss-setup/SKILL.md",
-      "sha256": "fd25cbebb6d32e2c9f7c30f089d0b8f11019954e7c2c9c3896a0f49960b3e9ed",
-      "bytes": 6493
+      "path": ".claude/skills/styleseed/workflows/ss-score/scripts/functional-results.mjs",
+      "sha256": "392feefd458c2c1d80d77c485bb8ded988d71a6f92e156e650a35fa1973745ae",
+      "bytes": 1683
     },
     {
-      "path": ".claude/skills/ss-studio/SKILL.md",
-      "sha256": "4e97714d2f757c06ee3b3ba8692ef5edace25cedc4e97b21d8033c265825b513",
-      "bytes": 7034
+      "path": ".claude/skills/styleseed/workflows/ss-score/scripts/run-functional-tests.mjs",
+      "sha256": "ef833706ec391d3c199ae7b34fcbf8a875aa3e9ba7ba57e22108d327bdea7e16",
+      "bytes": 5859
     },
     {
-      "path": ".claude/skills/ss-studio/agents/openai.yaml",
+      "path": ".claude/skills/styleseed/workflows/ss-score/scripts/styleseed-check.mjs",
+      "sha256": "3e44341fea3c4a9dabd1a87658bf12ec01644cb31f02e53be0b9315fb847b0c0",
+      "bytes": 13522
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-setup/WORKFLOW.md",
+      "sha256": "84f64b7ba68329c45ad3c39293b82c5aac83bffabdc5a0eb67b05f9dacd06d12",
+      "bytes": 7145
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-studio/WORKFLOW.md",
+      "sha256": "efc74af49fc84a7f00746d7d220ec928bfd7b6e168a03fde0c17760fa8416937",
+      "bytes": 6949
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-studio/agents/openai.yaml",
       "sha256": "03001a5bba8a50f13c1b36f1624b60794f25521f43ed680133803b87af0d5f82",
       "bytes": 372
     },
     {
-      "path": ".claude/skills/ss-studio/references/artifact-contract.md",
+      "path": ".claude/skills/styleseed/workflows/ss-studio/references/artifact-contract.md",
       "sha256": "98a20c0a7cd4299ab6a81852d710f4540b6b1a73cfc53b5d52a6744010065766",
       "bytes": 4393
     },
     {
-      "path": ".claude/skills/ss-studio/references/provider-adapters.md",
+      "path": ".claude/skills/styleseed/workflows/ss-studio/references/provider-adapters.md",
       "sha256": "2447093b277509bfa9f73a194bf90e136cac3464085a23b0ddb3ba27e39ad421",
       "bytes": 1803
     },
     {
-      "path": ".claude/skills/ss-studio/scripts/studio-run.mjs",
+      "path": ".claude/skills/styleseed/workflows/ss-studio/scripts/studio-run.mjs",
       "sha256": "4369429176cc35ce88d88c90981045f2070a49868dc5685d063c15ffa0a2189b",
       "bytes": 19179
     },
     {
-      "path": ".claude/skills/ss-tokens/SKILL.md",
-      "sha256": "7b2d47255cb83f7674cefa79991ccb2b0b6a716c3c6536ee2aa7e3ff6c2d0583",
-      "bytes": 4073
+      "path": ".claude/skills/styleseed/workflows/ss-tokens/WORKFLOW.md",
+      "sha256": "4c176cf1652c3025ecf8fa7cb56fad55d5985f7359cf385619922e427d6a7f34",
+      "bytes": 4525
     },
     {
-      "path": ".claude/skills/ss-tokens/scripts/generate-palette.mjs",
+      "path": ".claude/skills/styleseed/workflows/ss-tokens/scripts/generate-palette.mjs",
       "sha256": "001de08269e3065d7e08e79bd64530f1bc56c4b4f0aaa6dd40ee0ae7f539a819",
       "bytes": 2545
     },
     {
-      "path": ".claude/skills/ss-tokens/scripts/generator.mjs",
-      "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-      "bytes": 14209
+      "path": ".claude/skills/styleseed/workflows/ss-tokens/scripts/generator.mjs",
+      "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+      "bytes": 15077
     },
     {
-      "path": ".claude/skills/ss-update/SKILL.md",
-      "sha256": "daeaa0c0a210e951ac55e2e03161efd3be3ad74c6928a1c620a25690bfe06e6e",
-      "bytes": 9159
+      "path": ".claude/skills/styleseed/workflows/ss-update/WORKFLOW.md",
+      "sha256": "9c8152db33cfb6b445271f4db936fea726b5db2927d9f66d5d17d7e1e9f9e007",
+      "bytes": 12885
     },
     {
-      "path": ".claude/skills/ss-update/scripts/artifact-impact.mjs",
-      "sha256": "e10b5da5a58ebd73552c162cd5b7b1cbb0a97a7c1bac33f22026e9836c21969d",
-      "bytes": 6241
+      "path": ".claude/skills/styleseed/workflows/ss-update/references/update-preflight.md",
+      "sha256": "fb891abd9e3ef165cb45e6c9a73516e5877c14e35919fcf1dab7f2725c7ab4f3",
+      "bytes": 3596
     },
     {
-      "path": ".claude/skills/ss-update/scripts/check-update.mjs",
-      "sha256": "642331d8d91d06109e537eea76a8ad97ec9913b8ecdf64e285a3b7547dea3595",
-      "bytes": 11238
+      "path": ".claude/skills/styleseed/workflows/ss-update/references/upgrade-notice.json",
+      "sha256": "3a35b56fba12ed50e61ebac824249294dcafe3326c40726f178b0b67d3568642",
+      "bytes": 1619
     },
     {
-      "path": ".claude/skills/ss-verify/SKILL.md",
-      "sha256": "dc4fe9918b6b4543e294ecd5983a1e19faf5a4c93ce505c45880774f5b5c7ade",
-      "bytes": 9241
+      "path": ".claude/skills/styleseed/workflows/ss-update/scripts/artifact-impact.mjs",
+      "sha256": "d2f9224c02b11fa71771902cde9c453a0500b532a77ad9bc5d6538f4e91156fa",
+      "bytes": 6626
     },
     {
-      "path": ".claude/skills/styleseed/SKILL.md",
-      "sha256": "10ffdaefbd174a1e3f4f32e2ce7623ae7c0e81241f788050edc79d13204180cc",
-      "bytes": 4504
+      "path": ".claude/skills/styleseed/workflows/ss-update/scripts/check-update.mjs",
+      "sha256": "f7fb1bf8541e39c33be3b2988d59df032db5f14830da50ab6bc78ff9cf289e80",
+      "bytes": 15013
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-update/scripts/consolidate-skills.mjs",
+      "sha256": "596cb16844a18722ce5ab57d8eeed42be54f16543f53b77adae199a1fcc07265",
+      "bytes": 6327
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-verify/WORKFLOW.md",
+      "sha256": "ff3137b7335c22de06289bb7a7c99ebdfc746394bfe7089378a766f8864f9c3e",
+      "bytes": 12003
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-verify/references/applied-checks.md",
+      "sha256": "cfff446e4d8637cd8439408d55ad2e2a780b476027a4b5b2f91f2ced07056db2",
+      "bytes": 11352
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-verify/scripts/inspect-appearance.mjs",
+      "sha256": "995d5c99df71c83131864e38b285fea03da45d4c402c63ccab08f8cbe8064b35",
+      "bytes": 12269
+    },
+    {
+      "path": ".claude/skills/styleseed/workflows/ss-verify/scripts/inspect-spacing.mjs",
+      "sha256": "88499bb31060728a4d13548fc76f291d975b33f9a80a9513e2aa0beeb3becc9c",
+      "bytes": 6722
     },
     {
       "path": ".cursorrules",
-      "sha256": "63656a3da7b08c8ca4679baaf6f5ecdcd61981bae697ed1662f0f9ad2c6bfed0",
-      "bytes": 3111
+      "sha256": "2817da36006d6d427dc9aba02d634f18f3fafc79e9eb0dc58d26575414743829",
+      "bytes": 4577
     },
     {
       "path": "ADAPTERS.md",
-      "sha256": "e9f295540d331a517edbf956a1549d24077943cccc7b54532e9a1f7255380d7f",
-      "bytes": 5921
+      "sha256": "5c21aeb3b8fd1fb98e5cda97d75ee72785e0e9fc9ce1d135fd3abf9c72a8bed7",
+      "bytes": 7101
     },
     {
       "path": "AGENTS.md",
-      "sha256": "d18543ab7e39f656e4b09e1e68586e7b77118ce02440cad8973df11045600d93",
-      "bytes": 8871
+      "sha256": "57d76d72feb1b2c5798ea00b5f4c190d246734411ce0985bfa7e2faa836af52c",
+      "bytes": 11405
     },
     {
       "path": "APP-PLAYBOOKS.md",
-      "sha256": "cfa8709498024cab62de55879c1a15e60f2e005a2923f542da7ec3ae574161ed",
-      "bytes": 13880
+      "sha256": "27f377812cf7613f8d0e68da815dd732507ebc6ce938df721d3c78f56189844f",
+      "bytes": 18042
     },
     {
       "path": "ARCHITECTURE.md",
-      "sha256": "48b138a712e582cf3b3b0ed1c921946997ec2de9ee41ecb5f85d984facaa2d5b",
-      "bytes": 9030
+      "sha256": "6ba4c258f96d8c45aa08ed6728e3aab1977b200a4c8ec110af1ceb6f0810b9c2",
+      "bytes": 10928
     },
     {
       "path": "BRAND-RECIPES.md",
-      "sha256": "c942ad7138e00659c757ae9bedb3fb28775265de77e26f1b31017bce7bf1706f",
-      "bytes": 15861
+      "sha256": "0da7bda079d5b61b100825e358956a772a3b9b4610ea5090e6b490ccdbb51e34",
+      "bytes": 16163
     },
     {
       "path": "CLAUDE.md",
-      "sha256": "32e43f9d51a35134a616a8cb8ef8153eadcfda9f46c18fb8e79759f8465dcf7e",
-      "bytes": 50961
+      "sha256": "458736e14613bb3a72b8ecdf7a2102a8c5242d6a3754bdc4286a2de12cac7484",
+      "bytes": 49657
     },
     {
       "path": "CRAFT-BASELINE.md",
-      "sha256": "6b5ac0ee36ae20654d421ac71c373cfe63dbbd626082b62dbe17584fc87f3aa1",
-      "bytes": 3565
+      "sha256": "1ebed484af45bd956207ecc2f74b49882b1ce7d5b8575d85ccb8e9787360863f",
+      "bytes": 4871
     },
     {
       "path": "DESIGN-LANGUAGE.md",
-      "sha256": "d38a33f86be228caf3f55ac79ec204e9bb5839d139f0400b9cfbcffc07b9a4ab",
-      "bytes": 107295
+      "sha256": "2dc7196fafcd06dcbd298c9e5e10059cd03d054b447923f534cef7d2657b8fd9",
+      "bytes": 97876
     },
     {
       "path": "METHODOLOGY.md",
-      "sha256": "cc5154aa5b688c8b74ee4f794c1675b81157c9c879272ad20b419fb29a7f487e",
-      "bytes": 16113
+      "sha256": "cd7bd2faa0ce2625be0ea88064c7b5baf99c92cb499fef67e81cb4c434ac7218",
+      "bytes": 14567
     },
     {
       "path": "PAGE-TYPES.md",
-      "sha256": "49e072506100820ac9d779ef8d54b328919a09c8c8ce322c271b99ed8419f0ea",
-      "bytes": 7962
+      "sha256": "762a3ddb8643aec9cb89716183eb3b4c8271697b5eee6e9dde186c851b1bb096",
+      "bytes": 8951
     },
     {
       "path": "PALETTE-RECIPES.md",
-      "sha256": "4c0e7537d577b183ed9acbc7be5f7477c6178dbae93f5d7a9d302e7e9b28a435",
-      "bytes": 6978
+      "sha256": "729ee86506c37186d7f995f997ffbc691b840743e743906283a112b90ab5784a",
+      "bytes": 8009
     },
     {
       "path": "PRESETS.md",
@@ -1023,23 +1263,23 @@
     },
     {
       "path": "PRODUCT-PRINCIPLES.md",
-      "sha256": "16ba3f07c940dc0a5e96524e712b668df4f731ffffe4b5c42b2222d195a341f2",
-      "bytes": 7969
+      "sha256": "0b17a8b3e698c218ca51e715e2f695ada148e4229db95c4fbea9528c53ac3237",
+      "bytes": 8401
     },
     {
       "path": "README.md",
-      "sha256": "475805d9d2e26fd31f0182cb2a566a2c9be9333fa168ffa9a973a9ff0e94675c",
-      "bytes": 2086
+      "sha256": "132f462053c6fa37604f65231792092b2e6edfeeafa8c313546a3c8979ba8c40",
+      "bytes": 2127
     },
     {
       "path": "REFERENCE-COMPILER.md",
-      "sha256": "17cced4ab383ceda245c094ae457d9ca29b98155d00c4c68d8bd5958e1855e82",
-      "bytes": 3737
+      "sha256": "70919dd41a78478a5639c57761a248ffe32d50f02673206b411d51d7a9d0e741",
+      "bytes": 6137
     },
     {
       "path": "RULESETS.md",
-      "sha256": "7ef0d0286f1b80c0069f931bdbc62ea63fa6fe68f416d5a0c977723f59c0c270",
-      "bytes": 10680
+      "sha256": "724b083bc283c80071ba5af81b96e3b9a85f15264159ede75a42896b2cef20f6",
+      "bytes": 11100
     },
     {
       "path": "STUDIO-PIPELINE.md",
@@ -1048,23 +1288,23 @@
     },
     {
       "path": "UPDATE.md",
-      "sha256": "2eafeb45c0f207b9c3df6fc84d095be74c758f9e8a1d41abb62fd3bd0d5c3b30",
-      "bytes": 4725
+      "sha256": "f9e30825895e7d1bb82a613ac75a4e7a9454118500d74567b10fa79c371bcbd8",
+      "bytes": 8068
     },
     {
       "path": "UX-WRITING.md",
-      "sha256": "8762afc773f31bfef606e2ddf7dcf5c68a648cfb087822f80b54bddfd063090c",
-      "bytes": 9830
+      "sha256": "27a2a7df9f84ecad8bdd1760a225de4650d376cfc2788f1802bc0681fb63d98b",
+      "bytes": 12870
     },
     {
       "path": "VERSION",
-      "sha256": "8fb33dadbe981cf5847df269c10c2a3fe107f2b269d5ccb6db37d1f61ffc3bba",
+      "sha256": "1cc3d76ac7c21a664e79848fd481e9791016451b244e7de5feeeb9bea5fd2184",
       "bytes": 6
     },
     {
       "path": "VISUAL-CRAFT.md",
-      "sha256": "cf1e820187e4b754a6e36d84e5d6ede54794cad784a0f8685ce9a884f6bae5bf",
-      "bytes": 25351
+      "sha256": "d37731fcbcbcfa3fd7bf08e5ec167be56351373e9fbc9f1bb04bc12f7c5a486c",
+      "bytes": 23445
     },
     {
       "path": "color/generate-palette.mjs",
@@ -1073,13 +1313,13 @@
     },
     {
       "path": "color/generator.d.mts",
-      "sha256": "2a047fa4c03b6b0a2764e507d31d8f1047533a70b304674a7459a680a71be64d",
-      "bytes": 1780
+      "sha256": "ff5e648a0c7747371135781d379809061c3deebd14e663b0394c16acaca73dd4",
+      "bytes": 1808
     },
     {
       "path": "color/generator.mjs",
-      "sha256": "b66ee274ddefbd8a8e4ab6bebeb35d5474e772bd05174e592b16ba41bf81e131",
-      "bytes": 14209
+      "sha256": "887919144e33c45f712cb14a5ffdbefdda1eb5876d9a3487d8addc87851e459b",
+      "bytes": 15077
     },
     {
       "path": "color/index.ts",
@@ -1088,8 +1328,8 @@
     },
     {
       "path": "color/palettes.json",
-      "sha256": "d4d52423a078140f672820f13378b8e63f1ab97431542feced7f903927099dc5",
-      "bytes": 8967
+      "sha256": "b2c7eb30c5d3a746d1cd612813d2c111ff04d8864e3f299c13f1d91d4bc605e8",
+      "bytes": 9042
     }
   ],
   "generatedFrom": [
@@ -1104,61 +1344,61 @@
     "color/palettes.json",
     "PRESETS.md"
   ],
-  "core": "# StyleSeed Product Constitution\n\nStyleSeed makes expert design judgment repeatable by coding agents. It is not a collection\nof aesthetic preferences that replaces designers.\n\n**StyleSeed는 전문가를 대체하는 디자인 취향 모음이 아니라, 전문가의 디자인 판단을\n코딩 에이전트가 반복해서 실행할 수 있게 만드는 시스템입니다.**\n\nThis is the project's goal, not a claim that today's engine reproduces expert-level quality.\nThe current design-method engine compiles selected rules, preserves project decisions, and\nsupports implementation and evidence workflows. Components, skins, scores, and screenshots\nsupport that purpose; neither their count nor a passing score proves that the goal is achieved.\n\n## Decisions stay with people\n\n- Experts define intent, applicability, tradeoffs, and acceptable exceptions. The agent applies\n  recorded decisions; it does not acquire the expert's authority by reading them.\n- Preserve the project's approved design system. Do not replace its identity, tokens, or\n  components with a StyleSeed preset merely to make the output look different.\n- Distinguish accessibility and functional floors, approved project choices, adjustable\n  heuristics, and unresolved human decisions. A recommendation is not approval.\n- If an approved choice cannot be expressed by the current engine, report that limitation and\n  propose a bounded change. Do not silently remap it or pretend arbitrary design-system import\n  already works. This goal does not change the resolver's supported values or authority order.\n- People may deliberately revise durable choices and re-run checks. Generated scores and\n  byte-bound evidence do not authenticate expertise or substitute for design acceptance.\n\n## Development decision test\n\nBefore changing the engine, name the design decision being made repeatable, its owner and\napplicability, the implementation context the agent needs, and the evidence that would show\nan improvement. Maintenance fixes may instead name the existing contract they preserve.\n\nPrioritize task-specific component APIs, token mappings, working state examples, and tests\nover adding more aesthetic rules. Evaluate new-system creation and existing-system adoption\nseparately. Measure functional correctness, expert-reviewed visual quality, correct reuse,\ncross-screen/session consistency, and human rework alongside model cost.\n\nA compliant but poorly designed screen is not success; neither is an attractive screen that\nbreaks the approved system. Use independent human evaluation before claiming expert-level\nquality. The research sequence and unimplemented work live in the repository `ROADMAP.md`.\n\n## The fixed method, not one fixed look\n\nStyleSeed enforces a stable way of judging design. It does **not** force every product to\nlook like Toss, a SaaS dashboard, or the StyleSeed demo. A trustworthy consumer-finance\nhome, an observability console, an editorial story, and a product-detail page solve\ndifferent jobs and therefore need different design grammars.\n\nThe effective rule set is composed:\n\n```text\nCore judgment\n  × one output grammar from RULESETS.md (built-in or reference-compiled)\n  × one surface adapter from ADAPTERS.md\n  × one domain playbook from APP-PLAYBOOKS.md\n  × one page type from PAGE-TYPES.md\n  × one brand recipe from BRAND-RECIPES.md\n  × one semantic palette posture plus an optional key-color generation from PALETTE-RECIPES.md\n  × optional aesthetic profile from PRESETS.md\n  × bounded project tokens from STYLESEED.md\n= the rules for this screen\n```\n\n## Authority order\n\nWhen instructions disagree, use this order:\n\n1. **Core invariants** below.\n2. **Output grammar** — the functional visual language selected in `RULESETS.md`, or a\n   project-local grammar compiled by `REFERENCE-COMPILER.md`.\n3. **Surface adapter** — the renderer contract and physical constraints in `ADAPTERS.md`.\n4. **Domain playbook** and **page/artifact type**.\n5. **Brand recipe** — a reusable morphology and component-selection contract from\n   `BRAND-RECIPES.md`.\n6. **Palette system** — a maintained semantic posture plus deterministic key-color generation,\n   role mapping, gamut handling, and contrast correction from `PALETTE-RECIPES.md`.\n7. **Aesthetic profile** — an optional coordinated restyle from `PRESETS.md`.\n8. **Design lock** — records selections and bounded project parameters.\n9. **Skins and components** — implementation material, not sources of judgment.\n10. **Score and visual verification** — evidence that the method was applied.\n\n`STYLESEED.md` is persistence, not permission. An arbitrary value in the lock never turns\na violation into a sound design decision. Unknown values are resolver errors, not permission\nto silently choose a different grammar. Use only an explicitly configured, supported fallback.\n\n## Core invariants\n\nThese apply to every grammar, profile, domain, page, skin, and agent:\n\n- One deliberate visual system per product: radius, spacing, elevation, icon language,\n  typography, color roles, imagery, and motion agree.\n- One focal point per screen and a clear information hierarchy.\n- Color communicates role or meaning. One primary action remains identifiable even when\n  semantic, categorical, or product colors are present.\n- Semantic tokens replace component-level hardcoded colors.\n- Spacing follows a repeatable scale; proximity communicates grouping.\n- Typography fits the surface and task, with readable measure, contrast, and hierarchy.\n- Data surfaces include useful loading, empty, and error states.\n- Controls remain operable: visible focus, sufficient targets, labels, reduced-motion\n  support, and no dark patterns.\n- Motion fits the surface and never delays comprehension or action.\n- Distinctiveness comes from the product, its content, and its selected grammar — not a\n  copied demo, generic indigo, repeated icon chips, emoji chrome, or template uniformity.\n\n## What the lock may select\n\nThe lock may select only inputs the engine understands:\n\n- domain, surface adapter, page/artifact type, and one output grammar;\n- one maintained brand recipe, one semantic palette posture, optional bounded key-color generation,\n  one optional aesthetic profile, and one skin or project token implementation;\n- primary action/accent, type pairing, density, radius, elevation, imagery, and motion values\n  inside the selected grammar's allowed ranges;\n- one product-specific signature move that still obeys the invariants;\n- a project-local reference grammar with provenance and confidence recorded by the compiler.\n\nThe lock may not invent a palette mode, waive accessibility, legalize mixed systems, or\noverride a core invariant. A reusable built-in grammar requires research, examples, and\nregression evaluation. A reference-derived grammar stays project-local until it meets that bar.\n\n## The product loop\n\n```text\nunderstand the job → choose or compile a grammar → lock bounded decisions\n→ build with judgment → score the implementation → visually verify rendered output\n→ present the result and evidence\n```\n\nRepeatable application of expert decisions is the product goal. The build method implements\nthat goal; scoring and verification are supporting gates. They find drift, but never choose\nor rewrite the design philosophy after the fact or replace the responsible human's judgment.\n\n## Learning without surveillance\n\nStyleSeed may preserve a design lesson only when a person explicitly asks it to capture an\naccepted correction. The stored candidate contains generalized conditions, counterexamples, and\nmeasured evidence—not source code, prompts, screenshots, brand tokens, product identity, or user\ncontent. Local review and export approval are separate decisions. Preparing a package does not\ntransmit it. Returning it through MCP requires another one-time human grant and must be reported as\nclient/model exposure. No candidate may automatically modify project or core rules.",
-  "craft": "# StyleSeed Compact Craft Baseline\n\nThis is the small, task-independent craft layer used by the Context Compiler. It preserves\nthe highest-leverage rules without injecting the full design handbook into every agent turn.\nThe selected output grammar, adapter, domain, page type, brand recipe, profile, and project lock narrow these\ndefaults. `PRODUCT-PRINCIPLES.md` remains the higher authority.\n\n## Coherence\n\n- Choose one coordinated family for radius, elevation, borders, icon style, typography, motion,\n  control heights, and interaction states. Encode each family as semantic tokens and reuse it.\n- A coherent system may contain multiple component shapes and colors, but every variation must\n  have a repeated role. Local decoration is not a role.\n- Preserve strengths and already-set project decisions. Do not restyle unrelated surfaces while\n  fixing one screen.\n\n## Hierarchy and composition\n\n- Give every screen one dominant user decision or reading promise. Supporting content must recede\n  through scale, position, contrast, density, or disclosure—not random color.\n- Proximity communicates grouping: space around a group should normally be at least twice the\n  space within it. Repeated sections need deliberate variation in height, density, or composition.\n- Use real product content and evidence. Placeholder dashboards, fake metrics, stock chat panels,\n  and equal card walls make otherwise clean work look generic.\n- Keep prose near 50–75 characters per line. Let data surfaces use width, but bound any reading\n  column inside them.\n\n## Spacing and type\n\n- Start from `{4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96}` and use off-scale values only for a\n  documented optical correction.\n- Default body text to 16px on general surfaces. Dense desktop UI may use 13–14px for metadata,\n  table chrome, timestamps, or identifiers; decisions and explanatory copy stay readable.\n- Use no more than two type families and one intentional weight ramp. Use tabular numerals for\n  money, tables, timers, and comparable metrics.\n- Tighten leading as type grows: body about 1.5, headings 1.2–1.35, display 1.0–1.2.\n\n## Components and interaction\n\n- Use the lightest separation that works: whitespace, then tone, then hairline, then shadow.\n  Do not combine a visible border and floating shadow without a functional reason.\n- Buttons, inputs, and selects in one context share a height. Touch surfaces provide at least\n  44px targets; pointer-first dense desktop controls may be smaller when still operable.\n- Labels remain visible. Errors name the problem and recovery and never rely on color alone.\n- Use one icon family, fill mode, and stroke family. Do not use emoji as application chrome.\n- Loading, empty, error, success, disabled, and permission states preserve layout and provide a\n  useful next action where the surface owns data or mutation.\n\n## Color, accessibility, and motion\n\n- Use semantic tokens. Keep one identifiable primary action while allowing stable semantic,\n  categorical, or brand roles required by the selected grammar.\n- Body text targets WCAG AA contrast; large text and meaningful graphics meet their applicable\n  threshold. Focus is visible, controls have names, and keyboard order follows visual order.\n- Motion uses one duration/easing family, communicates state or sequence, and never delays the\n  first read or an action. Provide a complete reduced-motion result.\n- Inspect the real render at the target viewport. Source review cannot certify optical balance,\n  font loading, crop, responsive transformation, or visual states.",
+  "core": "# StyleSeed Product Constitution\n\nStyleSeed makes expert design judgment repeatable by coding agents. It is not a collection\nof aesthetic preferences that replaces designers.\n\n**StyleSeed는 전문가를 대체하는 디자인 취향 모음이 아니라, 전문가의 디자인 판단을\n코딩 에이전트가 반복해서 실행할 수 있게 만드는 시스템입니다.**\n\nThis is the project's goal, not a claim that today's engine reproduces expert-level quality.\nThe current design-method engine compiles selected rules, preserves project decisions, and\nsupports implementation and evidence workflows. Components, skins, scores, and screenshots\nsupport that purpose; neither their count nor a passing score proves that the goal is achieved.\n\n## Decisions stay with people\n\n- Experts define intent, applicability, tradeoffs, and acceptable exceptions. The agent applies\n  recorded decisions; it does not acquire the expert's authority by reading them.\n- Preserve the project's approved design system. Do not replace its identity, tokens, or\n  components with a StyleSeed preset merely to make the output look different.\n- Distinguish accessibility and functional floors, approved project choices, adjustable\n  heuristics, and unresolved human decisions. A recommendation is not approval.\n- If an approved choice cannot be expressed by the current engine, report that limitation and\n  propose a bounded change. Do not silently remap it or pretend arbitrary design-system import\n  already works. This goal does not change the resolver's supported values or authority order.\n- People may deliberately revise durable choices and re-run checks. Generated scores and\n  byte-bound evidence do not authenticate expertise or substitute for design acceptance.\n\n## Development decision test\n\nBefore changing the engine, name the design decision being made repeatable, its owner and\napplicability, the implementation context the agent needs, and the evidence that would show\nan improvement. Maintenance fixes may instead name the existing contract they preserve.\n\nPrioritize task-specific component APIs, token mappings, working state examples, and tests\nover adding more aesthetic rules. Evaluate new-system creation and existing-system adoption\nseparately. Measure functional correctness, expert-reviewed visual quality, correct reuse,\ncross-screen/session consistency, and human rework alongside model cost.\n\nA compliant but poorly designed screen is not success; neither is an attractive screen that\nbreaks the approved system. Use independent human evaluation before claiming expert-level\nquality. The research sequence and unimplemented work live in the repository `ROADMAP.md`.\n\n## The fixed method, not one fixed look\n\nStyleSeed enforces a stable way of judging design. It does **not** force every product to\nlook like Toss, a SaaS dashboard, or the StyleSeed demo. A trustworthy consumer-finance\nhome, an observability console, an editorial story, and a product-detail page solve\ndifferent jobs and therefore need different design grammars.\n\nThe effective rule set is composed:\n\n```text\nCore judgment\n  × one output grammar from RULESETS.md (built-in or reference-compiled)\n  × one surface adapter from ADAPTERS.md\n  × one domain playbook from APP-PLAYBOOKS.md\n  × one page type from PAGE-TYPES.md\n  × one brand recipe from BRAND-RECIPES.md\n  × one semantic palette posture plus an optional key-color generation from PALETTE-RECIPES.md\n  × optional aesthetic profile from PRESETS.md\n  × bounded project tokens from STYLESEED.md\n= the rules for this screen\n```\n\n## Authority order\n\nWhen instructions disagree, use this order:\n\n1. **Core invariants** below.\n2. **Output grammar** — the functional visual language selected in `RULESETS.md`, or a\n   project-local grammar compiled by `REFERENCE-COMPILER.md`.\n3. **Surface adapter** — the renderer contract and physical constraints in `ADAPTERS.md`.\n4. **Domain playbook** and **page/artifact type**.\n5. **Brand recipe** — a reusable morphology and component-selection contract from\n   `BRAND-RECIPES.md`.\n6. **Palette system** — a maintained semantic posture plus deterministic key-color generation,\n   role mapping, gamut handling, and contrast correction from `PALETTE-RECIPES.md`.\n7. **Aesthetic profile** — an optional coordinated restyle from `PRESETS.md`.\n8. **Design lock** — records selections and bounded project parameters.\n9. **Skins and components** — implementation material, not sources of judgment.\n10. **Score and visual verification** — evidence that the method was applied.\n\n`STYLESEED.md` is persistence, not permission. An arbitrary value in the lock never turns\na violation into a sound design decision. Unknown values are resolver errors, not permission\nto silently choose a different grammar. Use only an explicitly configured, supported fallback.\n\nThis order governs requirements, not every illustrative default in a document. Preserve\naccessibility and functional floors; interpret sizes, component names, and aesthetic examples\nthrough the selected task and approved project system. Report unresolved conflicts rather\nthan silently replacing that system.\n\n## Core invariants\n\nThese apply to every grammar, profile, domain, page, skin, and agent:\n\n- One deliberate visual system per product: radius, spacing, elevation, icon language,\n  typography, color roles, imagery, and motion agree.\n- A clear attention structure appropriate to the task: a reading promise, primary decision,\n  or comparable monitoring regions. A hero metric is not mandatory.\n- Color communicates role or meaning. Primary actions, where the task has them, remain\n  identifiable even when semantic, categorical, or product colors are present.\n- Semantic tokens replace component-level hardcoded colors.\n- Spacing follows a repeatable scale; proximity communicates grouping.\n- Typography fits the surface and task, with readable measure, contrast, and hierarchy.\n- Data surfaces include useful loading, empty, and error states.\n- Controls remain operable: visible focus, sufficient targets, labels, reduced-motion\n  support, and no dark patterns.\n- Motion fits the surface and never delays comprehension or action.\n- Design expression serves the product, its content, and its selected grammar. Do not copy\n  demo content or introduce decorative novelty where predictable repetition serves the task.\n\n## What the lock may select\n\nThe lock may select only inputs the engine understands:\n\n- domain, surface adapter, page/artifact type, and one output grammar;\n- one maintained brand recipe, one semantic palette posture, optional bounded key-color generation,\n  one optional aesthetic profile, and one skin or project token implementation;\n- primary action/accent, type pairing, density, radius, elevation, imagery, and motion values\n  inside the selected grammar's allowed ranges;\n- one product-specific signature move that still obeys the invariants;\n- a project-local reference grammar with provenance and confidence recorded by the compiler.\n\nThe lock may not invent a palette mode, waive accessibility, legalize mixed systems, or\noverride a core invariant. A reusable built-in grammar requires research, examples, and\nregression evaluation. A reference-derived grammar stays project-local until it meets that bar.\n\n## The product loop\n\n```text\nunderstand the job → choose or compile a grammar → lock bounded decisions\n→ build with judgment → score the implementation → visually verify rendered output\n→ present the result and evidence\n```\n\nRepeatable application of expert decisions is the product goal. The build method implements\nthat goal; scoring and verification are supporting gates. They find drift, but never choose\nor rewrite the design philosophy after the fact or replace the responsible human's judgment.\n\n## Learning without surveillance\n\nStyleSeed may preserve a design lesson only when a person explicitly asks it to capture an\naccepted correction. The stored candidate contains generalized conditions, counterexamples, and\nmeasured evidence—not source code, prompts, screenshots, brand tokens, product identity, or user\ncontent. Local review and export approval are separate decisions. Preparing a package does not\ntransmit it. Returning it through MCP requires another one-time human grant and must be reported as\nclient/model exposure. No candidate may automatically modify project or core rules.",
+  "craft": "# StyleSeed Compact Craft Baseline\n\nThis is the small, task-independent craft layer used by the Context Compiler. It preserves\nthe highest-leverage rules without injecting the full design handbook into every agent turn.\nThe selected output grammar, adapter, domain, page type, brand recipe, profile, and project lock narrow these\ndefaults. `PRODUCT-PRINCIPLES.md` remains the higher authority.\n\n## Coherence\n\n- Choose one coordinated family for radius, elevation, borders, icon style, typography, motion,\n  control heights, and interaction states. Encode each family as semantic tokens and reuse it.\n- A coherent system may contain multiple component shapes and colors, but every variation must\n  have a repeatable purpose: functional, semantic, editorial, or brand expression.\n  Unexplained local variation is not a role.\n- Preserve strengths and already-set project decisions. Do not restyle unrelated surfaces while\n  fixing one screen.\n\n## Hierarchy and composition\n\n- Follow the task's attention model: a primary decision, reading promise, or coordinated\n  comparison regions. Scale, position, contrast, imagery, density, and disclosure are options;\n  no universal hero, brightest CTA, section count, or chart quota is required.\n- Proximity communicates grouping: distinguish space around groups from space within them;\n  no fixed ratio fits every density or containment model. Vary narrative sections purposefully;\n  keep functional rows and comparison\n  regions consistent when repetition helps the task. Equivalent information keeps equivalent\n  presentation; vary by priority, data question, or narrative role, not for novelty.\n- Use real product content and evidence. Placeholder dashboards, fake metrics, stock chat panels,\n  and decorative card walls obscure the task. Use data encodings that preserve meaning;\n  deltas need real baselines and sparklines need actual series. Attach interpretation context\n  (labels, units, period, reference) nearby or in an unambiguous shared scope.\n- Start Latin prose near 50–75 characters per line; inspect the actual language, font, and zoom.\n  CSS `ch` is a glyph-width unit, not actual character count. Let data regions use needed width.\n- Media should show the relevant subject or evidence. Record its role, crop, text-safe area,\n  and fallback where needed; a task that needs no image should not receive decorative filler.\n\n## Spacing and type\n\n- Reuse the approved spacing scale. Without one, start from `{4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96}`.\n  Document optical, script, canvas, or platform reasons for adjustments; preserve grouping.\n- Default body text to 16px on general surfaces; an approved productive desktop scale may use\n  14px body. Smaller metadata and identifiers still need readable measure, contrast, and zoom.\n- Coordinate type roles and weights; one or two families are economical defaults, not a cap on\n  script fallbacks or approved editorial/code roles. Use tabular figures for numeric comparison.\n- Tighten leading as type grows: body about 1.5, headings 1.2–1.35, display 1.0–1.2.\n\n## Components and interaction\n\n- Use the lightest effective separation for the context: alignment, whitespace, tone, hairlines,\n  or depth. There is no fixed order. A border and shadow may serve distinct boundary/layer roles.\n- Buttons, inputs, and selects in one context share a height. Touch surfaces provide at least\n  44px targets; pointer-first dense desktop controls may be smaller when still operable.\n- Labels remain visible. Errors name the problem and recovery and never rely on color alone.\n- Use coordinated icon roles, optical sizes, and state variants. Do not mix unrelated families.\n- Loading, empty, error, success, disabled, and permission states preserve orientation and offer\n  applicable recovery. Inapplicable optional sections need not occupy empty slots.\n- Reflow by task priority; preserve comparison, controls, and interpretation context at narrow\n  widths. A bounded scrollable data region can be valid; unreadable shrinking is not.\n\n## Color, accessibility, and motion\n\n- Use semantic tokens for stable action, status, category, brand, and content roles. Identify\n  the next action within each decision region; a popover and its page may have distinct actions.\n  Judge conflicting meanings, not hue count, warm paper, serif type, or hard black by themselves.\n- Body text targets WCAG AA contrast; large text and meaningful graphics meet their applicable\n  threshold. Focus is visible, controls have names, and keyboard order follows visual order.\n- Motion uses one duration/easing family, communicates state or sequence, and never delays the\n  first read or an action. Provide a complete reduced-motion result.\n- Inspect the real render at the target viewport. Source review cannot certify optical balance,\n  font loading, crop, responsive transformation, or visual states.",
   "grammars": {
-    "consumer-service": "### `consumer-service`\n\n- **Job:** understand personal state without anxiety and take one useful next action.\n- **Attention:** one dominant balance, status, benefit, or briefing; secondary services recede.\n- **Composition:** short contextual heading → dominant summary → small set of next actions →\n  progressive detail. Mobile-first, thumb-reachable, explicit bottom navigation where needed.\n- **Density/type:** comfortable to airy; friendly sans; large plain-language numbers; short copy.\n- **Color/surface:** calm neutral base, one brand action color, semantic colors only for real\n  status. Soft grouped surfaces are common but a card is used only when it groups a decision.\n- **Feedback:** immediate, reassuring, reversible; money and health values do not animate\n  theatrically.\n- **Reject:** every service as equal card, promotional clutter above state, rainbow categories,\n  cute language in serious moments, or copying Toss component-for-component.",
-    "operations-console": "### `operations-console`\n\n- **Job:** scan system or business state, compare changes, find exceptions, act efficiently.\n- **Attention:** one operational focal panel; supporting KPIs form hierarchy rather than a\n  uniform card wall.\n- **Composition:** persistent navigation → scope/time controls → focal trend or queue →\n  comparable metrics → actionable table/list. Detail lives below or on demand.\n- **Density/type:** comfortable to compact; neutral grotesk; tabular numerals; labels may be\n  small but body and decisions remain readable on desktop.\n- **Color/surface:** restrained brand accent; categorical colors only for stable, repeated data\n  semantics. Tone, alignment, and grouping carry more hierarchy than decoration.\n- **Feedback:** filters and mutations respond instantly; loading preserves layout; bulk action\n  consequences are explicit.\n- **Reject:** same-weight KPI tiles everywhere, decorative gradients, mobile-tight type on a\n  1440px canvas, or charts without a decision they support.",
-    "technical-instrument": "### `technical-instrument`\n\n- **Job:** observe live state, isolate anomalies, and diagnose a system.\n- **Attention:** current incident, trace, monitor, or performance state dominates.\n- **Composition:** stable navigation and scope → live status/timeline → dense evidence table or\n  trace → drill-down. Group by diagnostic relationship, not visual symmetry.\n- **Density/type:** compact to dense; sans for UI, mono only for identifiers, timestamps, code,\n  and aligned numeric evidence.\n- **Color/surface:** neutral light or dark tonal ramp; one signal accent; status colors are\n  semantic and sparse. Dark mode uses tonal levels and hairlines, not floating shadows.\n- **Feedback:** near-instant, non-blocking, time-aware; paused/live state is unmistakable.\n- **Reject:** decorative terminal cosplay, neon rainbow telemetry, excessive mono body copy,\n  or animation that competes with changing data.",
-    "editorial-reading": "### `editorial-reading`\n\n- **Job:** understand, retain, and navigate a narrative or argument.\n- **Attention:** title/deck/byline or the opening visual establishes the reading promise.\n- **Composition:** strong title rhythm → bounded reading column → meaningful media/pull quote →\n  related context after the narrative. Chrome recedes.\n- **Density/type:** airy around the story; 45–90 characters per line, normally near 60–70;\n  comfortable body size/leading; serif is optional and role-specific, never an automatic theme.\n- **Color/surface:** ink and paper-like neutrals may be used without faking print; one quiet\n  accent for links and editorial signals. Whitespace and type replace gratuitous cards.\n- **Feedback:** reading position, save, share, and footnotes are calm and unobtrusive.\n- **Reject:** forcing all content into cards, app-dashboard chrome around prose, overly wide\n  measures, serif everywhere, or interaction patterns that interrupt reading.",
+    "consumer-service": "### `consumer-service`\n\n- **Job:** understand personal state without anxiety and take one useful next action.\n- **Attention:** one dominant balance, status, benefit, or briefing; secondary services recede.\n- **Composition:** short contextual heading → dominant summary → small set of next actions →\n  progressive detail. Mobile-first, thumb-reachable, explicit bottom navigation where needed.\n- **Density/type:** comfortable to airy; friendly sans; large plain-language numbers; short copy.\n- **Color/surface:** calm neutral base, one brand action color, semantic colors only for real\n  status. Brand/content and category palettes can have separate stable roles. Soft grouped\n  surfaces are common but a card is used only when it groups a decision.\n- **Feedback:** immediate, reassuring, reversible; money and health values do not animate\n  theatrically.\n- **Reject:** equal service cards that obscure priority, promotional clutter above state,\n  category colors without stable meaning,\n  cute language in serious moments, or copying Toss component-for-component.",
+    "operations-console": "### `operations-console`\n\n- **Job:** scan system or business state, compare changes, find exceptions, act efficiently.\n- **Attention:** prioritize the current operational question or exception. Comparable regions\n  may share weight when comparison is the task; decorative KPI tiles must not obscure action.\n- **Composition:** persistent navigation → scope/time controls → focal trend or queue →\n  comparable metrics → actionable table/list. Detail lives below or on demand.\n- **Density/type:** comfortable to compact; neutral grotesk; tabular numerals; labels may be\n  small but body and decisions remain readable on desktop.\n- **Color/surface:** restrained brand accent; categorical colors only for stable, repeated data\n  semantics. Tone, alignment, and grouping carry more hierarchy than decoration.\n- **Feedback:** filters and mutations respond instantly; loading preserves layout; bulk action\n  consequences are explicit.\n- **Reject:** KPI tiles that hide the operational question, decoration that impairs scanning, mobile-tight type on a\n  1440px canvas, or charts without a decision they support.",
+    "technical-instrument": "### `technical-instrument`\n\n- **Job:** observe live state, isolate anomalies, and diagnose a system.\n- **Attention:** make the current incident or diagnostic question easy to locate; a monitor\n  overview may give comparable regions equal weight while keeping anomalies distinguishable.\n- **Composition:** stable navigation and scope → live status/timeline → dense evidence table or\n  trace → drill-down. Group by diagnostic relationship, not visual symmetry.\n- **Density/type:** compact to dense; sans for UI, mono only for identifiers, timestamps, code,\n  and aligned numeric evidence.\n- **Color/surface:** neutral light or dark tonal ramp; one signal accent; status colors are\n  semantic and sparse. Dark mode uses tonal levels and hairlines, not floating shadows.\n- **Feedback:** near-instant, non-blocking, time-aware; paused/live state is unmistakable.\n- **Reject:** decorative terminal cosplay, neon rainbow telemetry, excessive mono body copy,\n  or animation that competes with changing data.",
+    "editorial-reading": "### `editorial-reading`\n\n- **Job:** understand, retain, and navigate a narrative or argument.\n- **Attention:** title/deck/byline or the opening visual establishes the reading promise.\n- **Composition:** strong title rhythm → bounded reading column → meaningful media/pull quote →\n  related context after the narrative. Chrome recedes.\n- **Density/type:** airy around the story; 45–90 characters per line, normally near 60–70;\n  comfortable body size/leading; serif is optional and role-specific, never an automatic theme.\n- **Color/surface:** ink and paper-like neutrals may be used without faking print; one quiet\n  accent for links and editorial signals. Whitespace and type replace gratuitous cards.\n- **Feedback:** reading position, save, share, and footnotes are calm and unobtrusive.\n- **Reject:** forcing all content into cards, app-dashboard chrome around prose, overly wide\n  measures, type choices that erase reading roles, or interaction patterns that interrupt reading.",
     "commerce-conversion": "### `commerce-conversion`\n\n- **Job:** evaluate an offer, resolve uncertainty, select a variant, and commit.\n- **Attention:** product/service evidence leads; price, availability, primary CTA, and trust\n  information remain easy to connect.\n- **Composition:** media → identity/price/proof → variants → primary action → delivery/returns →\n  details and comparison. On mobile, keep the commitment action reachable without hiding terms.\n- **Density/type:** comfortable; product information is highly scannable; images are evidence,\n  not decorative filler.\n- **Color/surface:** brand color supports the purchase action; ratings, discounts, stock, and\n  errors use stable semantics rather than a promotional rainbow.\n- **Feedback:** variant and cart changes are immediate and reversible; costs and constraints\n  appear before commitment.\n- **Reject:** urgency dark patterns, buried shipping/returns, competing CTAs, tiny variant\n  targets, or a lifestyle mood that obscures the actual product.",
     "institutional-service": "### `institutional-service`\n\n- **Job:** understand eligibility or obligation, provide accurate information, and complete a\n  consequential task with confidence.\n- **Attention:** task title, current step, and required action dominate over branding.\n- **Composition:** plain-language intro → prerequisites → one step at a time → review → clear\n  confirmation and recovery path.\n- **Density/type:** comfortable, highly legible, robust at zoom; labels and help stay adjacent\n  to controls; long content uses bounded measure.\n- **Color/surface:** conservative semantic palette with high contrast; errors never rely on\n  color alone; decorative color is rare.\n- **Feedback:** preserve entered data, explain errors, expose progress, and provide reference\n  numbers/next steps after completion.\n- **Reject:** novelty over comprehension, ambiguous icons, low-contrast minimalism, hidden\n  requirements, or motion that makes a serious workflow feel unstable.",
-    "expressive-marketing": "### `expressive-marketing`\n\n- **Job:** understand the proposition, believe the proof, and choose a next step.\n- **Attention:** one unmistakable promise paired with real product or brand evidence.\n- **Composition:** proposition → proof → differentiated mechanism → examples/outcomes → CTA.\n  Section forms vary to create rhythm; repetition is deliberate, not template filler.\n- **Density/type:** airy with confident display hierarchy; body copy remains readable.\n- **Color/surface:** wider brand palette and expressive media are allowed when roles remain\n  coherent and one action is primary.\n- **Feedback:** cinematic motion may support sequence, but first read and CTA work without it;\n  reduced motion yields a complete page.\n- **Reject:** generic gradient headline, equal three-card feature rows, fake metrics, copied\n  demo visuals, scroll-jacking, or motion used as a substitute for a proposition.",
-    "sequential-story": "### `sequential-story`\n\n- **Job:** make one idea understandable and worth continuing across a bounded visual sequence.\n- **Attention:** slide/frame one earns the next gesture; each following frame has one dominant\n  message and a visible place in the sequence.\n- **Composition:** hook → context/why → evidence or mechanism → useful action → reframe/close.\n  Alternate big type, evidence, image, and utility frames so the sequence has rhythm.\n- **Density/type:** designed for the adapter's viewing distance and dwell time; one message per\n  frame; body copy is bounded and never shrunk to rescue an overloaded slide.\n- **Color/surface:** project grammar and brand tokens carry across all frames; emphasis roles\n  remain stable. Continuity comes from a system, not identical templates.\n- **Imagery:** crops, captions, and sources are intentional; generated-image text/logos are\n  replaced during deterministic rendering.\n- **Feedback/navigation:** folio, progress, swipe cue, and CTA fit the publishing surface without\n  occupying its unsafe UI zones.\n- **Reject:** ten identical cards, a weak explanatory cover, one composition repeated on every\n  frame, content that works only as a caption, missing source attribution, or platform crop loss."
+    "expressive-marketing": "### `expressive-marketing`\n\n- **Job:** understand the proposition, believe the proof, and choose a next step.\n- **Attention:** one unmistakable promise paired with real product or brand evidence.\n- **Composition:** proposition → proof → differentiated mechanism → examples/outcomes → CTA.\n  Section forms vary to create rhythm; repetition is deliberate, not template filler.\n- **Density/type:** airy with confident display hierarchy; body copy remains readable.\n- **Color/surface:** wider brand palette and expressive media are allowed when roles remain\n  coherent and the next action is clear within each decision region.\n- **Feedback:** cinematic motion may support sequence, but first read and CTA work without it;\n  reduced motion yields a complete page.\n- **Reject:** generic presentation that hides the proposition, feature rows without useful proof, fake metrics, copied\n  demo visuals, scroll-jacking, or motion used as a substitute for a proposition.",
+    "sequential-story": "### `sequential-story`\n\n- **Job:** make one idea understandable and worth continuing across a bounded visual sequence.\n- **Attention:** slide/frame one earns the next gesture; each following frame has one dominant\n  message and a visible place in the sequence.\n- **Composition:** hook → context/why → evidence or mechanism → useful action → reframe/close.\n  Change frame composition when the message or evidence role changes; comparable steps\n  can repeat a layout to preserve orientation.\n- **Density/type:** designed for the adapter's viewing distance and dwell time; one message per\n  frame; body copy is bounded and never shrunk to rescue an overloaded slide.\n- **Color/surface:** project grammar and brand tokens carry across all frames; emphasis roles\n  remain stable. Continuity comes from a system, not identical templates.\n- **Imagery:** crops, captions, and sources are intentional; generated-image text/logos are\n  replaced during deterministic rendering.\n- **Feedback/navigation:** folio, progress, swipe cue, and CTA fit the publishing surface without\n  occupying its unsafe UI zones.\n- **Reject:** repeated frames without meaningful progression, a weak explanatory cover,\n  content that works only as a caption, missing source attribution, or platform crop loss."
   },
   "adapters": {
     "product-ui": "## `product-ui`\n\n- **Canvas:** responsive viewports declared in the design lock; verify at least one narrow and\n  one wide target when both are in scope.\n- **Primitives:** semantic HTML and project-native components. Preserve framework conventions,\n  routes, state, and real content rather than replacing the application with a mock.\n- **States:** loading, empty, error, success, disabled, focus, and responsive navigation are part\n  of the artifact when the screen owns those behaviors.\n- **Export:** source code plus reproducible dev/build commands and screenshot paths.\n- **QA:** run project checks, render the real route, inspect target viewports and important states,\n  and record what could not be exercised.",
     "social-carousel": "## `social-carousel`\n\nUse `sequential-story` unless another grammar clearly owns the content. The installed Claude\n`carousel-build` skill is the canonical companion when available:\n\n1. StyleSeed reads or compiles the grammar and writes brand/type/motion/content rules to\n   `STYLESEED.md`.\n2. `carousel-build` reads that lock, then applies deterministic engineering constraints:\n   3:4 `1080×1440`, platform safe zones, crop behavior, 8px rhythm, type scale, gradient\n   banding prevention, available font weights, and reproducible PIL rendering.\n3. Copy and publishing skills may add their own contracts without altering visual authority.\n4. `/ss-score` checks sequence coherence and grammar fit; `/ss-verify` opens every exported\n   frame and checks crop, safe zone, typography, rhythm, false text, and continuity.\n\nRecommended lock additions:\n\n```markdown\n- Surface adapter: social-carousel\n- Artifact type: information-carousel\n- Canvas: 1080x1440\n- Sequence grammar: hook → why → evidence → action → reframe → CTA\n- Renderer: carousel-build\n- Safe zone contract: adapter:ADAPTERS.md#social-carousel-integration\n```\n\nDo not duplicate the renderer's rapidly changing platform measurements inside a visual grammar.\nThe adapter/companion owns them; StyleSeed owns the visual judgment applied within them.",
     "slide-deck": "## `slide-deck`\n\n- **Canvas:** use the presentation renderer's declared aspect ratio and safe area. Assume distance\n  viewing; body copy that works on a web page is usually too small or dense on a slide.\n- **Sequence:** one claim per slide, visible narrative progression, and deliberate alternation\n  between statement, evidence, comparison, and action.\n- **Assets:** use real charts, diagrams, screenshots, and cited imagery. Never use a text-heavy\n  card grid as a substitute for a presentation.\n- **Export:** editable deck plus rendered PDF or page images.\n- **QA:** render every slide, inspect overflow and contrast, and compare repeated masters,\n  alignment, folios, and speaker-facing information.",
-    "document-report": "## `document-report`\n\n- **Canvas:** paginated output with explicit paper size, margins, headers/footers, and print-safe\n  color. Reading measure and page breaks take priority over app-like chrome.\n- **Structure:** title and executive summary establish the decision; headings, figures, tables,\n  notes, and appendices expose evidence at the right depth.\n- **Assets:** captions and sources remain attached to figures and tables. Repeated components use\n  document styles rather than local formatting.\n- **Export:** editable source plus visually verified PDF.\n- **QA:** render every page and inspect widows/orphans, clipped tables, broken links, page numbers,\n  accessibility structure, and cross-page consistency.",
+    "document-report": "## `document-report`\n\n- **Canvas:** paginated output with explicit paper size, margins, headers/footers, and print-safe\n  color. Reading measure and page breaks take priority over app-like chrome.\n- **Structure:** title and executive summary establish the decision; headings, figures, tables,\n  notes, and appendices expose evidence at the right depth.\n- **Assets:** captions and sources remain attached to figures and tables. Repeated components use\n  document styles rather than local formatting.\n- **Export:** editable source plus visually verified PDF.\n- **QA:** render every page and inspect widows/orphans, clipped tables, broken links, page numbers,\n  accessibility structure, and cross-page consistency.\n\nRecommended lock additions:\n\n```markdown\n- Surface adapter: document-report\n- Artifact type: research-report\n- Paper size: Letter          # the project's call — A4 for Korean and most non-US reports\n- Margins: 0.75in top/bottom, 0.85in inner/outer\n- Header/footer: report title in header, section label optional, page number in footer\n- Reading measure: 60-75 characters for body text   # Latin; Hangul reads comfortably shorter (see UX-WRITING.md §W9)\n- Renderer: document/PDF renderer\n- Editable source: DOCX or structured source document\n- PDF export: required\n- Render evidence: page-by-page PDF images or screenshots\n- QA checks: widows/orphans, clipped tables, links, page numbers, accessibility structure\n- Physical output contract: renderer owns pagination, paper metrics, export fidelity, and PDF tags\n```\n\nFailing example:\n\n```markdown\n- Surface adapter: document-report\n- Layout assumption: reuse responsive web cards and let content scroll vertically\n```\n\nPaginated reports do not inherit web viewport assumptions. StyleSeed owns the report hierarchy,\nreading rhythm, and visual judgment; the renderer owns page boundaries, margins, flow, and export\nconstraints.",
     "single-frame": "## `single-frame`\n\n- **Canvas:** declare exact dimensions, crop variants, safe zones, and intended viewing distance.\n- **Composition:** one dominant message and one supporting action or proof. The frame must work\n  without surrounding caption text unless the publishing contract says otherwise.\n- **Assets:** logos, product imagery, and text are deterministic and legible. Generated imagery\n  must not supply final logos or critical text.\n- **Export:** source plus final PNG/JPEG/SVG variants and an asset manifest.\n- **QA:** inspect at native size and thumbnail size, verify crop variants, contrast, text safety,\n  and platform compression risk."
   },
   "domains": {
-    "fintech": "## 1. Fintech / Banking / Payments\n\n- **Color:** maximum restraint — the brand accent is reserved for *money in\n  motion* (CTAs, positive trend, the active balance). Greens/reds only for\n  up/down, never decoration. Trust reads as calm, not loud.\n- **Density:** medium-low. One number should dominate each card. Whitespace\n  signals \"we're careful with your money.\"\n- **Typography:** numbers first — hero balance at 48px with 24px unit (2:1).\n  Currency, dates, and labels recede.\n- **Motion:** **Spring** (Toss-style confident bounce on CTAs) or **Silk** for\n  balances and sheets. Never bouncy on a number that represents real money\n  changing — it reads as unstable.\n- **Signature patterns:** HeroCard (balance), transaction `ListItem` with status\n  dot, KPI `StatCard` with trend, period toggle, donut for spend breakdown.\n- **Anti-patterns:** playful/rainbow palettes, gradients on amounts, fake\n  precision (`$8,400.0000`), shadows that float cards \"off the page,\" motion that\n  delays seeing a balance.\n- **Brand recipe:** `calm-consumer`; use `native-mobile` for a platform-first utility.\n- **Skin material:** custom brand tokens; Toss and Stripe remain optional token references.",
-    "saas": "## 2. SaaS / B2B Dashboard / Analytics\n\n- **Color:** disciplined grayscale with one accent for the primary action and\n  selected state. Data viz gets a small, fixed categorical scale — not a new\n  color per metric.\n- **Density:** high. Power users want information per pixel: tables, filters,\n  multi-KPI rows. Density is a feature, not clutter — but keep rhythm.\n- **Typography:** balanced numbers + labels. Tables need tabular-nums and tight\n  line-height; headings stay quiet.\n- **Motion:** **Snap** (Linear-style instant). Power users hate waiting on\n  animation. Layout/FLIP for reordering, near-zero entrance.\n- **Signature patterns:** ChartCard (period toggle + bottom stats), dense KPI\n  grid, filterable list/table, segmented control, RankedList.\n- **Anti-patterns:** decorative motion, oversized hero numbers that waste space,\n  6 accent colors in a chart legend, modal-heavy flows (prefer inline).\n- **Brand recipe:** `enterprise-workbench`; use `developer-platform` for technical evidence.\n- **Skin material:** custom brand tokens; Linear and Vercel remain optional token references.",
-    "ecommerce": "## 3. E-commerce / Retail\n\n- **Color:** product imagery is the hero — UI chrome stays neutral so photos pop.\n  The accent drives one thing: **add-to-cart / buy**. Price gets weight, not color.\n- **Density:** medium. Browsing = generous product cards; PDP = focused, one CTA\n  above the fold.\n- **Typography:** price prominent (2:1 with currency), product title bold, specs\n  quiet. Imagery > text in the hierarchy.\n- **Motion:** **Spring** (energetic, Arc-style) for add-to-cart, quantity stepper,\n  cart badge pop (`pop-in`, `confetti-pop` on purchase is fair). Hover lift on\n  product cards.\n- **Signature patterns:** product card grid, cart badge, quantity stepper, sticky\n  buy bar, price + strikethrough, ranked/featured rails.\n- **Anti-patterns:** burying the CTA, more than one primary action on a PDP,\n  shouty discount colors everywhere (dilutes urgency), motion that blocks adding\n  to cart.\n- **Brand recipe:** `commerce-operator` for merchant/product operations; `calm-consumer` for a\n  lightweight consumer purchase flow.\n- **Skin material:** custom brand tokens; Arc and Toss remain optional token references.",
-    "social": "## 4. Social / Community / Feed\n\n- **Color:** energetic and warm — the accent can appear more often (likes,\n  mentions, online dots). Still one accent, but a livelier hue.\n- **Density:** medium, content-led. Avatars and media drive the layout; chrome is\n  minimal.\n- **Typography:** names bold, timestamps tiny and tertiary, body readable. Let\n  user content (images, text) lead.\n- **Motion:** **Pulse** (alive, rhythmic) for likes/reactions (`like-burst`),\n  live indicators (`pulse-beat`), and new-content arrival (`stagger-cascade`).\n- **Signature patterns:** feed list, avatar + name + time row, like/comment/share\n  actions, like-burst, bottom-sheet composer, story rail.\n- **Anti-patterns:** heavy chrome that competes with user content, slow entrance\n  on a feed (kills scroll), engagement bait colors, inconsistent avatar shapes.\n- **Brand recipe:** `native-mobile` for app-first feeds; `expressive-brand` for creator surfaces.\n- **Skin material:** custom warm accent; Arc remains an optional token reference.",
-    "content": "## 5. Content / Media / News / Blog / Docs\n\n- **Color:** near-monochrome; the accent is for links and one CTA. Reading is the\n  product — color is a distraction.\n- **Density:** low in the reading column (measure ~60–75ch), denser in nav/index.\n- **Typography:** **typography is the design.** Strong type scale, comfortable\n  line-height (1.5–1.65 for body), real hierarchy between H/body/caption.\n- **Motion:** **Silk** (smooth, continuous) — `reveal-blur`/`reveal-rise` on\n  headlines, subtle. Nothing that interrupts reading.\n- **Signature patterns:** article hero, readable body column, table of contents,\n  pull quotes, related-content rail, code blocks (for docs).\n- **Anti-patterns:** full-width body text, decorative motion mid-article, multiple\n  accents, cramped line-height, autoplaying anything.\n- **Brand recipe:** `editorial-authority`.\n- **Skin material:** custom editorial tokens; Notion and Vercel remain optional token references.",
-    "productivity": "## 6. Productivity / Tools / Workspace\n\n- **Color:** quiet grayscale, one accent for primary action + active item.\n  Calm so the user's *work* is the focus.\n- **Density:** high but organized — sidebars, panels, keyboard-first. Reward\n  power use.\n- **Typography:** compact, tabular where needed, clear active/hover states.\n- **Motion:** **Snap** (instant, precise). Layout transitions for reorder; avoid\n  anything that adds latency to a frequent action.\n- **Signature patterns:** sidebar + content + (optional) inspector, command\n  palette, list/board toggle, inline edit, segmented control, keyboard hints.\n- **Anti-patterns:** slow motion on frequent actions, modal overload, decorative\n  color, hiding power features behind too much progressive disclosure.\n- **Brand recipe:** `creative-professional` or `developer-platform` by task.\n- **Skin material:** custom brand tokens; Linear, Notion, and Vercel remain optional references.",
-    "health": "## 7. Health / Wellness / Fitness\n\n- **Color:** calm and reassuring — soft accent, vivid only for *metric rings /\n  progress* on a calm base. Avoid alarming reds except for genuine alerts.\n- **Density:** low-medium. One clear focus per screen (today's rings, next\n  action). Reduce cognitive load — users may be tired or stressed.\n- **Typography:** big friendly numbers (2:1), gentle labels, generous spacing.\n- **Motion:** **Float** (weightless, gentle) for reveals; **Pulse** only for live\n  heartbeat/recording. Motion should feel calm, never urgent.\n- **Signature patterns:** activity rings, big-metric hero, streak/progress, large\n  touch targets (≥44px, often bigger), weekly history.\n- **Anti-patterns:** dense data dumps, alarming colors for normal states, tiny\n  targets, jittery motion, shame-y empty states.\n- **Brand recipe:** `calm-consumer`; use `native-mobile` for tracking and capture.\n- **Skin material:** custom soft accent; Toss remains an optional token reference.",
-    "education": "## 8. Education / Learning / Courses\n\n- **Color:** encouraging — accent marks progress and the next step. Use color to\n  reward (completed = success tone), not to decorate.\n- **Density:** low per step (one concept at a time), denser in course index.\n- **Typography:** clear hierarchy, readable body, prominent \"what's next.\"\n- **Motion:** **Spring** for rewards/completion (`pop-in`, `confetti-pop` on\n  finishing a module), `stagger-cascade` for lesson lists.\n- **Signature patterns:** progress bar/ring, step list with states, lesson card,\n  next-action CTA, achievement/streak, empty→first-lesson onboarding.\n- **Anti-patterns:** showing the whole curriculum at once (overwhelm), unclear\n  next step, punishing empty/incomplete states, no sense of progress.\n- **Brand recipe:** `calm-consumer` for learners; `editorial-authority` for reading-heavy courses.\n- **Skin material:** custom learning tokens; Notion and Arc remain optional references.",
-    "developer-tools": "## 9. Developer Tools / Infra / API\n\n- **Color:** dark-first, restrained, one accent for primary/active. Syntax colors\n  are their own controlled scale.\n- **Density:** high — devs read dense screens fine. Monospace where it belongs\n  (code, IDs, logs).\n- **Typography:** mono for code/identifiers, tight tabular numbers, quiet UI text.\n- **Motion:** **Snap** (instant, precise). Devs distrust slow/flashy UI. Minimal,\n  functional only.\n- **Signature patterns:** code blocks with copy, logs/terminal, status badges,\n  command palette, key-value config, dark base.\n- **Anti-patterns:** flashy motion (reads as unserious to devs), light-only\n  themes, decorative gradients, hiding the CLI/copy affordance.\n- **Brand recipe:** `developer-platform`.\n- **Skin material:** custom technical tokens; Raycast, Vercel, and Linear remain optional references.",
-    "marketplace": "## 10. Marketplace / Listings (two-sided)\n\n- **Color:** trust + conversion — neutral chrome, accent for the primary action\n  (book/contact/buy) and for ratings/verified signals.\n- **Density:** medium — scannable listing grid, focused detail page.\n- **Typography:** listing title bold, price/rating prominent, meta quiet.\n- **Motion:** **Silk** for transitions, hover lift on listing cards, `pop-in` for\n  saved/favorited.\n- **Signature patterns:** listing card (image + title + price + rating), filters,\n  map/list toggle, detail with sticky action, reviews, verified badge.\n- **Anti-patterns:** untrustworthy density (too much, too fast), weak rating/trust\n  signals, more than one primary action, buried contact/CTA.\n- **Brand recipe:** `commerce-operator`.\n- **Skin material:** custom marketplace tokens; Stripe and Notion remain optional references.",
-    "booking": "## 11. Booking / Travel / Reservations\n\n- **Color:** confident and visual — imagery (places, rooms) leads; accent drives\n  the booking step. Calm so users feel sure about committing money/time.\n- **Density:** low-medium, step-focused. Dates and availability must be obvious.\n- **Typography:** clear dates/times, price prominent, friendly labels.\n- **Motion:** **Float** / **Silk** — smooth, reassuring transitions between steps;\n  `reveal-blur` on imagery. Confidence, not flash.\n- **Signature patterns:** date/range picker, availability calendar, multi-step\n  booking with progress, map, price summary, confirmation.\n- **Anti-patterns:** hidden total/fees, unclear current step, jarring motion mid-\n  booking, tiny date controls, anxiety-inducing scarcity spam.\n- **Brand recipe:** `commerce-operator`; use `native-mobile` for an app-first itinerary.\n- **Skin material:** custom travel tokens; Arc and Notion remain optional references.",
-    "ai-assistant": "## 12. AI / Chat / Assistant\n\n- **Color:** minimal chrome so the conversation is the focus; one accent for the\n  send/primary action. Let content (the answer) lead.\n- **Density:** low chrome, high content. Generous reading width for responses.\n- **Typography:** readable body for answers, mono for code, quiet UI around the\n  thread.\n- **Motion:** **Silk** — streaming/typing feel, smooth message entrance\n  (`reveal-blur`/`stagger`), nothing that competes with reading the answer.\n- **Signature patterns:** message thread, streaming response, composer with\n  send, prompt suggestions, copy-on-message, minimal top bar.\n- **Anti-patterns:** heavy chrome around the chat, flashy motion on every token,\n  cramped reading width, burying the input, multiple accents.\n- **Brand recipe:** `creative-professional` for workbench assistants; `calm-consumer` for simple\n  personal assistants.\n- **Skin material:** custom assistant tokens; Raycast and Notion remain optional references.\n\n---"
+    "fintech": "## 1. Fintech / Banking / Payments\n\n**Apply to:** Personal balance and payment flows. A finance operations queue needs operational density; a finance landing page may be expressive. Units and risks stay clear in every case.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** maximum restraint — the brand accent is reserved for *money in\n  motion* in a calm personal flow. Separate action from actual gain/loss or risk;\n  positive change is not always good. Brand/content roles may use other colors.\n- **Density:** medium-low. One number should dominate each card. Whitespace\n  signals \"we're careful with your money.\"\n- **Typography:** make amounts and their meaning easy to read. A 48px balance with\n  a 24px unit is one personal-summary example; tables may keep value and unit at\n  one readable scale. Currency, dates, and risk must remain unambiguous.\n- **Motion:** **Spring** (Toss-style confident bounce on CTAs) or **Silk** for\n  balances and sheets. Never bouncy on a number that represents real money\n  changing — it reads as unstable.\n- **Signature patterns:** HeroCard (balance), transaction `ListItem` with status\n  dot, KPI `StatCard` with trend, period toggle, donut for spend breakdown.\n- **Anti-patterns:** colors that confuse risk or action, illegible amount treatments, fake\n  precision (`$8,400.0000`), shadows that float cards \"off the page,\" motion that\n  delays seeing a balance.\n- **Brand recipe:** `calm-consumer`; use `native-mobile` for a platform-first utility.\n- **Skin material:** custom brand tokens; Toss and Stripe remain optional token references.",
+    "saas": "## 2. SaaS / B2B Dashboard / Analytics\n\n**Apply to:** Repeated work, analytics, and operations. A launch page, first-run flow, or reading view uses its own page task and density.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** disciplined grayscale with one accent for the primary action and\n  selected state. Data viz gets a small, fixed categorical scale — not a new\n  color per metric.\n- **Density:** high. Power users want information per pixel: tables, filters,\n  multi-KPI rows. Density is a feature, not clutter — but keep rhythm.\n- **Typography:** balanced numbers + labels. Tables need tabular-nums and tight\n  line-height; headings stay quiet.\n- **Motion:** **Snap** (Linear-style instant). Power users hate waiting on\n  animation. Layout/FLIP for reordering, near-zero entrance.\n- **Signature patterns:** scoped chart with needed context (footer optional), comparable KPI\n  grid, filterable list/table, segmented control, RankedList.\n- **Anti-patterns:** decorative motion, oversized hero numbers that waste space,\n  unstable or indistinguishable series colors, modal-heavy flows that interrupt repeated work.\n  Six categorical colors are valid when comparison and identification remain clear.\n- **Brand recipe:** `enterprise-workbench`; use `developer-platform` for technical evidence.\n- **Skin material:** custom brand tokens; Linear and Vercel remain optional token references.",
+    "ecommerce": "## 3. E-commerce / Retail\n\n**Apply to:** Browsing, product evaluation, and checkout. Merchant operations may instead lead with queues; product imagery must not obscure terms or controls.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** product imagery is the hero — UI chrome stays neutral so photos pop.\n  The accent drives one thing: **add-to-cart / buy**. Price gets weight, not color.\n- **Density:** medium. Browsing = generous product cards; PDP = focused, one CTA\n  above the fold.\n- **Typography:** price and currency clearly associated, product title identifiable, specs\n  quiet. Imagery > text in the hierarchy.\n- **Motion:** **Spring** (energetic, Arc-style) for add-to-cart, quantity stepper,\n  cart badge pop (`pop-in`, `confetti-pop` on purchase is fair). Hover lift on\n  product cards.\n- **Signature patterns:** product card grid, cart badge, quantity stepper, sticky\n  buy bar, price + strikethrough, ranked/featured rails.\n- **Anti-patterns:** burying the CTA, competing commitment actions in one decision region,\n  shouty discount colors everywhere (dilutes urgency), motion that blocks adding\n  to cart.\n- **Brand recipe:** `commerce-operator` for merchant/product operations; `calm-consumer` for a\n  lightweight consumer purchase flow.\n- **Skin material:** custom brand tokens; Arc and Toss remain optional token references.",
+    "social": "## 4. Social / Community / Feed\n\n**Apply to:** Reading, creating, and reacting to content. Moderation and administration use operational priorities; content colors are separate from action/status roles.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** energetic and warm — the accent can appear more often (likes,\n  mentions). Online status has its own semantic role; avatars and media can carry\n  varied content colors while controls remain identifiable.\n- **Density:** medium, content-led. Avatars and media drive the layout; chrome is\n  minimal.\n- **Typography:** names bold, timestamps tiny and tertiary, body readable. Let\n  user content (images, text) lead.\n- **Motion:** **Pulse** (alive, rhythmic) for likes/reactions (`like-burst`),\n  live indicators (`pulse-beat`), and new-content arrival (`stagger-cascade`).\n- **Signature patterns:** feed list, avatar + name + time row, like/comment/share\n  actions, like-burst, bottom-sheet composer, story rail.\n- **Anti-patterns:** heavy chrome that competes with user content, slow entrance\n  on a feed (kills scroll), engagement bait colors, inconsistent avatar shapes.\n- **Brand recipe:** `native-mobile` for app-first feeds; `expressive-brand` for creator surfaces.\n- **Skin material:** custom warm accent; Arc remains an optional token reference.",
+    "content": "## 5. Content / Media / News / Blog / Docs\n\n**Apply to:** Sustained reading and evidence navigation. A publication index or visual feature may be dense or colorful while the reading measure stays appropriate.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** chrome recedes for reading; monochrome, warm paper, or a wider editorial\n  palette can fit. Links, annotations, charts, and media keep distinct stable roles.\n- **Density:** comfortable reading measure for the actual font and language, often\n  around 60–75 characters for Latin prose; navigation/index may be denser.\n- **Typography:** **typography is the design.** Strong type scale, comfortable\n  line-height (1.5–1.65 for body), real hierarchy between H/body/caption.\n- **Motion:** **Silk** (smooth, continuous) — `reveal-blur`/`reveal-rise` on\n  headlines, subtle. Nothing that interrupts reading.\n- **Signature patterns:** article hero, readable body column, table of contents,\n  pull quotes, related-content rail, code blocks (for docs).\n- **Anti-patterns:** full-width body text, motion that interrupts reading, ambiguous\n  link/evidence colors, cramped line-height, intrusive autoplay.\n- **Brand recipe:** `editorial-authority`.\n- **Skin material:** custom editorial tokens; Notion and Vercel remain optional token references.",
+    "productivity": "## 6. Productivity / Tools / Workspace\n\n**Apply to:** Repeated editing and work management. Keep tool chrome predictable while the work itself may be expressive; onboarding can be more spacious.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** quiet grayscale, one accent for primary action + active item.\n  Calm so the user's *work* is the focus.\n- **Density:** high but organized — sidebars, panels, keyboard-first. Reward\n  power use.\n- **Typography:** compact, tabular where needed, clear active/hover states.\n- **Motion:** **Snap** (instant, precise). Layout transitions for reorder; avoid\n  anything that adds latency to a frequent action.\n- **Signature patterns:** sidebar + content + (optional) inspector, command\n  palette, list/board toggle, inline edit, segmented control, keyboard hints.\n- **Anti-patterns:** slow motion on frequent actions, modal overload, decorative\n  color, hiding power features behind too much progressive disclosure.\n- **Brand recipe:** `creative-professional` or `developer-platform` by task.\n- **Skin material:** custom brand tokens; Linear, Notion, and Vercel remain optional references.",
+    "health": "## 7. Health / Wellness / Fitness\n\n**Apply to:** Personal tracking and supportive self-service. Clinical review or multi-patient monitoring may require dense comparisons and prominent real alerts.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** calm and reassuring — soft accent, vivid only for *metric rings /\n  progress* on a calm base. Avoid alarming reds except for genuine alerts.\n- **Density:** low-medium. One clear focus per screen (today's rings, next\n  action). Reduce cognitive load — users may be tired or stressed.\n- **Typography:** readable values and units, clear labels, and task-appropriate spacing;\n  personal summaries may use larger numbers while clinical comparisons stay aligned.\n- **Motion:** **Float** (weightless, gentle) for reveals; **Pulse** only for live\n  heartbeat/recording. Motion should feel calm, never urgent.\n- **Signature patterns:** activity rings, big-metric hero, streak/progress, large\n  touch targets (≥44px, often bigger), weekly history.\n- **Anti-patterns:** density that hides the current decision, alarming colors for normal states, tiny\n  targets, jittery motion, shame-y empty states.\n- **Brand recipe:** `calm-consumer`; use `native-mobile` for tracking and capture.\n- **Skin material:** custom soft accent; Toss remains an optional token reference.",
+    "education": "## 8. Education / Learning / Courses\n\n**Apply to:** Learning a concept or completing a step. Course planning and teacher administration may need the full curriculum or comparable records visible together.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** encouraging — accent marks progress and the next step. Use color to\n  reward (completed = success tone), not to decorate.\n- **Density:** low per step (one concept at a time), denser in course index.\n- **Typography:** clear hierarchy, readable body, prominent \"what's next.\"\n- **Motion:** **Spring** for rewards/completion (`pop-in`, `confetti-pop` on\n  finishing a module), `stagger-cascade` for lesson lists.\n- **Signature patterns:** progress bar/ring, step list with states, lesson card,\n  next-action CTA, achievement/streak, empty→first-lesson onboarding.\n- **Anti-patterns:** forcing a whole curriculum into a focused lesson step, unclear\n  next step, punishing empty/incomplete states, no sense of progress.\n- **Brand recipe:** `calm-consumer` for learners; `editorial-authority` for reading-heavy courses.\n- **Skin material:** custom learning tokens; Notion and Arc remain optional references.",
+    "developer-tools": "## 9. Developer Tools / Infra / API\n\n**Apply to:** Diagnosis, configuration, and technical evidence. Documentation and marketing use their own reading/proposition roles; light and dark themes are both valid.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** task-appropriate light or dark roles, restrained tool chrome. Syntax colors\n  are their own controlled scale.\n- **Density:** compact when comparison benefits, with readable controls. Monospace where it belongs\n  (code, IDs, logs).\n- **Typography:** mono for code/identifiers, tight tabular numbers, quiet UI text.\n- **Motion:** **Snap** (instant, precise). Devs distrust slow/flashy UI. Minimal,\n  functional only.\n- **Signature patterns:** code blocks with copy, logs/terminal, status badges,\n  command palette, key-value config, dark base.\n- **Anti-patterns:** motion that delays diagnosis, inadequate contrast, decoration\n  that competes with evidence, hiding the CLI/copy affordance.\n- **Brand recipe:** `developer-platform`.\n- **Skin material:** custom technical tokens; Raycast, Vercel, and Linear remain optional references.",
+    "marketplace": "## 10. Marketplace / Listings (two-sided)\n\n**Apply to:** Finding, comparing, and evaluating listings. Seller operations may use dense work queues and multiple scoped actions.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** trust + conversion — neutral chrome, accent for the primary action\n  (book/contact/buy) and for ratings/verified signals.\n- **Density:** medium — scannable listing grid, focused detail page.\n- **Typography:** listing title bold, price/rating prominent, meta quiet.\n- **Motion:** **Silk** for transitions, hover lift on listing cards, `pop-in` for\n  saved/favorited.\n- **Signature patterns:** listing card (image + title + price + rating), filters,\n  map/list toggle, detail with sticky action, reviews, verified badge.\n- **Anti-patterns:** untrustworthy density (too much, too fast), weak rating/trust\n  signals, competing actions within a decision region, buried contact/CTA.\n- **Brand recipe:** `commerce-operator`.\n- **Skin material:** custom marketplace tokens; Stripe and Notion remain optional references.",
+    "booking": "## 11. Booking / Travel / Reservations\n\n**Apply to:** Availability, offer comparison, booking, and itinerary use. Exploration can be image-led; commitment needs clear total cost, dates, and recovery.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** confident and visual — imagery (places, rooms) leads; accent drives\n  the booking step. Calm so users feel sure about committing money/time.\n- **Density:** low-medium, step-focused. Dates and availability must be obvious.\n- **Typography:** clear dates/times, price prominent, friendly labels.\n- **Motion:** **Float** / **Silk** — smooth, reassuring transitions between steps;\n  `reveal-blur` on imagery. Confidence, not flash.\n- **Signature patterns:** date/range picker, availability calendar, multi-step\n  booking with progress, map, price summary, confirmation.\n- **Anti-patterns:** hidden total/fees, unclear current step, jarring motion mid-\n  booking, tiny date controls, anxiety-inducing scarcity spam.\n- **Brand recipe:** `commerce-operator`; use `native-mobile` for an app-first itinerary.\n- **Skin material:** custom travel tokens; Arc and Notion remain optional references.",
+    "ai-assistant": "## 12. AI / Chat / Assistant\n\n**Apply to:** Conversation and generated-content review. Agent workbenches may need dense tool/evidence panels; a chat thread is not mandatory for every AI task.\nSizes, colors, component names, and motion seeds below are contextual starting points; preserve approved project roles.\n\n- **Color:** minimal chrome so the conversation is the focus; one accent for the\n  send/primary action. Let content (the answer) lead.\n- **Density:** low chrome, high content. Generous reading width for responses.\n- **Typography:** readable body for answers, mono for code, quiet UI around the\n  thread.\n- **Motion:** **Silk** — streaming/typing feel, smooth message entrance\n  (`reveal-blur`/`stagger`), nothing that competes with reading the answer.\n- **Signature patterns:** message thread, streaming response, composer with\n  send, prompt suggestions, copy-on-message, minimal top bar.\n- **Anti-patterns:** heavy chrome around the chat, flashy motion on every token,\n  cramped reading width, burying the input, ambiguous action/status/content colors.\n- **Brand recipe:** `creative-professional` for workbench assistants; `calm-consumer` for simple\n  personal assistants.\n- **Skin material:** custom assistant tokens; Raycast and Notion remain optional references.\n\n---"
   },
   "pages": {
-    "dashboard": "## Dashboard / Home / Overview\n\n- **Job:** answer \"how are things?\" in 3 seconds, then let the user drill down.\n- **Structure:** information pyramid — one hero metric → a small KPI set →\n  supporting list/chart. Vary section types (Rule 14/61): never four identical\n  cards in a row.\n- **Hierarchy:** density increases as you scroll. Top = 48px hero number; bottom\n  = 13–14px detailed rows.\n- **Patterns:** HeroCard, KPI grid (mixed: trend / progress / comparison),\n  ChartCard, RankedList, BriefingCarousel for alerts.\n- **Anti-patterns:** wall of identical KPIs, no clear primary metric, charts with\n  6 legend colors, everything the same visual weight.\n- **Mobile:** single column, hero first, horizontal-scroll carousels for KPI sets,\n  `mx-6` single cards / `px-6` grids.",
-    "form": "## Form / Create / Edit\n\n- **Job:** get accurate input with the least friction and the most confidence.\n- **Structure:** **single column**, logical grouping into `SectionCard`s, one\n  clear primary action (bottom or sticky). Labels **above** fields, not beside.\n- **Hierarchy:** the field you're on > the next field > everything else. Primary\n  action visually dominant; secondary/cancel quiet.\n- **Patterns:** labeled inputs, inline validation (validate on blur, not on every\n  keystroke), grouped sections, sticky save bar, `wiggle` + helper text on error,\n  clear required/optional marking.\n- **Anti-patterns:** multi-column forms (eye zig-zags), placeholder-as-label,\n  validating before the user finishes, two primary buttons, error states with no\n  recovery guidance, disabled submit with no explanation.\n- **Mobile:** full-width fields, ≥44px touch targets, numeric keyboards for number\n  fields, sticky primary above the keyboard.",
-    "landing": "## Landing / Marketing / Home (public)\n\n- **Job:** in one screen, say what it is + why it matters + one next action.\n- **Structure:** hero (headline + subhead + single primary CTA) → proof\n  (features/social proof) → CTA again. One conversion goal per page.\n- **Hierarchy:** headline dominates; CTA is the single brightest element; supporting\n  text recedes. The accent belongs to the CTA.\n- **Patterns:** hero with one CTA, feature grid, social proof (logos/stats/quotes),\n  before/after, comparison, closing CTA.\n- **Motion — this is the ONE surface where the Cinematic tier applies (DESIGN-LANGUAGE §43).**\n  Unlike an app/dashboard, a brand page *should* use motion as craft: **scroll-LINKED reveals,\n  pinned/sticky sections, sequential \"the product assembles as you scroll\" choreography, subtle\n  parallax, a 3D/tilt hero or showcase card, an animated gradient/mesh or video background, rich\n  hover** (magnetic/glow/lift). This is how family.co / stripe.com / linear.app read premium —\n  don't apply dashboard restraint here. Guardrails still hold: purposeful (not jitter), 60fps\n  (`transform`/`opacity` only), never blocks the first read or the CTA/LCP, `prefers-reduced-motion`\n  leaves a complete static page, one motion language.\n- **Anti-patterns:** multiple competing CTAs, wall of text, every section the same rhythm,\n  autoplaying *audio*, motion that **delays the headline or hides content until you scroll**,\n  **scroll-JACKING** (hijacking scroll speed / trapping — different from scroll-linked, which is\n  fine), six accent colors, no reduced-motion fallback.\n- **Mobile:** stack everything, keep the CTA reachable, don't shrink the headline\n  into mush.",
-    "detail": "## Detail / Profile / Item\n\n- **Job:** show one thing deeply, with its primary action obvious.\n- **Structure:** identity header (title/image/status) → key facts → body/sections →\n  one primary action (often sticky on mobile).\n- **Hierarchy:** the subject's name/title and its primary action win. Metadata is\n  tertiary.\n- **Patterns:** hero/identity block, key-value facts, tabbed or sectioned body,\n  sticky primary action, related items rail, status indicators.\n- **Anti-patterns:** burying the primary action, equal weight on everything, no\n  clear \"what is this,\" metadata louder than the subject.\n- **Mobile:** sticky action bar, collapse long sections, single column.",
+    "dashboard": "## Dashboard / Home / Overview\n\n- **Job:** answer \"how are things?\" in 3 seconds, then let the user drill down.\n- **Structure:** expose the state that supports the next decision, then its evidence\n  and drill-down. A personal summary may lead with a metric; operations may lead with\n  a queue, and monitoring with a timeline or comparable panels.\n- **Hierarchy:** use the grammar's attention model and approved type/density tokens.\n  Do not require a hero number or progressive density when comparison is the task.\n- **Patterns:** summary, actionable queue, trend, comparison panel, evidence table.\n  Choose project-native components rather than mandatory StyleSeed card names.\n- **Anti-patterns:** decorative KPI walls, unclear scope or freshness, charts without\n  a decision, and inconsistent emphasis between comparable values.\n- **Mobile:** preserve task priority, filters, and access to comparison evidence;\n  reflow using the project's gutters and input-mode scale.",
+    "form": "## Form / Create / Edit\n\n- **Job:** get accurate input with the least friction and the most confidence.\n- **Structure:** logical field groups with explicit labels and a clear completion\n  action. Single-column flow is a useful default; related short fields may share a\n  row when order, zoom, and narrow-screen reflow remain clear. Use the selected\n  recipe's containment: public-service forms use flat sections, not forced cards.\n- **Hierarchy:** the field you're on > the next field > everything else. Primary\n  action visually dominant; secondary/cancel quiet.\n- **Patterns:** labeled inputs, validation timed to the input task, grouped sections,\n  explicit save state, associated error/help text, clear required/optional marking.\n  Sticky actions and error motion are optional, never required for comprehension.\n- **Anti-patterns:** ambiguous field order, placeholder-as-label,\n  validating before the user finishes, competing completion actions in one decision region, error states with no\n  recovery guidance, disabled submit with no explanation.\n- **Mobile:** full-width fields, ≥44px touch targets, numeric keyboards for number\n  fields, sticky primary above the keyboard.",
+    "landing": "## Landing / Marketing / Home (public)\n\n- **Job:** in one screen, say what it is + why it matters + one next action.\n- **Structure:** establish a proposition with relevant evidence and a clear next step.\n  Image-led, type-led, editorial, and demonstration-led openings are alternatives.\n  Choose sections and order by the visitor's questions, not a fixed hero/proof/CTA template.\n- **Hierarchy:** make the reading promise and next action perceptually clear through\n  position, scale, imagery, contrast, and spacing. The headline need not be largest,\n  nor the CTA the brightest element; a quiet visible link can fit the task.\n- **Patterns:** product media, demonstrations, meaningful comparisons, sourced proof,\n  and local or closing actions. Use real content; no feature-grid or repeated-CTA quota.\n- **Motion — expressive choreography is optional when it serves the proposition.**\n  Possible techniques include **scroll-LINKED reveals,\n  pinned/sticky sections, sequential \"the product assembles as you scroll\" choreography, subtle\n  parallax, a 3D/tilt hero or showcase card, an animated gradient/mesh or video background, rich\n  hover** (magnetic/glow/lift). A static brand page is also valid.\n  Guardrails still hold: purposeful (not jitter), target smooth rendering\n  (`transform`/`opacity` only), never blocks the first read or the CTA/LCP, `prefers-reduced-motion`\n  leaves a complete static page, one motion language.\n- **Anti-patterns:** multiple competing CTAs, wall of text, every section the same rhythm,\n  autoplaying *audio*, motion that **delays the headline or hides content until you scroll**,\n  **scroll-JACKING** (hijacking scroll speed / trapping — different from scroll-linked),\n  unstable color roles, no reduced-motion fallback. Purposeful repetition is valid.\n- **Mobile:** recompose by task priority, preserving the proposition, media crop,\n  evidence, and reachable actions. Stack or regroup where useful; preserve comparison\n  with legible columns or a bounded data region when needed. Test navigation and zoom.",
+    "detail": "## Detail / Profile / Item\n\n- **Job:** show one thing deeply, with its next action clear when the task calls for one.\n- **Structure:** identity header (title/image/status) → key facts → body/sections →\n  a clear next action within the relevant decision region (optionally sticky on mobile).\n- **Hierarchy:** the subject and its evidence lead. In reading contexts, save/share\n  and other controls recede; in commerce, the commitment action stays easy to find.\n- **Patterns:** hero/identity block, key-value facts, tabbed or sectioned body,\n  sticky primary action, related items rail, status indicators.\n- **Anti-patterns:** burying the primary action, equal weight on everything, no\n  clear \"what is this,\" metadata louder than the subject.\n- **Mobile:** preserve subject, evidence, and action; use a sticky action or disclosure\n  only when useful. Keep important comparison context and terms accessible.",
     "list": "## List / Index / Browse / Search\n\n- **Job:** scan many items fast, find the right one, act.\n- **Structure:** optional filter/search bar → consistent rows/cards → clear\n  per-item action or tap target. Consistency beats variety here.\n- **Hierarchy:** the item's identifying field (name/title) is boldest; status and\n  meta are quieter; the value/amount is emphasized on the trailing edge.\n- **Patterns:** `ListItem` (title + status dot + trailing value), filterable list,\n  segmented control, swipe actions on mobile, empty state, `stagger-cascade`\n  entrance, skeleton while loading.\n- **Anti-patterns:** rows that vary wildly, no empty/loading state, status by color\n  alone (pair with text/dot), tiny tap targets, pagination where infinite scroll\n  fits (or vice-versa).\n- **Mobile:** full-width rows, swipe-to-act, ≥44px rows, sticky filter.",
-    "settings": "## Settings / Account / Preferences\n\n- **Job:** let the user find and change one setting with confidence, safely.\n- **Structure:** grouped `SectionCard`s by topic (profile / notifications /\n  billing / danger), each setting a labeled row with its control on the trailing\n  edge. Destructive actions isolated and clearly marked.\n- **Hierarchy:** flat and scannable — settings are equal-weight within a group;\n  group titles orient. Danger zone visually separated.\n- **Patterns:** toggle rows, select rows, account header, billing card, **danger\n  zone** (the one place a functional border + destructive tone is right),\n  inline-save or explicit-save (be consistent).\n- **Anti-patterns:** destructive actions next to benign ones, unclear save model,\n  settings with no labels, toggles whose state is ambiguous, no confirmation on\n  irreversible actions.\n- **Mobile:** full-width rows, controls reachable with the thumb, ≥44px toggles.",
+    "settings": "## Settings / Account / Preferences\n\n- **Job:** let the user find and change one setting with confidence, safely.\n- **Structure:** grouped sections by topic (profile / notifications /\n  billing / danger), each setting a labeled row with its control on the trailing\n  edge. Destructive actions isolated and clearly marked.\n- **Hierarchy:** flat and scannable — settings are equal-weight within a group;\n  group titles orient. Danger zone visually separated.\n- **Patterns:** toggle rows, select rows, account header, billing summary, **danger\n  zone** (clearly distinguish destructive actions using the approved system),\n  inline-save or explicit-save (be consistent).\n- **Anti-patterns:** destructive actions next to benign ones, unclear save model,\n  settings with no labels, toggles whose state is ambiguous, no confirmation on\n  irreversible actions.\n- **Mobile:** full-width rows, controls reachable with the thumb, ≥44px toggles.",
     "onboarding": "## Onboarding / First-run / Empty\n\n- **Job:** get the user to their first win with minimal steps, never a dead end.\n- **Structure:** few steps with visible progress, one decision per step, a strong\n  \"what's next.\" Empty states are onboarding in disguise — always offer the next\n  action.\n- **Hierarchy:** the current step and its single action dominate; progress is\n  visible but quiet.\n- **Patterns:** stepper/progress, one-question-per-screen, `EmptyState` (icon +\n  title + description + action), `pop-in`/`confetti-pop` on completion, contextual\n  tips, skip/defer where fair.\n- **Anti-patterns:** asking everything up front, empty screens with no next action,\n  no sense of progress, punishing or shaming empty states, forcing setup before\n  any value.\n- **Mobile:** one step per screen, big primary, progress at top.\n\n---"
   },
   "recipes": {
     "calm-consumer": "## `calm-consumer`\n\n- **Best fit:** personal state, reassurance, benefits, lightweight health, and short recurring\n  tasks. Strong with `consumer-service`; usable for a gentle `commerce-conversion`.\n- **Containment:** tonal groups and a few soft cards. One summary may float; secondary rows\n  should not become an equal card wall.\n- **Geometry:** 12–20px outer radius, smaller nested radius, restrained shadow or tonal\n  separation, comfortable 20–24px gutters.\n- **Type/icons:** friendly sans, plain-language values, simple line icons without repeated\n  tinted icon chips.\n- **Controls/collections:** reachable primary action, short rows or grouped sections, pill\n  controls only for true compact choices.\n- **Motion:** immediate and reassuring; spring may be restrained; consequential values do not\n  count theatrically.\n- **Characteristic move:** one calm contextual briefing connected to the user's current state.\n- **Reject:** copying Toss layouts, every service as a rounded card, blue as an automatic brand,\n  cute language in serious states, or chips as decoration.\n- **Lineage:** StyleSeed consumer-service research; brand examples are evidence, not sources to\n  copy.",
     "native-mobile": "## `native-mobile`\n\n- **Best fit:** focused mobile utilities, capture, communication, media, and one-handed tasks.\n  Compatible with any grammar whose primary surface is a mobile app.\n- **Containment:** content is primary; navigation and controls recede into platform-familiar\n  bars, sheets, lists, and grouped regions.\n- **Geometry:** platform-aware radii and materials, 16–20px screen gutters, touch targets at\n  least 44px, no desktop card grid squeezed into a phone.\n- **Type/icons:** dynamic type and platform conventions; system symbols when licensed for the\n  target platform, otherwise one consistent open icon family.\n- **Controls/collections:** few visible controls, secondary actions disclosed nearby, common\n  gestures have visible alternatives, important actions remain reachable.\n- **Motion/responsive:** adapt to orientation, dark mode, text scaling, and device insets;\n  transitions preserve spatial continuity.\n- **Characteristic move:** one content-first task with controls concentrated in the reachable\n  middle or lower region.\n- **Reject:** decorative glass imitation, copying Apple assets, invisible gesture-only actions,\n  tiny targets, or a web navbar pretending to be native.\n- **Lineage:** [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines).",
-    "enterprise-workbench": "## `enterprise-workbench`\n\n- **Best fit:** admin, analytics, operations, collaboration, and multi-step B2B work. Strong\n  with `operations-console`.\n- **Containment:** persistent shell, aligned panels, toolbars, tables, and detail regions.\n  Group by work relationship; use card grids sparingly.\n- **Geometry:** 0–8px radius, 1px boundaries or tonal layers, minimal floating shadow, 16–24px\n  page rhythm on an explicit grid.\n- **Type/icons:** neutral UI sans, tabular numbers, compact labels, one functional icon family.\n- **Controls/collections:** rectangular controls, visible filters, bulk actions, dense rows,\n  comparison tables, and preserved loading geometry.\n- **Motion/responsive:** fast state changes; panels reflow or collapse by task priority rather\n  than merely shrinking.\n- **Characteristic move:** one operational focal panel connected directly to an actionable\n  queue or evidence table.\n- **Reject:** identical KPI cards, oversized mobile typography on desktop, decorative\n  gradients, hidden scope controls, or floating shadows on every panel.\n- **Lineage:** [IBM Carbon 2x Grid](https://carbondesignsystem.com/elements/2x-grid/overview/),\n  [Microsoft Fluent 2](https://fluent2.microsoft.design/design-principles),\n  [Atlassian foundations](https://atlassian.design/foundations).",
+    "enterprise-workbench": "## `enterprise-workbench`\n\n- **Best fit:** admin, analytics, operations, collaboration, and multi-step B2B work. Strong\n  with `operations-console`.\n- **Containment:** persistent shell, aligned panels, toolbars, tables, and detail regions.\n  Group by work relationship; use card grids sparingly.\n- **Geometry:** 0–8px radius, 1px boundaries or tonal layers, minimal floating shadow, 16–24px\n  page rhythm on an explicit grid.\n- **Type/icons:** neutral UI sans, tabular numbers, compact labels, one functional icon family.\n- **Controls/collections:** rectangular controls, visible filters, bulk actions, dense rows,\n  comparison tables, and preserved loading geometry.\n- **Motion/responsive:** fast state changes; panels reflow or collapse by task priority rather\n  than merely shrinking.\n- **Characteristic move:** the operational question connects directly to an actionable queue\n  or evidence table; comparable monitoring regions remain coordinated when comparison is the task.\n- **Reject:** equal emphasis that hides operational priority, unnecessary card wrappers,\n  oversized mobile typography on desktop, decorative\n  gradients, hidden scope controls, or floating shadows on every panel.\n- **Lineage:** [IBM Carbon 2x Grid](https://carbondesignsystem.com/elements/2x-grid/overview/),\n  [Microsoft Fluent 2](https://fluent2.microsoft.design/design-principles),\n  [Atlassian foundations](https://atlassian.design/foundations).",
     "developer-platform": "## `developer-platform`\n\n- **Best fit:** repositories, observability, infrastructure, APIs, and security. Strong with\n  `technical-instrument`; usable for technical `operations-console`.\n- **Containment:** stable shell, compact toolbars, hairline-separated rows, code/evidence\n  regions, and contextual drill-down.\n- **Geometry:** 4–8px radius, hairline borders, little or no shadow, compact 12–20px rhythm.\n- **Type/icons:** sans for UI; mono only for identifiers, timestamps, logs, commands, and aligned\n  numeric evidence. Icons are small and functional.\n- **Controls/collections:** rectangular or lightly rounded controls, status-aware tables,\n  timelines, command palettes, and copyable evidence.\n- **Motion/responsive:** near-instant, non-blocking, time-aware; live/paused state is explicit.\n- **Characteristic move:** one inspectable evidence region that connects status to diagnosis.\n- **Reject:** terminal cosplay, neon telemetry, mono body copy, rounded feature-card grids, or\n  animation that competes with live data.\n- **Lineage:** [GitHub Primer foundations](https://primer.style/product/getting-started/foundations/)\n  and [Primer pattern guidance](https://primer.style/product/contribute/design/).",
-    "commerce-operator": "## `commerce-operator`\n\n- **Best fit:** merchant admin, inventory, orders, fulfillment, customer support, and complex\n  purchase operations. Strong with `operations-console` and `commerce-conversion`.\n- **Containment:** resource index → filters → actionable rows → contextual detail. Cards group\n  merchant decisions, not every datum.\n- **Geometry:** 8–12px radius, clear boundaries, moderate density, restrained elevation for\n  overlays and temporary context only.\n- **Type/icons:** highly scannable labels and values; product imagery is evidence; status text\n  accompanies semantic color.\n- **Controls/collections:** filter bars, resource tables/lists, contextual actions, variant and\n  fulfillment state, reversible mutations.\n- **Motion/responsive:** preserve selection and filters; mobile promotes the current task and\n  moves secondary columns into detail.\n- **Characteristic move:** a resource row or order state exposes the next operational action\n  without opening a decorative card.\n- **Reject:** promotional rainbow admin UI, buried costs or constraints, ambiguous statuses,\n  equal-weight analytics tiles, or urgency dark patterns.\n- **Lineage:** [Shopify Polaris](https://polaris-react.shopify.com/) and StyleSeed commerce\n  research. Reuse concepts, not Shopify trade dress.",
+    "commerce-operator": "## `commerce-operator`\n\n- **Best fit:** merchant admin, inventory, orders, fulfillment, customer support, and complex\n  purchase operations. Strong with `operations-console` and `commerce-conversion`.\n- **Containment:** resource index → filters → actionable rows → contextual detail. Cards group\n  merchant decisions, not every datum.\n- **Geometry:** 8–12px radius, clear boundaries, moderate density, restrained elevation for\n  overlays and temporary context only.\n- **Type/icons:** highly scannable labels and values; product imagery is evidence; status text\n  accompanies semantic color.\n- **Controls/collections:** filter bars, resource tables/lists, contextual actions, variant and\n  fulfillment state, reversible mutations.\n- **Motion/responsive:** preserve selection and filters; mobile promotes the current task and\n  moves secondary columns into detail.\n- **Characteristic move:** a resource row or order state exposes the next operational action\n  without opening a decorative card.\n- **Reject:** promotional rainbow admin UI, buried costs or constraints, ambiguous statuses,\n  analytics tiles that hide the current task, or urgency dark patterns.\n- **Lineage:** [Shopify Polaris](https://polaris-react.shopify.com/) and StyleSeed commerce\n  research. Reuse concepts, not Shopify trade dress.",
     "public-service": "## `public-service`\n\n- **Best fit:** eligibility, applications, regulated forms, healthcare workflows, and civic\n  services. Strong with `institutional-service`.\n- **Containment:** flat document flow, bounded reading measure, explicit sections, one step at a\n  time, review, confirmation, and recovery.\n- **Geometry:** 0–4px radius, strong visible boundaries, no decorative shadow, generous vertical\n  separation, high-contrast focus.\n- **Type/icons:** robust sans, plain language, adjacent labels/help, icons never replace critical\n  words.\n- **Controls/collections:** rectangular buttons and inputs, clear legends, summaries and error\n  links, preserved entered data, reference number on completion.\n- **Motion/responsive:** minimal and non-essential; layout survives zoom, reflow, text scaling,\n  keyboard, and assistive technology.\n- **Characteristic move:** the current task and its requirements are more visually prominent\n  than the organization brand.\n- **Reject:** low-contrast minimalism, novelty navigation, hidden prerequisites, rounded app\n  cards, altered control meanings, or motion that makes the workflow feel unstable.\n- **Lineage:** [GOV.UK patterns](https://design-system.service.gov.uk/patterns/) and\n  [community principles](https://design-system.service.gov.uk/community/community-principles/).",
     "creative-professional": "## `creative-professional`\n\n- **Best fit:** creation, editing, asset management, media, and expert cross-platform tools.\n  Compatible with `operations-console`, `technical-instrument`, and `sequential-story`.\n- **Containment:** focused canvas or artifact, quiet utility chrome, named tool groups, inspectors,\n  and progressive disclosure.\n- **Geometry:** 4–8px radius, crisp boundaries, restrained layers, density adapts between\n  pointer and touch.\n- **Type/icons:** rational, compact, internationalizable labels; icons support trained use but\n  critical actions retain text or discoverable labels.\n- **Controls/collections:** toolbars, property panels, asset grids, contextual controls, and\n  explicit selection state.\n- **Motion/responsive:** desktop and mobile scale independently while sharing one language;\n  motion explains selection, mode, and spatial change.\n- **Characteristic move:** the user's work occupies the focal field while tools form a\n  disciplined supporting frame.\n- **Reject:** decoration around the canvas, one scale stretched across all inputs, unlabeled\n  mystery tools, or copying Adobe product chrome.\n- **Lineage:** [Adobe Spectrum principles](https://spectrum.adobe.com/page/principles/) and\n  [platform scale](https://spectrum.adobe.com/page/platform-scale/).",
-    "editorial-authority": "## `editorial-authority`\n\n- **Best fit:** journalism, reports, research, policy, and documentation. Strong with\n  `editorial-reading`; usable for evidence-heavy `expressive-marketing`.\n- **Containment:** type, whitespace, rules, captions, and bounded columns replace app cards.\n  Chrome recedes after orientation.\n- **Geometry:** 0–4px radius, hairline rules, little or no shadow, generous section rhythm and\n  45–90 character reading measures.\n- **Type/icons:** deliberate display/body roles, serif optional and role-specific, captions and\n  sources remain attached to evidence.\n- **Controls/collections:** calm inline actions, table of contents, footnotes, save/share,\n  figures, pull quotes, and related context after the narrative.\n- **Motion/responsive:** reading position and disclosure only; narrow screens preserve hierarchy\n  and source relationships rather than stacking arbitrary cards.\n- **Characteristic move:** an authoritative opening promise followed by inspectable evidence.\n- **Reject:** dashboard chrome around prose, every section in a card, overly wide measure, serif\n  everywhere, fake print texture, or interruption-heavy interactions.\n- **Lineage:** StyleSeed editorial research and public-content accessibility guidance.",
-    "expressive-brand": "## `expressive-brand`\n\n- **Best fit:** campaigns, launches, portfolios, brand pages, posters, and social stories.\n  Strong with `expressive-marketing` and `sequential-story`.\n- **Containment:** section form varies with the narrative; proof, product media, and display type\n  create rhythm instead of a repeated feature-card template.\n- **Geometry:** project-specific and intentionally consistent; one signature geometry may be\n  sharp, soft, or sculptural, but nested and control shapes stay coherent.\n- **Type/icons:** distinctive display hierarchy plus readable body; commissioned or licensed\n  imagery carries identity more than generic icons.\n- **Controls/collections:** one identifiable CTA, product demonstrations, outcomes, and examples;\n  repeated collections earn their repetition.\n- **Motion/responsive:** cinematic choreography is allowed when native scroll remains under user\n  control and reduced motion yields a complete result.\n- **Characteristic move:** one product-specific visual mechanism that could not be swapped into\n  an unrelated landing page.\n- **Reject:** generic gradient headlines, equal three-card rows, fake metrics, scroll-jacking,\n  copied campaign compositions, or motion that substitutes for a proposition.\n- **Lineage:** independent brand/campaign research; compile supplied references with\n  `ss-reference` when a particular visual language matters.\n\n## Legal and promotion boundary\n\n- Reference-family names document provenance; never present a recipe as official, endorsed, or\n  pixel-compatible with those systems.\n- Do not redistribute protected logos, proprietary icons, fonts, illustrations, product copy,\n  screenshots, or trademarked arrangements.\n- A project-local reference grammar remains the correct path for a specific brand. Promote it to\n  a built-in recipe only after multiple independent sources and transfer tests prove that the\n  morphology is reusable and not a clone."
+    "editorial-authority": "## `editorial-authority`\n\n- **Best fit:** journalism, reports, research, policy, and documentation. Strong with\n  `editorial-reading`; usable for evidence-heavy `expressive-marketing`.\n- **Containment:** type, whitespace, rules, captions, and bounded columns replace app cards.\n  Chrome recedes after orientation.\n- **Geometry:** 0–4px radius, hairline rules, little or no shadow, generous section rhythm and\n  45–90 character reading measures.\n- **Type/icons:** deliberate display/body roles, serif optional and role-specific, captions and\n  sources remain attached to evidence.\n- **Controls/collections:** calm inline actions, table of contents, footnotes, save/share,\n  figures, pull quotes, and related context after the narrative.\n- **Motion/responsive:** reading position and disclosure only; narrow screens preserve hierarchy\n  and source relationships rather than stacking arbitrary cards.\n- **Characteristic move:** an authoritative opening promise followed by inspectable evidence.\n- **Reject:** dashboard chrome around prose, every section in a card, unreadable measure,\n  type choices that erase reading roles, decorative texture that impairs reading, or\n  interruption-heavy interactions. Serif body and warm paper can fit the approved system.\n- **Lineage:** StyleSeed editorial research and public-content accessibility guidance.",
+    "expressive-brand": "## `expressive-brand`\n\n- **Best fit:** campaigns, launches, portfolios, brand pages, posters, and social stories.\n  Strong with `expressive-marketing` and `sequential-story`.\n- **Containment:** section form varies with the narrative; proof, product media, and display type\n  create rhythm instead of a repeated feature-card template.\n- **Geometry:** project-specific and intentionally consistent; one signature geometry may be\n  sharp, soft, or sculptural, but nested and control shapes stay coherent.\n- **Type/icons:** distinctive display hierarchy plus readable body; commissioned or licensed\n  imagery carries identity more than generic icons.\n- **Controls/collections:** identifiable next actions within each decision region, demonstrations, outcomes, and examples;\n  repeated collections earn their repetition.\n- **Motion/responsive:** cinematic choreography is allowed when native scroll remains under user\n  control and reduced motion yields a complete result.\n- **Characteristic move:** one product-specific visual mechanism that could not be swapped into\n  an unrelated landing page.\n- **Reject:** generic treatments that obscure the proposition, feature rows without useful proof,\n  fake metrics, scroll-jacking,\n  copied campaign compositions, or motion that substitutes for a proposition.\n- **Lineage:** independent brand/campaign research; compile supplied references with\n  `ss-reference` when a particular visual language matters.\n\n## Legal and promotion boundary\n\n- Reference-family names document provenance; never present a recipe as official, endorsed, or\n  pixel-compatible with those systems.\n- Do not redistribute protected logos, proprietary icons, fonts, illustrations, product copy,\n  screenshots, or trademarked arrangements.\n- A project-local reference grammar remains the correct path for a specific brand. Promote it to\n  a built-in recipe only after multiple independent sources and transfer tests prove that the\n  morphology is reusable and not a clone."
   },
   "palettes": {
-    "quiet-mineral": "### quiet-mineral\n\n- Name: Quiet mineral\n- Mode: light\n- Best for: Calm consumer products, health, benefits, and personal utilities\n- Recipe bias: calm-consumer, native-mobile\n- Semantic roles: background=#F3F0E8 · surface=#FFFDF8 · chrome=#DCE7E0 · foreground=#19211F · mutedForeground=#56635F · chromeForeground=#19211F · border=#BFC9C2 · primary=#276B5E · primaryForeground=#FFFFFF · accent=#D56A45 · accentForeground=#211713 · focus=#155EEF · success=#1E6F50 · successForeground=#FFFFFF · warning=#8A5700 · warningForeground=#FFFFFF · danger=#B42318 · dangerForeground=#FFFFFF\n- Usage: Let warm neutrals carry most of the canvas. Reserve green for the primary action and current-state reassurance; keep coral below ten percent.\n- Generated-media anchors: #F3F0E8, #276B5E, #D56A45\n- Avoid in generated media: neon blue, rainbow gradients, blue-purple AI glow\n- Re-run deterministic contrast validation after any project override.",
+    "quiet-mineral": "### quiet-mineral\n\n- Name: Quiet mineral\n- Mode: light\n- Best for: Calm consumer products, health, benefits, and personal utilities\n- Recipe bias: calm-consumer, native-mobile\n- Semantic roles: background=#F3F0E8 · surface=#FFFDF8 · chrome=#DCE7E0 · foreground=#19211F · mutedForeground=#56635F · chromeForeground=#19211F · border=#BFC9C2 · primary=#276B5E · primaryForeground=#FFFFFF · accent=#D56A45 · accentForeground=#211713 · focus=#155EEF · success=#1E6F50 · successForeground=#FFFFFF · warning=#8A5700 · warningForeground=#FFFFFF · danger=#B42318 · dangerForeground=#FFFFFF\n- Usage: Let warm neutrals carry most of the canvas. Use green for the primary action and current-state reassurance; coral is a restrained supporting accent unless an approved content or brand role calls for greater emphasis.\n- Generated-media anchors: #F3F0E8, #276B5E, #D56A45\n- Avoid in generated media: neon blue, rainbow gradients, blue-purple AI glow\n- Re-run deterministic contrast validation after any project override.",
     "deep-lime-studio": "### deep-lime-studio\n\n- Name: Deep lime studio\n- Mode: dark\n- Best for: Creative work, focused productivity, and high-craft prototypes\n- Recipe bias: creative-professional, expressive-brand\n- Semantic roles: background=#0B0D0F · surface=#15191D · chrome=#262C31 · foreground=#F5F4ED · mutedForeground=#A8AFAB · chromeForeground=#F5F4ED · border=#465057 · primary=#B8FF5A · primaryForeground=#10140C · accent=#7AA7FF · accentForeground=#0B1020 · focus=#B8FF5A · success=#75E6A4 · successForeground=#0B1A10 · warning=#FFC857 · warningForeground=#1B1300 · danger=#FF766E · dangerForeground=#200704\n- Usage: Use lime for selection and one decisive action, never as body text. Layer chrome one step lighter than the canvas; let generated imagery remain low-luminance.\n- Generated-media anchors: #0B0D0F, #B8FF5A, #7AA7FF\n- Avoid in generated media: pure-white bloom, multicolor neon, lime on light backgrounds\n- Re-run deterministic contrast validation after any project override.",
     "cobalt-instrument": "### cobalt-instrument\n\n- Name: Cobalt instrument\n- Mode: light\n- Best for: Developer platforms, data products, and operational workbenches\n- Recipe bias: developer-platform, enterprise-workbench\n- Semantic roles: background=#F1F5FA · surface=#FFFFFF · chrome=#101828 · foreground=#101828 · mutedForeground=#475467 · chromeForeground=#F9FAFB · border=#C7D1E0 · primary=#175CD3 · primaryForeground=#FFFFFF · accent=#6941C6 · accentForeground=#FFFFFF · focus=#175CD3 · success=#067647 · successForeground=#FFFFFF · warning=#934F00 · warningForeground=#FFFFFF · danger=#B42318 · dangerForeground=#FFFFFF\n- Usage: Use neutral layers for evidence and cobalt for action/selection. Violet belongs to secondary categorization, not a second primary action.\n- Generated-media anchors: #101828, #175CD3, #F1F5FA\n- Avoid in generated media: cyan terminal glow, decorative gradients, low-contrast gray text\n- Re-run deterministic contrast validation after any project override.",
     "warm-clay-commerce": "### warm-clay-commerce\n\n- Name: Warm clay commerce\n- Mode: light\n- Best for: Commerce, hospitality, booking, and human service brands\n- Recipe bias: commerce-operator, calm-consumer\n- Semantic roles: background=#FFF8F2 · surface=#FFFFFF · chrome=#2B201B · foreground=#2B201B · mutedForeground=#6B5549 · chromeForeground=#FFF8F2 · border=#DCCBC0 · primary=#A64005 · primaryForeground=#FFFFFF · accent=#6441C4 · accentForeground=#FFFFFF · focus=#1D5FD0 · success=#187451 · successForeground=#FFFFFF · warning=#8A5700 · warningForeground=#FFFFFF · danger=#B42318 · dangerForeground=#FFFFFF\n- Usage: Let product imagery and warm paper carry identity. Clay marks purchase intent; violet is reserved for saved or personalized context.\n- Generated-media anchors: #FFF8F2, #A64005, #2B201B\n- Avoid in generated media: orange sale walls, high-saturation red urgency, generic purple gradient\n- Re-run deterministic contrast validation after any project override.",
@@ -1176,8 +1416,8 @@
     "brutalist-lite": "### brutalist-lite\n\n- Coordinate: sharp · comfortable · high-contrast · snap\n- Signature: one hard structural move\n- This profile does not permit: broken states, mixed border weights, or inaccessible contrast\n- Apply the coordinate coherently across radius, density, typography, palette temperature, elevation, motion, composition, and one signature move."
   },
   "agents": {
-    "claude": "## Claude Code execution contract\n\n- Invoke StyleSeed skills with `/ss-*`.\n- Read this compiled bundle before implementation; do not load the full handbook unless a named ambiguity remains.\n- Use the selected renderer, run `/ss-score`, then inspect rendered output with `/ss-verify`.",
-    "codex": "## Codex execution contract\n\n- Invoke StyleSeed skills with `$ss-*` or the Skills picker.\n- Read this compiled bundle before implementation; do not load the full handbook unless a named ambiguity remains.\n- Run project checks, then `$ss-score`; render and inspect the actual artifact with `$ss-verify` before claiming completion.",
+    "claude": "## Claude Code execution contract\n\n- Invoke `/styleseed <request>`; read only the selected internal workflow.\n- Read this compiled bundle before implementation; do not load the full handbook unless a named ambiguity remains.\n- Use the selected renderer, run `/styleseed score`, then inspect rendered output with `/styleseed verify`.",
+    "codex": "## Codex execution contract\n\n- Invoke `$styleseed <request>` or select StyleSeed from the Skills picker.\n- Read this compiled bundle before implementation; do not load the full handbook unless a named ambiguity remains.\n- Run project checks, then `$styleseed score`; render and inspect the actual artifact with `$styleseed verify` before claiming completion.",
     "cursor": "## Cursor execution contract\n\n- Use the installed StyleSeed skills from the skill picker or follow this bundle directly.\n- Keep decisions in project files, run the project checks, and inspect the real rendered artifact before delivery.",
     "generic": "## Agent execution contract\n\n- Treat this compiled bundle as the active StyleSeed context.\n- Keep decisions in project files, run available project checks, and inspect the real rendered artifact before delivery."
   }

@@ -134,13 +134,21 @@ quality fail in different ways:
 
 - `ss-score` reads implementation evidence: tokens, hierarchy, states, semantics, coherence,
   and characteristic grammar tells.
-- `ss-verify` renders the result and checks pixels: actual focal dominance, type loading,
+- `ss-verify` renders the result and checks pixels: task-appropriate attention, type loading,
   balance, optical rhythm, responsive behavior, and state rendering.
 
 Both gates return to the build loop. Interactive Studio runs add a temporal gate for actual
 recording, interruption, and reduced motion, followed by named human acceptance. A static output
 may mark temporal as not applicable, but it may not fabricate motion evidence. None of the gates
 is the design engine; the composed method is.
+
+Interactive builds also declare required user outcomes in the optional artifact field
+`validation.functional.scenarios`. The `ss-score` functional runner executes explicit local
+Node tests against declared implementation roots and retains the raw events. Missing, failed,
+skipped, or stale functional evidence blocks completion independently of appearance scores.
+The field is optional for compatibility; omission reports `not-required`, not functional
+verification. See the installed `ss-score/references/functional-checks.md` for coverage and
+runner limitations. These tests do not establish production success or expert design quality.
 
 ## Extension boundary
 
@@ -158,3 +166,22 @@ is the design engine; the composed method is.
   is not part of the core install. Promote its output to team or core rules only after
   independent-project repetition, counterexamples, accessibility and grammar regressions, benchmark
   evidence, and named maintainer approval.
+
+## Scoped spatial roles
+
+Registry product UI can persist optional project/artifact `spacing`: six independent whitespace
+roles with base/wide values or existing CSS token references. The compiler includes effective
+roles and scoped CSS in the bundle and method hash; application code must consume those variables.
+Artifact overrides replace only named roles. Read-only starting proposals never overwrite config,
+and numeric compliance does not prove design quality. See
+[the spatial contract](.claude/skills/styleseed/workflows/ss-resolve/references/spacing.md) for limits and verification.
+
+## Applied color and typography observations
+
+The installed verify workflow includes a read-only browser probe for explicitly bound color
+consumers and type specimens. It observes one artifact, viewport, state, and font condition;
+unsupported paint and unknown glyph selection are not a visual pass. It reuses the existing
+spatial probe for wrapping/overflow and leaves source binding, screenshots, applicable state
+coverage, and human judgment with the host workflow. See
+[applied checks](.claude/skills/styleseed/workflows/ss-verify/references/applied-checks.md).
+These observations introduce no registry fields, aesthetic score, or automatic gate promotion.

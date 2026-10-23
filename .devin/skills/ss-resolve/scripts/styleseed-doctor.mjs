@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { analyzeLegacyLock } from "./legacy-lock-analysis.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = dirname(scriptPath);
@@ -52,13 +53,18 @@ function evidenceCheck(root, entry, verifyEvidenceRun) {
       runs.push({ id: name, status: "invalid", errors: ["Expected a safe run ID and directory"] });
       continue;
     }
+    // An interrupted init can leave an empty run directory; it makes no evidence claim either way.
+    if (readdirSync(path).length === 0) {
+      runs.push({ id: name, status: "incomplete", errors: ["Empty run directory from an interrupted evidence init; it holds no evidence and can be removed."] });
+      continue;
+    }
     const result = verifyEvidenceRun({ projectRoot: root, artifactId: entry.id, runId: name, writeSummary: false });
     runs.push({ id: name, status: result.ok ? "current" : "invalid", gates: result.gates, errors: result.errors, warnings: result.warnings });
   }
   // Old invalid runs are history, not a veto on a run bound to current inputs.
   const currentRunIds = runs.filter((run) => run.status === "current").map((run) => run.id);
   return {
-    status: currentRunIds.length ? "current" : runs.length ? "invalid" : "missing",
+    status: currentRunIds.length ? "current" : runs.some((run) => run.status !== "incomplete") ? "invalid" : "missing",
     currentRunIds,
     runs,
     ...(currentRunIds.length ? {} : { next: "Collect fresh evidence for the current artifact; cached verification.json is not proof." }),
@@ -99,10 +105,17 @@ export async function diagnoseProject({ projectRoot = process.cwd(), artifact, a
         return report;
       }
       if (artifact !== undefined) throw new Error("--artifact requires a registry project; legacy mode has one lock");
+      const legacyAnalysis = analyzeLegacyLock(readFileSync(lock, "utf8"));
       const manifest = projectPath(root, ".styleseed/manifest.json");
       const storedAgent = present(manifest) ? parseStrictJson(readFileSync(manifest, "utf8")).selection?.agent : null;
       const compilation = compileCheck(root, "legacy", agent ?? storedAgent ?? "codex", false);
-      report.configuration = { mode: "legacy", status: compilation.status === "invalid" ? "invalid" : "valid" };
+      const needsMigrationReview = legacyAnalysis.surfaceCandidates.length > 1 || legacyAnalysis.duplicateGroups.length > 0 || legacyAnalysis.fields.some((field) => !field.supported);
+      report.configuration = {
+        mode: "legacy", status: compilation.status === "invalid" ? "invalid" : "valid",
+        legacyAnalysis,
+        ...(needsMigrationReview || compilation.status === "invalid" ? { next: "Run migrate-project.mjs --dry-run to inspect section and line conflicts; review splitting independent surfaces into registry artifacts before applying a reviewed plan. Doctor does not migrate." } : {}),
+      };
+      if (compilation.status === "invalid") compilation.next = "Inspect the legacy sections and migrate-project.mjs --dry-run first; do not rerun the same resolver against an unresolved lock.";
       report.artifacts.push({ id: "legacy", compilation, evidence: { status: "unsupported", next: "Legacy bundles do not provide registry evidence-run verification. Use explicit migration before adopting registry evidence." } });
       return report;
     }
@@ -153,6 +166,11 @@ async function main(argv) {
         if (check.detail) console.log(check.detail);
         if (check.mismatches?.length) console.log(JSON.stringify(check.mismatches));
         if (check.next) console.log(`Next: ${check.next}`);
+        if (check.legacyAnalysis) {
+          for (const section of check.legacyAnalysis.sections.slice(1)) console.log(`Section ${section.id} line ${section.startLine}: ${section.headingPath.join(" > ")}`);
+          for (const group of check.legacyAnalysis.duplicateGroups) console.log(`Duplicate ${group.field} (${group.kind}) at lines ${group.lines.join(", ")}`);
+          for (const field of check.legacyAnalysis.fields.filter((item) => !item.supported)) console.log(`Unresolved ${field.label} at line ${field.line}: ${field.rawValue}`);
+        }
       }
       for (const entry of report.artifacts) {
         console.log(`${entry.id}: compilation=${entry.compilation.status}; evidence=${entry.evidence.status}`);

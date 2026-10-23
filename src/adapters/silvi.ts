@@ -1,6 +1,7 @@
 import { ExternalPlan, PlanNode, canonicalize } from '../coordination';
 import { latLngToCell } from 'h3-js';
 import { z } from 'zod';
+import { getJson, makeErr } from './fetch';
 
 // Silvi (silvi.earth) — community reforestation MRV protocol, Celo-based.
 // Public MIT-licensed backend + contracts (SilviProtocol/silvi).
@@ -310,8 +311,8 @@ export function fromSilviCampaign(
 // Returns null on any failure: the adapter never throws into the worker.
 // `silviLastError` keeps the last failure reason for sync-route errors —
 // upstream auth blocks (403) look identical to missing data otherwise.
-let lastError = '';
-export const silviLastError = () => lastError;
+const ERR = makeErr();
+export const silviLastError = ERR.get;
 const silviGet = async (
   baseUrl: string, path: string, apiKey: string | undefined,
   f: typeof fetch, params: Record<string, string | number | undefined> = {},
@@ -320,17 +321,10 @@ const silviGet = async (
   for (const [k, v] of Object.entries(params))
     if (v != null) u.searchParams.set(k, String(v));
   if (apiKey) u.searchParams.set('key', apiKey);
-  const res = await f(u.toString(), {
-    // admin.silvi.earth sits behind Cloudflare with a rule that 520s the
-    // bare Workers fetch signature — a plain UA header passes it.
-    headers: { 'user-agent': 'silvi-bridge/1.0 (+https://silvi.earth)' },
-  }).catch((e) => { lastError = `fetch: ${e}`; return null; });
-  if (!res) return null;
-  if (!res.ok) { lastError = `http ${res.status}`; return null; }
-  const body = await res.json().catch((e) => { lastError = `json: ${e}`; return null; });
-  if (body == null) return null;
-  lastError = '';
-  return body;
+  // admin.silvi.earth sits behind Cloudflare with a rule that 520s the
+  // bare Workers fetch signature — a plain UA header passes it.
+  return getJson(f, u.toString(), ERR,
+    { headers: { 'user-agent': 'silvi-bridge/1.0 (+https://silvi.earth)' } });
 };
 
 export async function fetchSilviProjects(
@@ -394,7 +388,7 @@ export async function fetchSilviClaims(
     { after: opts.after, limit: opts.limit, review_status: opts.reviewStatus });
   if (body == null) return null;
   const claims = z.array(SilviClaim).safeParse((body as { claims?: unknown }).claims);
-  if (!claims.success) { lastError = 'claims schema mismatch'; return null; }
+  if (!claims.success) { ERR.set('claims schema mismatch'); return null; }
   const nextAfter = (body as { next_after?: unknown }).next_after;
   return { claims: claims.data,
     nextAfter: typeof nextAfter === 'number' ? nextAfter : null };

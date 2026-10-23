@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromJson, normalizeFlow } from '../src/adapters/vf';
+import { fromVfJson as fromJson, normalizeFlow } from '../src/adapters/formats';
 
 // Shapes follow the VF JSON schema (Holo-REA export style) — the same
 // model playnet serializes as (@vf Intent …) s-expressions internally.

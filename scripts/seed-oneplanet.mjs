@@ -24,8 +24,8 @@ const q = (sql) => JSON.parse(execFileSync('npx',
 const NOW = new Date().toISOString();
 
 // ── MCP client — official SDK (resolved from edge's deps, pnpm isolation)
-import { Client } from '../packages/edge/node_modules/@modelcontextprotocol/sdk/dist/esm/client/index.js';
-import { StreamableHTTPClientTransport } from '../packages/edge/node_modules/@modelcontextprotocol/sdk/dist/esm/client/streamableHttp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 const client = new Client({ name: 'springforth-seed', version: '0.1.0' });
 await client.connect(new StreamableHTTPClientTransport(
   new URL('https://mcp.oneplanet.com/mcp'),

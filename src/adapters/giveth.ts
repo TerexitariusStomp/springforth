@@ -4,6 +4,7 @@ import {
 import type { Donation, FundingRound } from '../core';
 import { latLngToCell } from 'h3-js';
 import { z } from 'zod';
+import { postGql, makeErr } from './fetch';
 
 // Giveth (giveth.io) — the largest open public-goods donation registry:
 // ~7.8k projects with on-chain donation histories and QF rounds.
@@ -238,29 +239,11 @@ export function toDonations(
 }
 
 // ── Live client — public GraphQL, no auth ─────────────────────────────
-let lastError = '';
-export const givethLastError = () => lastError;
+const ERR = makeErr();
+export const givethLastError = ERR.get;
 
-const gql = async (
-  query: string, f: typeof fetch, baseUrl: string,
-): Promise<Record<string, unknown> | null> => {
-  const res = await f(baseUrl, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json',
-      'user-agent': 'springforth-adapter/1.0 (+https://springforth.earth)' },
-    body: JSON.stringify({ query }),
-  }).catch((e) => { lastError = `fetch: ${e}`; return null; });
-  if (!res) return null;
-  if (!res.ok) { lastError = `http ${res.status}`; return null; }
-  const body = await res.json().catch((e) => { lastError = `json: ${e}`; return null; }) as {
-    data?: Record<string, unknown>;
-    errors?: { message?: string }[];
-  } | null;
-  if (!body) return null;
-  if (body.errors?.length) { lastError = `gql: ${body.errors[0]!.message}`; return null; }
-  lastError = '';
-  return body.data ?? null;
-};
+const gql = (query: string, f: typeof fetch, baseUrl: string) =>
+  postGql(f, baseUrl, query, ERR);
 
 const PROJECT_FIELDS = `id title slug descriptionSummary verified verificationStatus
   coOrdinates impactLocation website creationDate updatedAt
@@ -286,7 +269,7 @@ export async function fetchGivethProjects(
   if (!data) return null;
   const inner = data.allProjects as { projects?: unknown; totalCount?: unknown } | undefined;
   const parsed = z.array(GivethProject).safeParse(inner?.projects);
-  if (!parsed.success) { lastError = 'projects schema mismatch'; return null; }
+  if (!parsed.success) { ERR.set('projects schema mismatch'); return null; }
   return { projects: parsed.data,
     totalCount: typeof inner?.totalCount === 'number' ? inner.totalCount : parsed.data.length };
 }
@@ -302,7 +285,7 @@ export async function fetchGivethQfRounds(
       eligibleNetworks beginDate endDate } }`, f, baseUrl);
   if (!data) return null;
   const parsed = z.array(GivethQfRound).safeParse(data.qfRounds);
-  if (!parsed.success) { lastError = 'qfRounds schema mismatch'; return null; }
+  if (!parsed.success) { ERR.set('qfRounds schema mismatch'); return null; }
   return parsed.data;
 }
 
@@ -322,7 +305,7 @@ export async function fetchGivethDonations(
   const inner = data.donationsByProjectId as
     { donations?: unknown; totalCount?: unknown } | undefined;
   const parsed = z.array(GivethDonation).safeParse(inner?.donations);
-  if (!parsed.success) { lastError = 'donations schema mismatch'; return null; }
+  if (!parsed.success) { ERR.set('donations schema mismatch'); return null; }
   return { donations: parsed.data,
     totalCount: typeof inner?.totalCount === 'number' ? inner.totalCount : parsed.data.length };
 }

@@ -4,6 +4,7 @@ import {
 import type { OracleCheck } from '../core';
 import { latLngToCell } from 'h3-js';
 import { z } from 'zod';
+import { getJson, makeErr } from './fetch';
 
 // Karma GAP (gap.karmahq.xyz) — Grantee Accountability Protocol: project,
 // grant, milestone, impact and endorsement records as on-chain EAS
@@ -213,20 +214,10 @@ export function toGapEndorsements(projects: GapProject[]) {
   })));
 }
 
-let lastError = '';
-export const gapLastError = () => lastError;
+const ERR = makeErr();
+export const gapLastError = ERR.get;
 
-const gapGet = async (path: string, f: typeof fetch) => {
-  const res = await f(`${GAP_API}${path}`, {
-    headers: { 'user-agent': 'springforth-adapter/1.0 (+https://springforth.earth)' },
-  }).catch((e) => { lastError = `fetch: ${e}`; return null; });
-  if (!res) return null;
-  if (!res.ok) { lastError = `http ${res.status}`; return null; }
-  const body = await res.json().catch((e) => { lastError = `json: ${e}`; return null; });
-  if (body == null) return null;
-  lastError = '';
-  return body;
-};
+const gapGet = (path: string, f: typeof fetch) => getJson(f, `${GAP_API}${path}`, ERR);
 
 // One page of projects (10/page upstream, 1-based `page` param).
 export async function fetchGapProjectsPage(
@@ -235,7 +226,7 @@ export async function fetchGapProjectsPage(
   const body = await gapGet(`/projects?page=${Math.max(page, 1)}`, f);
   if (body == null) return null;
   const parsed = z.array(GapProject).safeParse(body);
-  if (!parsed.success) { lastError = 'projects schema mismatch'; return null; }
+  if (!parsed.success) { ERR.set('projects schema mismatch'); return null; }
   return parsed.data;
 }
 

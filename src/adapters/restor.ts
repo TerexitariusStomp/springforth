@@ -1,6 +1,7 @@
 import { ExternalPlan, PlanNode, canonicalize } from '../coordination';
 import { latLngToCell } from 'h3-js';
 import { z } from 'zod';
+import { fetchOk, makeErr, UA } from './fetch';
 
 // Restor (restor.eco) — ETH Crowther Lab's restoration platform: ~200k
 // declared restoration sites, each a public page carrying the site's
@@ -223,36 +224,33 @@ export function fromRestorSites(
 }
 
 // ── Live fetchers ─────────────────────────────────────────────────────
-let lastError = '';
-export const restorLastError = () => lastError;
+const ERR = makeErr();
+export const restorLastError = ERR.get;
 
 export async function fetchRestorSitemap(
   index: number, f: typeof fetch = fetch, baseUrl = RESTOR_URL,
 ): Promise<RestorSitemapEntry[] | null> {
-  const res = await f(`${baseUrl}/sitemaps/sites/${index}/sitemap.xml`, {
-    headers: { 'user-agent': 'springforth-adapter/1.0 (+https://springforth.earth)' },
-  }).catch((e) => { lastError = `fetch: ${e}`; return null; });
+  const res = await f(`${baseUrl}/sitemaps/sites/${index}/sitemap.xml`,
+    { headers: { 'user-agent': UA } })
+    .catch((e) => { ERR.set(`fetch: ${e}`); return null; });
   if (!res) return null;
-  if (res.status === 404) { lastError = ''; return []; }   // end of index
-  if (!res.ok) { lastError = `http ${res.status}`; return null; }
+  if (res.status === 404) return [];   // end of index
+  if (!res.ok) { ERR.set(`http ${res.status}`); return null; }
   const xml = await res.text().catch(() => null);
   if (xml == null) return null;
-  lastError = '';
+  ERR.set('');
   return parseRestorSitemap(xml);
 }
 
 export async function fetchRestorSite(
   id: string, f: typeof fetch = fetch, baseUrl = RESTOR_URL,
 ): Promise<{ site: RestorSite; carbon: RestorCarbon | null } | null> {
-  const res = await f(`${baseUrl}/sites/${id}/`, {
-    headers: { 'user-agent': 'springforth-adapter/1.0 (+https://springforth.earth)' },
-  }).catch((e) => { lastError = `fetch: ${e}`; return null; });
+  const res = await fetchOk(f, `${baseUrl}/sites/${id}/`, ERR);
   if (!res) return null;
-  if (!res.ok) { lastError = `http ${res.status}`; return null; }
   const html = await res.text().catch(() => null);
   if (html == null) return null;
   const site = extractRestorSite(html, id);
-  if (!site) { lastError = 'site parse failed'; return null; }
-  lastError = '';
+  if (!site) { ERR.set('site parse failed'); return null; }
+  ERR.set('');
   return { site, carbon: extractRestorCarbon(html) };
 }

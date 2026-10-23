@@ -1,5 +1,6 @@
 import { ExternalPlan, PlanNode, canonicalize } from '../coordination';
 import { z } from 'zod';
+import { getJson, makeErr } from './fetch';
 
 // Soulutions (soulutions.earth) — global regenerative-impact marketplace:
 // projects carry an org, category slugs, impact-location region slugs, and
@@ -145,25 +146,19 @@ export function fromSoulutionsProjects(
   };
 }
 
-let lastError = '';
-export const soulutionsLastError = () => lastError;
+const ERR = makeErr();
+export const soulutionsLastError = ERR.get;
 
 // One listing page. `page` is the Remix route param (1-based; the loader
 // turns it into skip = (page-1)·take). Returns null on any failure.
 export async function fetchSoulutionsPage(
   page = 1, f: typeof fetch = fetch, baseUrl = SOULUTIONS_URL,
 ): Promise<SoulutionsPage | null> {
-  const res = await f(
-    `${baseUrl.replace(/\/$/, '')}/projects/${page}?_data=routes/__base/projects`,
-    { headers: { 'user-agent': 'springforth-adapter/1.0 (+https://springforth.earth)' } })
-    .catch((e) => { lastError = `fetch: ${e}`; return null; });
-  if (!res) return null;
-  if (!res.ok) { lastError = `http ${res.status}`; return null; }
-  const body = await res.json().catch((e) => { lastError = `json: ${e}`; return null; });
+  const body = await getJson(f,
+    `${baseUrl.replace(/\/$/, '')}/projects/${page}?_data=routes/__base/projects`, ERR);
   if (body == null) return null;
   const parsed = SoulutionsPage.safeParse(body);
-  if (!parsed.success) { lastError = 'schema mismatch'; return null; }
-  lastError = '';
+  if (!parsed.success) { ERR.set('schema mismatch'); return null; }
   return parsed.data;
 }
 

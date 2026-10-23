@@ -1,5 +1,6 @@
 import { ExternalPlan, PlanNode, canonicalize } from '../coordination';
 import { z } from 'zod';
+import { postGql, makeErr } from './fetch';
 
 // Open Collective adapter — the fund-flow transparency lane (Roberto's
 // OC-integration idea: "see where funds are coming and going"). A fiscal
@@ -196,27 +197,12 @@ export function toOcDonations(orders: OcOrder[], slug: string) {
   }));
 }
 
-let ocLastError = '';
-export const ocError = () => ocLastError;
+const ERR = makeErr();
+export const ocError = ERR.get;
 
-const ocGql = async (query: string, f: typeof fetch) => {
-  const res = await f(OC_API, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json',
-      'user-agent': 'springforth-adapter/1.0 (+https://springforth.earth)' },
-    body: JSON.stringify({ query }),
-  }).catch((e) => { ocLastError = `fetch: ${e}`; return null; });
-  if (!res) return null;
-  if (!res.ok) { ocLastError = `http ${res.status}`; return null; }
-  const body = await res.json().catch((e) => { ocLastError = `json: ${e}`; return null; }) as {
-    data?: Record<string, unknown>;
-    errors?: { message?: string }[];
-  } | null;
-  if (!body) return null;
-  if (body.errors?.length) { ocLastError = `gql: ${body.errors[0]!.message}`; }
-  else ocLastError = '';
-  return body.data ?? null;
-};
+// partial: OC returns field-level errors alongside usable data.
+const ocGql = (query: string, f: typeof fetch) =>
+  postGql(f, OC_API, query, ERR, { partial: true });
 
 // Search collectives (default public-goods terms; caller may override).
 export async function fetchOcAccounts(
@@ -237,7 +223,7 @@ export async function fetchOcAccounts(
   if (!data) return null;
   const inner = data.accounts as { nodes?: unknown; totalCount?: unknown } | undefined;
   const parsed = z.array(OcAccount).safeParse(inner?.nodes);
-  if (!parsed.success) { ocLastError = 'accounts schema mismatch'; return null; }
+  if (!parsed.success) { ERR.set('accounts schema mismatch'); return null; }
   return { accounts: parsed.data,
     totalCount: typeof inner?.totalCount === 'number' ? inner.totalCount : parsed.data.length };
 }
@@ -258,7 +244,7 @@ export async function fetchOcOrders(
   const inner = (data.collective as { orders?: { nodes?: unknown; totalCount?: unknown } } | null)
     ?.orders;
   const parsed = z.array(OcOrder).safeParse(inner?.nodes ?? []);
-  if (!parsed.success) { ocLastError = 'orders schema mismatch'; return null; }
+  if (!parsed.success) { ERR.set('orders schema mismatch'); return null; }
   return { orders: parsed.data,
     totalCount: typeof inner?.totalCount === 'number' ? inner.totalCount : parsed.data.length };
 }

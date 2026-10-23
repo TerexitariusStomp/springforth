@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 // h3-js lives in the coordination/edge workspace deps (pnpm isolation);
 // resolve it explicitly so the script runs from repo root or packages/*.
-import { latLngToCell } from '../packages/coordination/node_modules/h3-js/dist/h3-js.es.js';
+import { latLngToCell } from 'h3-js';
 
 const CSV = process.argv.find((a) => a.endsWith('.csv'))
   ?? '/tmp/sarafu-extract/data/csv/sarafu_network.field_reports.csv';

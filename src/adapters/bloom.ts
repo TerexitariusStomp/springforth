@@ -21,7 +21,8 @@
 // self-published metadata and stay verbatim in tags/description.
 
 import { z } from 'zod';
-import { latLngToCell } from 'h3-js';
+import { latLngToCell } from 'h3-js';import { makeErr } from './fetch';
+
 import {
   canonicalize,
   ExternalPlan,
@@ -31,8 +32,8 @@ import {
 
 const DEFAULT_BASE = 'https://hdkzuqwqcauhtqkrrzjx.supabase.co';
 
-let lastError = '';
-export const bloomLastError = () => lastError;
+const ERR = makeErr();
+export const bloomLastError = ERR.get;
 
 const BloomNeed = z.object({
   category: z.string().nullish(),
@@ -82,7 +83,7 @@ export async function fetchBloomLocations(
   baseUrl = DEFAULT_BASE,
   pageSize = 200,
 ): Promise<BloomLocation[] | null> {
-  if (!key) { lastError = 'no anon key'; return null; }
+  if (!key) { ERR.set('no anon key'); return null; }
   const out: BloomLocation[] = [];
   for (let from = 0; ; from += pageSize) {
     let res: Response;
@@ -90,15 +91,15 @@ export async function fetchBloomLocations(
       res = await fetchFn(
         `${baseUrl}/rest/v1/locations?published=eq.true&order=systemname.asc`,
         { headers: { ...HEADERS(key), range: `${from}-${from + pageSize - 1}` } });
-    } catch (e) { lastError = String(e); return null; }
-    if (!res.ok) { lastError = `http ${res.status}`; return null; }
+    } catch (e) { ERR.set(String(e)); return null; }
+    if (!res.ok) { ERR.set(`http ${res.status}`); return null; }
     let rows: unknown;
     try { rows = await res.json(); }
-    catch (e) { lastError = `bad json — ${e}`; return null; }
+    catch (e) { ERR.set(`bad json — ${e}`); return null; }
     const parsed = z.array(BloomLocation).safeParse(rows);
     if (!parsed.success) {
-      lastError = parsed.error.issues
-        .map((i) => `${i.path.join('.')}: ${i.message}`).slice(0, 3).join('; ');
+      ERR.set(parsed.error.issues
+        .map((i) => `${i.path.join('.')}: ${i.message}`).slice(0, 3).join('; '));
       return null;
     }
     out.push(...parsed.data);

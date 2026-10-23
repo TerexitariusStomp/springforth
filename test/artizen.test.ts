@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromJson } from '../src/adapters/artizen.ts';
+import { fromArtizenJson as fromJson } from '../src/adapters/formats.ts';
 import { detectComplements } from '../src/coordination';
 
 const EXPORT = {

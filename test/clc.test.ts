@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fromJson, normalizeVoucher, normalizeClcPool, fetchSarafu } from '../src/adapters/clc.ts';
+import { fromClcJson as fromJson, normalizeVoucher, normalizeClcPool, fetchSarafu } from '../src/adapters/formats.ts';
 
 const VOUCHER = {
   id: 42, voucher_address: '0xABC', voucher_name: 'Kalimbo',

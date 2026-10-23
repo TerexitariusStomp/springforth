@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromJson } from '../src/adapters/holons.ts';
+import { fromHolonsJson as fromJson } from '../src/adapters/formats.ts';
 import { detectComplements, isNeed } from '../src/coordination';
 
 const EXPORT = {
@@ -74,7 +74,7 @@ describe('holons-adapter', () => {
 
 describe('parseCommand — the bot lane without a bot', () => {
   it('parses /offer with terms and capital sections', async () => {
-    const { parseCommand } = await import('../src/adapters/holons.ts');
+    const { parseCommand } = await import('../src/adapters/formats.ts');
     const item = parseCommand('/offer Yoga on Tuesdays :: donation-based :: experiential', 'laura')!;
     expect(item.type).toBe('offer');
     expect(item.title).toBe('Yoga on Tuesdays');
@@ -82,32 +82,32 @@ describe('parseCommand — the bot lane without a bot', () => {
     expect(item.capital).toBe('experiential');
   });
   it('parses /request with @target and deadline', async () => {
-    const { parseCommand } = await import('../src/adapters/holons.ts');
+    const { parseCommand } = await import('../src/adapters/formats.ts');
     const item = parseCommand('/request Someone to drive the truck by 2026-10-24', 'roberto')!;
     expect(item.type).toBe('request');
     expect(item.deadline).toBe('2026-10-24');
   });
   it('parses /appreciate with a target', async () => {
-    const { parseCommand } = await import('../src/adapters/holons.ts');
+    const { parseCommand } = await import('../src/adapters/formats.ts');
     const item = parseCommand('/appreciate @laura for organising', 'roberto')!;
     expect(item.type).toBe('appreciation');
     expect(item.target).toBe('laura');
   });
   it('parses /join as a participation declaration', async () => {
-    const { parseCommand } = await import('../src/adapters/holons.ts');
+    const { parseCommand } = await import('../src/adapters/formats.ts');
     const item = parseCommand('/join poss-x bringing a tent', 'roberto')!;
     expect(item.type).toBe('join');
     expect(item.target).toBe('poss-x');
     expect(item.title).toContain('a tent');
   });
   it('parses /pass as a dismissal', async () => {
-    const { parseCommand } = await import('../src/adapters/holons.ts');
+    const { parseCommand } = await import('../src/adapters/formats.ts');
     const item = parseCommand('/pass poss-x', 'roberto')!;
     expect(item.type).toBe('pass');
     expect(item.target).toBe('poss-x');
   });
   it('returns null on non-command text', async () => {
-    const { parseCommand } = await import('../src/adapters/holons.ts');
+    const { parseCommand } = await import('../src/adapters/formats.ts');
     expect(parseCommand('just chatting', 'roberto')).toBeNull();
   });
   it('composite possibility block generates possibilityId-linked nodes', () => {

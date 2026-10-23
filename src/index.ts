@@ -49,11 +49,11 @@ import {
   resolvePlace,
 } from './coordination';
 import { normalizePlan, fromCsv, fromMarkdown } from './adapters/oneplanet';
-import { fromJson as fromClcJson } from './adapters/clc';
-import { fromJson as fromHolonsJson } from './adapters/holons';
-import { fromJson as fromArtizenJson } from './adapters/artizen';
+import { fromClcJson } from './adapters/formats';
+import { fromHolonsJson } from './adapters/formats';
+import { fromArtizenJson } from './adapters/formats';
 import { fromJson as fromOcJson } from './adapters/oc';
-import { fromJson as fromVfJson } from './adapters/vf';
+import { fromVfJson } from './adapters/formats';
 import { fetchTreegens } from './adapters/treegens';
 import {
   fromSilviProjects, fromSilviClusters, clusterSilviClaims,

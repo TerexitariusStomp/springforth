@@ -1,6 +1,7 @@
 import { ExternalPlan, PlanNode, canonicalize } from '../coordination';
 import { latLngToCell } from 'h3-js';
 import { z } from 'zod';
+import { getJson, makeErr } from './fetch';
 
 // Regen Network — sovereign eco-credit ledger (Cosmos SDK). Keyless LCD
 // REST endpoints serve the on-chain registry:
@@ -171,20 +172,11 @@ export function fromRegen(
   };
 }
 
-let lastError = '';
-export const regenLastError = () => lastError;
+const ERR = makeErr();
+export const regenLastError = ERR.get;
 
-const lcdGet = async (path: string, f: typeof fetch, baseUrl: string) => {
-  const res = await f(`${baseUrl}${path}`, {
-    headers: { 'user-agent': 'springforth-adapter/1.0 (+https://springforth.earth)' },
-  }).catch((e) => { lastError = `fetch: ${e}`; return null; });
-  if (!res) return null;
-  if (!res.ok) { lastError = `http ${res.status}`; return null; }
-  const body = await res.json().catch((e) => { lastError = `json: ${e}`; return null; });
-  if (body == null) return null;
-  lastError = '';
-  return body;
-};
+const lcdGet = (path: string, f: typeof fetch, baseUrl: string) =>
+  getJson(f, `${baseUrl}${path}`, ERR);
 
 // Cosmos LCD pagination — base64 `pagination.next_key`, empty when done.
 async function* lcdPages<T>(
@@ -199,7 +191,7 @@ async function* lcdPages<T>(
       f, baseUrl);
     if (body == null) return;
     const rows = z.array(schema).safeParse((body as Record<string, unknown>)[field]);
-    if (!rows.success) { lastError = `${field} schema mismatch`; return; }
+    if (!rows.success) { ERR.set(`${field} schema mismatch`); return; }
     yield rows.data;
     const pag = (body as { pagination?: { next_key?: string | null } }).pagination;
     key = pag?.next_key ?? undefined;
@@ -213,7 +205,7 @@ export async function fetchRegenClasses(
   const out: RegenClass[] = [];
   for await (const page of lcdPages('/regen/ecocredit/v1/classes', 'classes', RegenClass, f, baseUrl, 5))
     out.push(...page);
-  return lastError ? null : out;
+  return ERR.get() ? null : out;
 }
 
 export async function fetchRegenProjects(
@@ -222,7 +214,7 @@ export async function fetchRegenProjects(
   const out: RegenProject[] = [];
   for await (const page of lcdPages('/regen/ecocredit/v1/projects', 'projects', RegenProject, f, baseUrl, 10))
     out.push(...page);
-  return lastError ? null : out;
+  return ERR.get() ? null : out;
 }
 
 export async function fetchRegenBatches(
@@ -231,5 +223,5 @@ export async function fetchRegenBatches(
   const out: RegenBatch[] = [];
   for await (const page of lcdPages('/regen/ecocredit/v1/batches', 'batches', RegenBatch, f, baseUrl, 15))
     out.push(...page);
-  return lastError ? null : out;
+  return ERR.get() ? null : out;
 }

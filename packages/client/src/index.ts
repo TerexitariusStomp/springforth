@@ -150,5 +150,7 @@ export class SpringforthClient {
   ocSync = (phase?: 'accounts' | 'orders') =>
     this.post('/oc/sync', phase ? { phase } : {});
   regenSync = () => this.post('/regen/sync');
+  bloomSync = (key?: string) =>
+    this.post('/bloom/sync', key ? { key } : {});
   importPlan = (format: string, data: unknown, source?: string) => this.post('/plans', { format, data, source });
 }

@@ -43,6 +43,7 @@ RESTOR_URL = "https://restor.eco"
 GAP_API = "https://gapapi.karmahq.xyz"
 OC_API = "https://api.opencollective.com/graphql/v2"
 REGEN_LCD = "https://lcd-regen.keplr.app"
+BLOOM_URL = "https://hdkzuqwqcauhtqkrrzjx.supabase.co"
 # Restor bulk hydration stays outside the worker (scripts/restor-import.mjs);
 # in-worker hydrate is for incremental top-ups only.
 RESTOR_MAX_SITES = "200"

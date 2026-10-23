@@ -107,6 +107,7 @@ export const OPENAPI = {
     '/restor/sync': { post: { summary: 'Admin: sync Restor — {phase: enumerate} walks site sitemaps, {phase: hydrate} fetches site records (resumable, newest-first)' } },
     '/oc/sync': { post: { summary: 'Admin: sync OpenCollective — {phase: accounts} discovers collectives, {phase: orders} imports paid orders as donations' } },
     '/regen/sync': { post: { summary: 'Admin: sync Regen Network ecocredit classes/projects/batches' } },
+    '/bloom/sync': { post: { summary: 'Admin: sync Bloom Network local chapters (public Supabase locations — {key} or BLOOM_ANON_KEY env)' } },
     '/streams': { get: { summary: 'Superfluid recurring-support + yield streams' } },
     '/rounds/{id}/stream': { post: { summary: 'Record a stream intent (round-scoped)' } },
     '/rounds/{id}/stream/tx': { get: { summary: 'Unsigned CFA createFlow/deleteFlow calldata ?sender&token&receiver&flowRate&op' } },

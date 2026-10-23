@@ -81,6 +81,9 @@ import {
 import {
   fetchRegenClasses, fetchRegenProjects, fetchRegenBatches, fromRegen, regenLastError,
 } from '@springforth/regen-adapter';
+import {
+  fetchBloomLocations, fromBloomLocations, bloomLastError,
+} from '@springforth/bloom-adapter';
 import { answer as agentAnswer } from '@springforth/agent';
 import { buildManifest } from '@springforth/evidence-anchor';
 import { OPENAPI } from './openapi.ts';
@@ -143,6 +146,10 @@ export interface Env {
   OC_API?: string;                // defaults to api.opencollective.com/graphql/v2
   OC_SEARCH_TERMS?: string;       // comma-separated discovery terms
   REGEN_LCD?: string;             // defaults to lcd-regen.keplr.app
+  BLOOM_URL?: string;             // defaults to the public Supabase project
+  BLOOM_ANON_KEY?: string;        // Bloom's own public client anon key (RLS
+                                // read-only) — also accepted as body.key per
+                                // call; a public credential, not a secret
   RESTOR_MAX_SITES?: string;      // in-worker hydrate cap (bulk runs local)
   OS_DATAHUB_KEY?: string;        // Ordnance Survey Data Hub
   EODATAHUB_KEY?: string;         // EO Data Hub (Satellite Applications Catapult)
@@ -2064,6 +2071,53 @@ export default {
         });
         return json({ projects: projects.length, classes: classes?.length ?? 0,
           batches: batches?.length ?? 0, nodes: plan.nodes.length,
+          overlaps: detected.length, retired }, 201);
+      }
+      // Bloom Network — public Supabase `locations` table: 57 local Bloom
+      // chapters w/ lat/lng, stage, entity_type, needs[]/offers[] (eight-
+      // forms-of-capital vocab), embedded projects[] with funding links.
+      // The anon key is Bloom's own public client credential; pass it in the
+      // request body or bind BLOOM_ANON_KEY.
+      if (req.method === 'POST' && seg[0] === 'bloom' && seg[1] === 'sync') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const body = await req.json().catch(() => ({})) as { key?: string };
+        const key = body.key ?? env.BLOOM_ANON_KEY;
+        if (!key)
+          return err('bloom anon key required (body.key or BLOOM_ANON_KEY)', 422);
+        const locations = await fetchBloomLocations(
+          key, fetch, env.BLOOM_URL ?? undefined);
+        if (!locations)
+          return err(`bloom unreachable — ${bloomLastError() || 'bad payload'}`, 502);
+        const plan = fromBloomLocations(locations, 'bloom:supabase');
+        await put(env.DB, 'plan', plan.id,
+          { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
+        const keep = new Set(plan.nodes.map((n) => n.id));
+        for (const n of await listWhere<PlanNode>(env.DB, 'plannode', 'id LIKE ?', 'blm-%'))
+          if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
+        await putMany(env.DB, 'plannode', plan.nodes.map((n) => ({ id: n.id, obj: n })));
+        await putMany(env.DB, 'bloom-location', locations.map((l) => ({
+          id: `blm-${(l.systemname ?? l.slug ?? l.brandname ?? 'x')
+            .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+          obj: l,
+        })));
+        const pool = [
+          ...(await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id NOT LIKE ?', 'blm-%')),
+          ...plan.nodes,
+        ];
+        const st = { pairs: 0, exhausted: false };
+        const detected = [
+          ...detectOverlaps(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+          ...detectComplements(pool,
+            { changedIds: keep, timeBudgetMs: SYNC_DETECT_MS, stats: st }),
+        ];
+        const retired = await persistDetectedOverlaps(env, detected, keep, st.exhausted);
+        await ledgerAppend(env.DB, 'api', 'bloom.synced', {
+          locations: locations.length, nodes: plan.nodes.length,
+          overlaps: detected.length, retired,
+        });
+        return json({ locations: locations.length, nodes: plan.nodes.length,
           overlaps: detected.length, retired }, 201);
       }
       // Governance — trust-gated parameter ballots. EigenTrust-standing

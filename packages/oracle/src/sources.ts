@@ -350,6 +350,32 @@ export async function silviVerifiedTrees(
   };
 }
 
+// Campaign-scoped lane — Silvi campaign keys can't geo-query claims, so
+// /silvi/sync clusters approved claims into h3 cells stored locally.
+// This reading sums verified claim counts within radius of the node.
+export interface SilviClusterLike {
+  clusters(): Promise<{ lat: number; lng: number; verified: number }[] | null>;
+}
+export async function silviClaimClusters(
+  loc: GeoLoc, silvi: SilviClusterLike, radiusKm = 15,
+): Promise<SourceReading | null> {
+  const clusters = await silvi.clusters();
+  if (!clusters) return null;
+  let verified = 0;
+  for (const c of clusters)
+    if (distKm(loc, c.lat, c.lng) <= radiusKm) verified += c.verified;
+  if (!verified) return null;
+  return {
+    key: 'silvi',
+    source: 'field-evidence', domain: 'environmental',
+    value: verified, unit: `Silvi-verified planting claims within ${radiusKm}km`,
+    at: new Date().toISOString(),
+    methodologyRef: 'Silvi 4-layer MRV — campaign claims, review_status=approved only; per-claim Celo USDC payouts on-chain',
+    license: 'site-published evidence', attribution: 'Silvi (silvi.earth)',
+    detail: `${verified} approved Silvi planting claims within ${radiusKm}km — silvi.earth`,
+  };
+}
+
 // LEAF — "what should grow here": aptness score of the best native
 // species plus count of recommended species, from the public endpoint.
 export interface LeafLike {

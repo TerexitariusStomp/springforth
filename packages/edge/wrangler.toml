@@ -32,6 +32,9 @@ WEB_FRONTEND = "0"
 # All protocol contracts verified live on celo mainnet (2026-10-20).
 # celo-sepolia is the proving ground once contracts are deployed there.
 CHAIN_MODE = "celo"
+# Silvi public API — campaign-scoped key (secret: SILVI_API_KEY) unlocks
+# campaign 5 "Kenya/Uganda" verified planting claims via /silvi/sync.
+SILVI_CAMPAIGN_ID = "5"
 
 # Workers AI — embeddings for meaning-matched search + overlap scoring.
 # bge-base-en-v1.5 (768-dim); free tier, no secret needed.

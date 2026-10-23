@@ -10,6 +10,20 @@ export async function put(db: D1Database, kind: string, id: string, obj: unknown
   ).bind(kind, id, JSON.stringify(obj), new Date().toISOString()).run();
 }
 
+// Bulk put — one D1 round-trip per ~500 rows instead of per row; sync
+// importers (Silvi claims, plan graphs) write thousands of entities.
+export async function putMany(
+  db: D1Database, kind: string, rows: { id: string; obj: unknown }[],
+) {
+  const now = new Date().toISOString();
+  for (let i = 0; i < rows.length; i += 500) {
+    await db.batch(rows.slice(i, i + 500).map((r) =>
+      db.prepare(
+        'INSERT INTO entities(kind,id,json,updated_at) VALUES(?,?,?,?) ON CONFLICT(kind,id) DO UPDATE SET json=excluded.json, updated_at=excluded.updated_at',
+      ).bind(kind, r.id, JSON.stringify(r.obj), now)));
+  }
+}
+
 export async function get<T>(db: D1Database, kind: string, id: string): Promise<T | null> {
   const r = await db.prepare('SELECT json FROM entities WHERE kind=? AND id=?')
     .bind(kind, id).first<{ json: string }>();

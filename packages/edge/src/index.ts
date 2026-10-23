@@ -56,7 +56,10 @@ import { fromJson as fromOcJson } from '@springforth/oc-adapter';
 import { fromJson as fromVfJson } from '@springforth/vf-adapter';
 import { fetchTreegens } from '@springforth/treegens-adapter';
 import {
-  fromSilviProjects, fetchSilviProject, fetchSilviTrees, fetchLeafScore,
+  fromSilviProjects, fromSilviClusters, clusterSilviClaims,
+  fetchSilviProject, fetchSilviTrees,
+  fetchSilviCampaign, fetchSilviClaims, fetchLeafScore, silviLastError,
+  type SilviClaim, type SilviClaimCluster,
 } from '@springforth/silvi-adapter';
 import { answer as agentAnswer } from '@springforth/agent';
 import { buildManifest } from '@springforth/evidence-anchor';
@@ -65,7 +68,7 @@ import {
   checkFromReading, EXPECTED_DIRECTION,
   openaqPm25, sensorCommunity, nasaPower, sentinel2, gbifOccurrences,
   treegensPlantings, atlasHazard, trajectory,
-  silviVerifiedTrees, silviLeafAptness, evidenceBoost,
+  silviVerifiedTrees, silviClaimClusters, silviLeafAptness, evidenceBoost,
   eaFlood, openMeteo, eaWaterQuality, foodHygiene, inatObservations,
   osDataHubPlaces, eoDataHubScene, alphaKlimaHazard, naturalEnglandSites,
   placeContext,
@@ -78,7 +81,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from '@springforth/portal';
-import { get, list, listWhere, put, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, put, putMany, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -106,9 +109,10 @@ export interface Env {
   CHAIN_MODE?: string;            // 'off' (default) | 'celo-sepolia' | 'sepolia' | 'celo'
   CHAIN_RPC?: string;             // optional paid-RPC override
   TELEGRAM_CHAT_ID?: string;      // default group for quorum announcements
-  SILVI_API_KEY?: string;         // silvi.earth App API — issued PER PROJECT
-  SILVI_PROJECT_ID?: string;      // the project SILVI_API_KEY unlocks
-  SILVI_API_URL?: string;         // defaults to https://app.silvi.earth
+  SILVI_API_KEY?: string;         // silvi.earth public API key (silvi_…)
+  SILVI_CAMPAIGN_ID?: string;     // campaign-scoped keys: the campaign it unlocks
+  SILVI_PROJECT_ID?: string;      // project-scoped keys: the project it unlocks
+  SILVI_API_URL?: string;         // defaults to https://admin.silvi.earth/public-api
   OS_DATAHUB_KEY?: string;        // Ordnance Survey Data Hub
   EODATAHUB_KEY?: string;         // EO Data Hub (Satellite Applications Catapult)
   ALPHAKLIMA_KEY?: string;        // Alpha-Klima physrisk platform
@@ -199,12 +203,19 @@ async function runOracleSources(env: Env, node: PlanNode) {
     gbifOccurrences(loc).catch(() => null),
     treegensPlantings(loc).catch(() => null),
     atlasHazard(node.h3!, liveAtlas()).catch(() => null),
-    silviVerifiedTrees(loc, {
-      trees: () => env.SILVI_PROJECT_ID
-        ? fetchSilviProject(env.SILVI_PROJECT_ID, env.SILVI_API_URL, env.SILVI_API_KEY)
-            .then((p) => p?.trees ?? null)
-        : fetchSilviTrees(env.SILVI_API_URL, env.SILVI_API_KEY),
-    }).catch(() => null),
+    // Silvi — campaign-scoped keys can't geo-query upstream; the synced
+    // claim clusters in D1 answer instead. Project keys keep the live lane.
+    (env.SILVI_CAMPAIGN_ID
+      ? silviClaimClusters(loc, {
+          clusters: () => list<{ lat: number; lng: number; verified: number }>(
+            env.DB, 'silvi-cluster'),
+        })
+      : silviVerifiedTrees(loc, {
+          trees: () => env.SILVI_PROJECT_ID
+            ? fetchSilviProject(env.SILVI_PROJECT_ID, env.SILVI_API_URL, env.SILVI_API_KEY)
+                .then((p) => p?.trees ?? null)
+            : fetchSilviTrees(env.SILVI_API_URL, env.SILVI_API_KEY),
+        })).catch(() => null),
     silviLeafAptness(loc, { leaf: (l) => fetchLeafScore(l) }).catch(() => null),
     // Hackathon-endorsed public sources — keyless readers degrade to null
     // outside their coverage (e.g. EA sources on non-UK nodes), gated ones
@@ -1381,16 +1392,90 @@ export default {
           overlaps: detected.length,
         }, 201);
       }
-      // Silvi sync — pull a verified reforestation project into the plan
-      // graph. Silvi keys are issued per project: SILVI_API_KEY +
-      // SILVI_PROJECT_ID, or an ad-hoc {projectId, apiKey} in the body.
+      // Silvi sync — pull verified reforestation into the plan graph.
+      // Keys are scope-issued: campaign keys read /campaigns/:id/claims/
+      // (SILVI_CAMPAIGN_ID), project keys read /projects/:id/
+      // (SILVI_PROJECT_ID); ad-hoc {campaignId|projectId, apiKey} allowed.
       if (req.method === 'POST' && seg[0] === 'silvi' && seg[1] === 'sync') {
         if (!authed(req, env)) return err('unauthorized', 401);
-        const body = await req.json().catch(() => ({})) as { projectId?: string; apiKey?: string };
-        const projectId = body.projectId ?? env.SILVI_PROJECT_ID;
+        const body = await req.json().catch(() => ({})) as {
+          campaignId?: string; projectId?: string; apiKey?: string;
+          maxPages?: number; reviewStatus?: string;
+        };
         const apiKey = body.apiKey ?? env.SILVI_API_KEY;
+        const campaignId = body.campaignId ?? env.SILVI_CAMPAIGN_ID;
+        const projectId = body.projectId ?? env.SILVI_PROJECT_ID;
+        if (campaignId) {
+          // Resumable claim import: campaigns run to five-figure claim
+          // counts, so each call pages ≤ maxPages (500/page) and persists
+          // an `after` cursor — repeat until partial:false. Claims land
+          // as `silvi-claim` entities verbatim (GPS, species, photos,
+          // Celo payout proofs); on completion they cluster into
+          // `silvi-cluster` entities + plan-graph nodes.
+          const campaign = await fetchSilviCampaign(campaignId, env.SILVI_API_URL, apiKey);
+          if (!campaign)
+            return err(`silvi api unreachable or key invalid for campaign ${campaignId} — ${silviLastError() || 'bad payload'}`, 502);
+          const cursorId = `c${campaignId}`;
+          const prev = await get<{ after?: number | null; done?: boolean }>(
+            env.DB, 'silvi-sync', cursorId);
+          let after = prev?.done ? undefined : prev?.after ?? undefined;
+          const maxPages = Math.min(Math.max(body.maxPages ?? 10, 1), 40);
+          let pages = 0, fetched = 0, done = false;
+          // Persist per page — a mid-call worker kill still leaves claims
+          // stored and the cursor advanced, so the next call resumes.
+          while (pages < maxPages) {
+            let page = null;
+            for (let attempt = 0; attempt < 3 && !page; attempt++)
+              page = await fetchSilviClaims(campaignId,
+                { after, limit: 500, reviewStatus: body.reviewStatus },
+                env.SILVI_API_URL, apiKey);
+            if (!page) break;               // upstream hiccup — cursor resumes
+            pages++;
+            fetched += page.claims.length;
+            await putMany(env.DB, 'silvi-claim', page.claims.map((c) => ({
+              id: `sc${campaignId}-${c.id}`, obj: c,
+            })));
+            if (page.nextAfter == null) { done = true; break; }
+            after = page.nextAfter;
+            await put(env.DB, 'silvi-sync', cursorId, { after, done: false });
+          }
+          await put(env.DB, 'silvi-sync', cursorId, { after: after ?? null, done });
+          if (!done)
+            return json({ campaign: campaign.title, partial: true, fetched, pages,
+              upstream: silviLastError() || null,
+              resume: { campaignId, after } }, 202);
+          // Finalize — rebuild claim clusters + plan nodes from stored claims.
+          const claims = await listWhere<SilviClaim>(
+            env.DB, 'silvi-claim', 'id LIKE ?', `sc${campaignId}-%`);
+          const clusters = clusterSilviClaims(claims);
+          await putMany(env.DB, 'silvi-cluster', clusters.map((c) => ({
+            id: `scl${campaignId}-${c.key}`, obj: { campaignId, ...c },
+          })));
+          const plan = fromSilviClusters(campaign, clusters, claims.length, 'silvi:app');
+          await put(env.DB, 'plan', plan.id,
+            { ...plan, nodes: undefined, nodeCount: plan.nodes.length });
+          const keep = new Set(plan.nodes.map((n) => n.id));
+          for (const n of await listWhere<PlanNode>(
+            env.DB, 'plannode', 'id LIKE ?', `silvi-c${campaignId}-%`))
+            if (!keep.has(n.id)) await del(env.DB, 'plannode', n.id);
+          await putMany(env.DB, 'plannode',
+            plan.nodes.map((n) => ({ id: n.id, obj: n })));
+          const nodes = await list<PlanNode>(env.DB, 'plannode');
+          const emb = await loadEmbeddings(env.DB);
+          const detected = [...detectOverlaps(nodes, { scorer: embeddingScorer(emb) }),
+            ...detectComplements(nodes)];
+          await persistDetectedOverlaps(env, detected);
+          await ledgerAppend(env.DB, 'api', 'silvi.synced', {
+            campaign: campaign.id, claims: claims.length,
+            clusters: clusters.length, nodes: plan.nodes.length,
+            overlaps: detected.length,
+          });
+          return json({ campaign: campaign.title, claims: claims.length,
+            clusters: clusters.length, nodes: plan.nodes.length,
+            overlaps: detected.length }, 201);
+        }
         if (!projectId)
-          return err('SILVI_PROJECT_ID unset — pass {projectId} (and apiKey if not in secrets)', 400);
+          return err('SILVI_CAMPAIGN_ID/SILVI_PROJECT_ID unset — pass {campaignId|projectId} (and apiKey if not in secrets)', 400);
         const project = await fetchSilviProject(projectId, env.SILVI_API_URL, apiKey);
         if (!project)
           return err(`silvi api unreachable or key invalid for project ${projectId}`, 502);

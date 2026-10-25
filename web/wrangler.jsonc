@@ -5,7 +5,7 @@
 	"main": "./workers/app.ts",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_compat"],
-	"limits": { "cpu_ms": 30000 },
+	// cpu_ms limit requires a paid Workers plan; re-add "limits": { "cpu_ms": 30000 } when upgraded.
 	"observability": {
 		"enabled": true
 	},

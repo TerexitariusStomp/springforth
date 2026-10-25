@@ -589,3 +589,158 @@ export function streamAccrual(
   if (toMs <= fromMs) return 0n;
   return flowRate * BigInt(Math.floor((toMs - fromMs) / 1000));
 }
+
+// ── stellar.ts ────────────────────────────────────────
+// Stellar lane — @stellar/stellar-sdk (Apache-2.0, official SDF SDK).
+// Claimable balances are Stellar's native dominant-assurance primitive
+// (Tabarrok 1998): a pledge locks funds claimable by the destination
+// only while its predicate holds — below we gate the destination's
+// claim on an absolute deadline and give the source the NOT of that
+// predicate, so when the window lapses the pledge sweeps back to the
+// pledger. Match-locked funding with a trustless refund path, no
+// contract deployment or audit surface. Same non-custodial shape as
+// the EVM lanes: builders emit UNSIGNED XDR; the signer's wallet
+// (Freighter et al.) signs + submits; the hash posts back through
+// /chain/stellar/record for ledger attribution.
+//
+// Sequence numbers live on the account and move between reads, so the
+// endpoint fetches them from Horizon at build time — builders take
+// `sequence` explicitly to stay pure/testable.
+
+import {
+  Account, Asset, Claimant, Memo, Networks, Operation,
+  TransactionBuilder, xdr,
+} from '@stellar/stellar-sdk';
+
+export interface StellarNet {
+  name: 'stellar' | 'stellar-testnet';
+  horizon: string;
+  passphrase: string;
+}
+
+export const STELLAR_PUBLIC: StellarNet = {
+  name: 'stellar',
+  horizon: 'https://horizon.stellar.org',
+  passphrase: Networks.PUBLIC,
+};
+export const STELLAR_TESTNET: StellarNet = {
+  name: 'stellar-testnet',
+  horizon: 'https://horizon-testnet.stellar.org',
+  passphrase: Networks.TESTNET,
+};
+
+export function stellarNetFor(mode: string): StellarNet {
+  return mode === 'stellar' ? STELLAR_PUBLIC : STELLAR_TESTNET;
+}
+
+// Stellar "G…" addresses are strkey-ed25519 — 56 chars, G prefix.
+export const isStellarId = (s: string) => /^G[A-Z2-7]{55}$/.test(s);
+
+// Horizon REST — sequence numbers live on the account record. Workers-
+// safe: plain fetch, no SDK server plumbing.
+export async function fetchSequence(
+  net: StellarNet, source: string,
+): Promise<string> {
+  const r = await fetch(`${net.horizon}/accounts/${source}`);
+  if (!r.ok) throw new Error(`horizon account lookup failed: ${r.status}`);
+  const a = await r.json() as { sequence: string };
+  return a.sequence;
+}
+
+const assetFor = (code?: string, issuer?: string): Asset =>
+  !code || code === 'XLM' ? Asset.native() : new Asset(code, issuer ?? '');
+
+export interface StellarUnsigned {
+  xdr: string;                    // unsigned envelope — hand to a wallet
+  networkPassphrase: string;      // wallet must sign for this network
+}
+
+function buildEnvelope(opts: {
+  net: StellarNet; source: string; sequence: string;
+  ops: xdr.Operation[];
+  memo?: string;
+}): StellarUnsigned {
+  if (!isStellarId(opts.source)) throw new Error('source must be a G… account id');
+  const account = new Account(opts.source, opts.sequence);
+  const b = new TransactionBuilder(account, {
+    fee: '100',
+    networkPassphrase: opts.net.passphrase,
+  });
+  for (const op of opts.ops) b.addOperation(op);
+  if (opts.memo) b.addMemo(Memo.text(opts.memo.slice(0, 28)));
+  // setTimeout(0) → maxTime 0 → envelope never expires — it stays valid
+  // until signed; signing latency is the user's, not the chain's.
+  b.setTimeout(0);
+  return { xdr: b.build().toXDR(), networkPassphrase: opts.net.passphrase };
+}
+
+// Dominant-assurance pledge → createClaimableBalance. The destination
+// can claim while now < deadlineSec (quorum reached inside the window);
+// once the window lapses the predicate flips and the SOURCE reclaims.
+// Exactly Tabarrok: commit only binds if the collective condition met.
+export function buildStellarPledgeTx(opts: {
+  net: StellarNet; source: string; sequence: string;
+  claimant: string; amount: string;
+  assetCode?: string; assetIssuer?: string;
+  deadlineSec: number; memo?: string;
+}): StellarUnsigned {
+  if (!isStellarId(opts.claimant)) throw new Error('claimant must be a G… account id');
+  const deadline = String(Math.floor(opts.deadlineSec));
+  return buildEnvelope({
+    net: opts.net, source: opts.source, sequence: opts.sequence,
+    memo: opts.memo,
+    ops: [Operation.createClaimableBalance({
+      asset: assetFor(opts.assetCode, opts.assetIssuer),
+      amount: opts.amount,
+      claimants: [
+        new Claimant(opts.claimant, Claimant.predicateBeforeAbsoluteTime(deadline)),
+        new Claimant(opts.source, Claimant.predicateNot(
+          Claimant.predicateBeforeAbsoluteTime(deadline))),
+      ],
+    })],
+  });
+}
+
+// Plain payment — the settle leg once a bound pledge releases.
+export function buildStellarPaymentTx(opts: {
+  net: StellarNet; source: string; sequence: string;
+  destination: string; amount: string;
+  assetCode?: string; assetIssuer?: string; memo?: string;
+}): StellarUnsigned {
+  if (!isStellarId(opts.destination)) throw new Error('destination must be a G… account id');
+  return buildEnvelope({
+    net: opts.net, source: opts.source, sequence: opts.sequence,
+    memo: opts.memo,
+    ops: [Operation.payment({
+      destination: opts.destination,
+      asset: assetFor(opts.assetCode, opts.assetIssuer),
+      amount: opts.amount,
+    })],
+  });
+}
+
+// Scheduled disbursement — claimable balance the destination can only
+// claim AT/AFTER unlockSec (predicate = NOT before unlock). Milestone-
+// gated release without a contract: claim fails until the timestamp
+// and the ledger holds the funds in the meantime.
+export function buildStellarUnlockTx(opts: {
+  net: StellarNet; source: string; sequence: string;
+  claimant: string; amount: string;
+  assetCode?: string; assetIssuer?: string;
+  unlockSec: number; memo?: string;
+}): StellarUnsigned {
+  if (!isStellarId(opts.claimant)) throw new Error('claimant must be a G… account id');
+  const unlock = String(Math.floor(opts.unlockSec));
+  return buildEnvelope({
+    net: opts.net, source: opts.source, sequence: opts.sequence,
+    memo: opts.memo,
+    ops: [Operation.createClaimableBalance({
+      asset: assetFor(opts.assetCode, opts.assetIssuer),
+      amount: opts.amount,
+      claimants: [
+        new Claimant(opts.claimant, Claimant.predicateNot(
+          Claimant.predicateBeforeAbsoluteTime(unlock))),
+      ],
+    })],
+  });
+}

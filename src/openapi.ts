@@ -81,6 +81,12 @@ export const OPENAPI = {
     '/chain': { get: { summary: 'Chain mode, contract addresses, no-custody flow' } },
     '/chain/record': { post: { summary: 'Record a submitted tx hash — cron confirms + applies side effects' } },
     '/chain/pending': { get: { summary: 'Unconfirmed submitted transactions' } },
+    '/chain/stellar/tx': { get: { summary: 'Unsigned Stellar XDR — assurance pledge (claimable balance), payment, scheduled unlock' } },
+    '/chain/stellar/record': { post: { summary: 'Record a submitted Stellar tx hash — ledger-attributed' } },
+    '/actors/{id}/worldid': {
+      get: { summary: 'Issue a one-shot SIWE nonce for World App walletAuth binding' },
+      post: { summary: 'Bind a World-verified wallet to an actor (MiniKit SIWE — one human, one actor)' },
+    },
     '/retro': { get: { summary: 'Retroactive rounds + EigenTrust badgeholder ballots' } },
     '/governance': {
       get: { summary: 'Proposals, ballots, params, eligible voters (HTML or JSON)' },

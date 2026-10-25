@@ -24,6 +24,8 @@ export default [
 	route("rounds/:id/donors/:donor", "routes/donor.tsx"),
 	route("rounds/:id/admin", "routes/round-admin.tsx"),
 	route("claims/:id", "routes/claim.tsx"),
+	// World Mini App — proof-of-personhood actor binding.
+	route("mini", "routes/mini.tsx"),
 	// Retired slugs — single-segment redirects to hub anchors.
 	route(":seg", "routes/redirect.tsx", { id: "retired" }),
 	route("*", "routes/not-found.tsx"),

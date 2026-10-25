@@ -201,6 +201,33 @@ export const ActorWallet = z.object({
 });
 export type ActorWallet = z.infer<typeof ActorWallet>;
 
+// Actor ↔ World ID binding (proof of personhood). The Mini App lane:
+// MiniKit walletAuth returns a SIWE message signed by a World-verified
+// account's wallet (World App accounts are human-gated — orb or
+// document level). The worker re-verifies the SIWE via ERC-1271 on
+// World Chain and stores the verified wallet as the personhood anchor.
+// One World wallet = one actor — mutual-recognition matching can't be
+// sybil-farmed. Personhood, not identity: no orb data ever stored.
+export const ActorPersonhood = z.object({
+  id: z.string().min(1),
+  actor: z.string().min(1),
+  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),  // World-verified wallet
+  username: z.string().optional(),                  // World App username (optional)
+  at: z.string().datetime(),
+});
+export type ActorPersonhood = z.infer<typeof ActorPersonhood>;
+
+// One-shot SIWE nonce for the World ID bind handshake — issued by
+// GET /actors/{id}/worldid, consumed (deleted) by the POST. Prevents
+// replay of a signed walletAuth message.
+export const ActorNonce = z.object({
+  id: z.string().min(1),
+  actor: z.string().min(1),
+  nonce: z.string().min(8),
+  expiresAt: z.string().datetime(),
+});
+export type ActorNonce = z.infer<typeof ActorNonce>;
+
 // A need node's application to join a round — the public intake lane.
 // Sponsors/operators review; approval appends to eligibleNeedIds.
 export const RoundApplication = z.object({

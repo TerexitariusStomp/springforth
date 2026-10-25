@@ -3,7 +3,7 @@ import {
   OracleCheck, Signal, CouncilSeat, ForumPost,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
   RetroRound, RetroBallot, ChainTx, YieldStream,
-  ActorWallet, RoundApplication, RecurringSupport,
+  ActorWallet, ActorPersonhood, ActorNonce, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
   DatasetRelease, DataAccessGrant, Subscription,
   valueCoordinated,
@@ -23,7 +23,10 @@ import {
   yieldDeltaUnits, unitsToStable, verifyWalletBinding,
   buildCreateFlowTx, buildDeleteFlowTx, parseFlowRate, streamAccrual,
   CFA_FORWARDER, type ChainConfig,
+  stellarNetFor, isStellarId, fetchSequence,
+  buildStellarPledgeTx, buildStellarPaymentTx, buildStellarUnlockTx,
 } from './chain';
+import { verifySiweMessage } from '@worldcoin/minikit-js/siwe';
 import {
   renderPossibilitiesPage, renderLandingPage,
   renderRoundPage, renderReportPage, renderRoundAdmin,
@@ -156,6 +159,7 @@ export interface Env {
   ALPHAKLIMA_KEY?: string;        // Alpha-Klima physrisk platform
   DEFRA_KEY?: string;             // defra data services / Natural England
   COMPANIES_HOUSE_KEY?: string;   // api.company-information.service.gov.uk
+
   AI?: { run(model: string, input: { text: string[] }):
     Promise<{ data: number[][] }> };   // Workers AI bge embeddings
   WEB?: Fetcher;              // springforth-web — React frontend Worker
@@ -1230,13 +1234,17 @@ export default {
         }
         return json({ ok: true });
       }
-      // Evidence manifest anchoring — sha256 manifest into the ledger.
+      // Evidence manifest anchoring — sha256 manifest into the ledger,
+      // pinned to IPFS when IPFS_API is configured (content-addressed
+      // evidence pack, same rail as dataset releases).
       if (req.method === 'POST' && seg[0] === 'evidence' && seg[1] === 'anchor') {
         if (!authed(req, env)) return err('unauthorized', 401);
         const { files } = await req.json() as { files: Array<{ name: string; base64: string }> };
         const m = buildManifest(files.map((f) => ({ name: f.name, bytes: Uint8Array.from(atob(f.base64), (c) => c.charCodeAt(0)) })));
-        await ledgerAppend(env.DB, 'api', 'evidence.anchored', { manifestDigest: m.manifestDigest });
-        return json(m);
+        const cid = await pinToIpfs(env, 'evidence-manifest', enc(m.manifestText));
+        await ledgerAppend(env.DB, 'api', 'evidence.anchored',
+          { manifestDigest: m.manifestDigest, ...(cid ? { cid } : {}) });
+        return json({ ...m, ...(cid ? { cid } : {}) });
       }
       // Manual oracle cycle (admin) — same path as the hourly cron.
       if (req.method === 'POST' && seg[0] === 'oracle' && seg[1] === 'run') {
@@ -3170,6 +3178,58 @@ export default {
         await ledgerAppend(env.DB, actor, 'actor.wallet-bound', { address: w.address });
         return json(w, 201);
       }
+      // World ID binding — proof of personhood for the mutual-recognition
+      // graph. The Mini App runs MiniKit.walletAuth (SIWE signed by a
+      // World-verified account's wallet — World App accounts are human-
+      // gated). GET issues a one-shot nonce; POST verifies the signature
+      // (verifySiweMessage → ERC-1271 on World Chain for contract wallets)
+      // and binds the verified wallet to the actor. One wallet = one actor.
+      if (seg[0] === 'actors' && seg[2] === 'worldid') {
+        const actor = seg[1] ?? '';
+        if (!actor) return err('actor id required', 400);
+        if (req.method === 'GET') {
+          const nonce = crypto.randomUUID().replace(/-/g, '');
+          const n = ActorNonce.parse({
+            id: `an-${actor}`, actor, nonce,
+            expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+          });
+          await put(env.DB, 'actor-nonce', n.id, n);
+          return json({ nonce, statement: `springforth bind actor:${actor}`,
+            signIn: 'MiniKit.walletAuth({ nonce, statement }) → POST the { address, message, signature } here' });
+        }
+        if (req.method === 'POST') {
+          const b = await req.json() as {
+            address?: string; message?: string; signature?: string; username?: string;
+          };
+          if (!b.address || !b.message || !b.signature)
+            return err('address, message, signature required (MiniKit walletAuth result)', 422);
+          const nonceRow = await get<ActorNonce>(env.DB, 'actor-nonce', `an-${actor}`);
+          if (!nonceRow || Date.parse(nonceRow.expiresAt) < Date.now())
+            return err('no live nonce — GET this route first', 409);
+          let valid = false;
+          try {
+            const v = await verifySiweMessage(
+              { address: b.address, message: b.message, signature: b.signature },
+              nonceRow.nonce, `springforth bind actor:${actor}`);
+            valid = v.isValid;
+          } catch { valid = false; }
+          if (!valid) return err('SIWE signature does not verify', 422);
+          await del(env.DB, 'actor-nonce', nonceRow.id);
+          const address = b.address.toLowerCase();
+          const id = `ap-${address}`;
+          const existing = await get<ActorPersonhood>(env.DB, 'actor-personhood', id);
+          if (existing && existing.actor !== actor)
+            return err('this World wallet is bound to another actor', 409);
+          const p = ActorPersonhood.parse({
+            id, actor, address: b.address, username: b.username,
+            at: new Date().toISOString(),
+          });
+          await put(env.DB, 'actor-personhood', p.id, p);
+          await ledgerAppend(env.DB, actor, 'actor.personhood-verified',
+            { address: b.address, username: b.username });
+          return json(p, existing ? 200 : 201);
+        }
+      }
       if (req.method === 'GET' && seg[0] === 'actors') {
         const id = seg[1] ?? '';
         const [poss, parts, apps, credits] = await Promise.all([
@@ -3831,6 +3891,89 @@ export default {
         }
         if (req.method === 'GET' && seg[1] === 'pending')
           return json({ pending: await list<ChainTx>(env.DB, 'chaintx') });
+        // ── Stellar lane — claimable-balance primitives, unsigned XDR ──
+        // kind=pledge: destination claims before ?deadline=, source
+        //   reclaims after (dominant assurance, no contract).
+        // kind=payment: plain settle payment.
+        // kind=unlock:  destination claims only at/after ?unlock=.
+        // Sequence is read from Horizon at request time; the wallet
+        // (Freighter et al.) signs the returned envelope XDR.
+        if (req.method === 'GET' && seg[1] === 'stellar' && seg[2] === 'tx') {
+          const q = url.searchParams;
+          const net = stellarNetFor(q.get('net') ?? 'stellar-testnet');
+          const kind = q.get('kind') ?? 'pledge';
+          const source = q.get('source') ?? '';
+          if (!isStellarId(source))
+            return err('source=G… required — the signing account', 400);
+          const amount = q.get('amount') ?? '';
+          if (!(Number(amount) > 0)) return err('amount (units, e.g. 25.5) required', 400);
+          const assetCode = q.get('asset') ?? undefined;
+          const assetIssuer = q.get('issuer') ?? undefined;
+          if (assetCode && assetCode !== 'XLM' && !isStellarId(assetIssuer ?? ''))
+            return err('issuer=G… required for non-XLM assets', 400);
+          const secs = (k: string) => {
+            const v = q.get(k) ?? '';
+            const t = /^\d+$/.test(v) ? Number(v) : Math.floor(Date.parse(v) / 1000);
+            return Number.isFinite(t) && t > 0 ? t : 0;
+          };
+          const memo = q.get('memo') ?? undefined;
+          const sequence = await fetchSequence(net, source)
+            .catch((e) => ({ error: String(e) }) as { error: string });
+          if (typeof sequence !== 'string')
+            return err(`horizon lookup failed for ${source} — ${sequence.error}`, 502);
+          const base = { net, source, sequence, amount, assetCode, assetIssuer, memo };
+          if (kind === 'pledge') {
+            const claimant = q.get('claimant') ?? '';
+            if (!isStellarId(claimant)) return err('claimant=G… required', 400);
+            const deadlineSec = secs('deadline');
+            if (!deadlineSec) return err('deadline required — epoch secs or ISO date', 400);
+            return json({
+              network: net.name, step: 'createClaimableBalance (assurance pledge)',
+              tx: buildStellarPledgeTx({ ...base, claimant, deadlineSec }),
+              semantics: 'claimant claims while now < deadline; source reclaims after — refund is trustless',
+              then: `sign XDR in wallet → submit → POST /chain/stellar/record { txHash, entityId }`,
+            });
+          }
+          if (kind === 'payment') {
+            const destination = q.get('destination') ?? '';
+            if (!isStellarId(destination)) return err('destination=G… required', 400);
+            return json({
+              network: net.name, step: 'payment',
+              tx: buildStellarPaymentTx({ ...base, destination }),
+              then: `sign XDR in wallet → submit → POST /chain/stellar/record { txHash, entityId }`,
+            });
+          }
+          if (kind === 'unlock') {
+            const claimant = q.get('claimant') ?? '';
+            if (!isStellarId(claimant)) return err('claimant=G… required', 400);
+            const unlockSec = secs('unlock');
+            if (!unlockSec) return err('unlock required — epoch secs or ISO date', 400);
+            return json({
+              network: net.name, step: 'createClaimableBalance (scheduled release)',
+              tx: buildStellarUnlockTx({ ...base, claimant, unlockSec }),
+              semantics: 'claimant can claim only at/after unlock — milestone-gated disbursement',
+              then: `sign XDR in wallet → submit → POST /chain/stellar/record { txHash, entityId }`,
+            });
+          }
+          return err('kind must be pledge|payment|unlock', 422);
+        }
+        // Stellar tx hash recording — the hash is a 32-byte digest of the
+        // envelope; ledger-attributed against an existing entity. Horizon
+        // confirm polling is wallet-side for now (no cron claim).
+        if (req.method === 'POST' && seg[1] === 'stellar' && seg[2] === 'record') {
+          const b = await req.json() as Record<string, unknown>;
+          const txHash = String(b.txHash ?? '');
+          const entityId = String(b.entityId ?? '');
+          if (!/^[0-9a-fA-F]{64}$/.test(txHash)) return err('txHash must be 64 hex (Stellar digest)', 422);
+          const hit = await get<unknown>(env.DB, 'pledge', entityId)
+            ?? await get<unknown>(env.DB, 'possibility', entityId)
+            ?? await get<unknown>(env.DB, 'donation', entityId);
+          if (!hit) return err('entityId not found (pledge/possibility/donation)', 404);
+          await ledgerAppend(env.DB, String(b.actor ?? 'api'), 'stellar.tx.submitted',
+            { entityId, txHash });
+          return json({ ok: true, entityId, txHash,
+            note: 'recorded on the ledger; confirm via Horizon' }, 201);
+        }
         if (req.method === 'POST' && seg[1] === 'record') {
           const b = await req.json() as Record<string, unknown>;
           if (!cfg) return err('chain disabled — set CHAIN_MODE=celo-sepolia|sepolia|celo', 503);

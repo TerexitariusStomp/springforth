@@ -49,6 +49,10 @@ BLOOM_URL = "https://hdkzuqwqcauhtqkrrzjx.supabase.co"
 RESTOR_MAX_SITES = "200"
 # Comma-separated public-goods search terms for OC discovery.
 OC_SEARCH_TERMS = "public goods,regenerative,climate,forest,commons"
+# Cross-account D1: when set, env.DB calls route over HTTPS to sf-d1proxy
+# (Pressword account — its D1 row quota is separate from Widespread's).
+# Remove this line to fall back to the local binding. Secret: D1_PROXY_KEY.
+D1_PROXY_URL = "https://sf-d1proxy.delta-git.workers.dev"
 
 # Workers AI — embeddings for meaning-matched search + overlap scoring.
 # bge-base-en-v1.5 (768-dim); free tier, no secret needed.

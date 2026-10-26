@@ -1,0 +1,9 @@
+name = "sf-d1proxy"
+account_id = "ddf0cf5b4491ba59765378877fe8c697"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "springforth-coord"
+database_id = "faf15373-f1c6-421f-aaf0-c62abc8c8839"

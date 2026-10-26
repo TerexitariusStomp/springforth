@@ -8,6 +8,7 @@
 - Request bodies are capped in `handle()`: 256KB unauthenticated writes, 8MB hard ceiling (authed callers keep headroom for evidence packs). Don't add an unbounded `req.json()` path around it.
 - `fetchOk` (src/adapters/fetch.ts) applies a 15s `AbortSignal.timeout` to every upstream call — keep adapter fetches behind it so a hung source can't stall the hourly cron.
 - Deploy via `pnpm run deploy` / `pnpm web:deploy` (or `npx wrangler deploy`) — bare `pnpm deploy` collides with pnpm's builtin.
+- Cross-account D1 fallback: `D1_PROXY_URL`/`D1_PROXY_KEY` route every `env.DB` call over HTTPS to `sf-d1proxy` (d1-proxy/, Pressword account — fresh row quota while Widespread's was exhausted). `proxiedDb(env)` wraps `fetch`+`scheduled`; remove the var to return to the local `DB` binding. Only prepare/bind/all/first/run/raw/batch are proxied — new D1 surface needs proxy endpoints added.
 
 ## CPU budget (free Workers plan — ~10ms/request)
 

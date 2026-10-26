@@ -13,6 +13,7 @@ import {
   buildClaim, toHypercertLexicon,
   eligibleVoters, tallyProposal, GOVERNABLE,
 } from './funding';
+import { httpD1 } from './adapters/d1proxy';
 import { to360Giving } from './exports';
 import { toIati } from './exports';
 import { outcomePayload, evaluationPayload } from './attest';
@@ -165,7 +166,15 @@ export interface Env {
   WEB?: Fetcher;              // springforth-web — React frontend Worker
   WEB_FRONTEND?: string;      // '1' → browser page requests forward to WEB
   PAGES?: R2Bucket;           // optional R2 page-cache binding (springforth-cache)
+  D1_PROXY_URL?: string;      // sf-d1proxy worker URL — routes env.DB cross-account
+  D1_PROXY_KEY?: string;      // bearer secret for the proxy (wrangler secret)
 }
+
+// When D1_PROXY_URL is set, env.DB is replaced by an HTTP facade pointed at
+// the sf-d1proxy worker (d1-proxy/) on the Pressword account — the primary
+// account's free-tier D1 row quota is exhaustible; the proxy's is fresh.
+const proxiedDb = (env: Env): Env =>
+  env.D1_PROXY_URL ? { ...env, DB: httpD1(env.D1_PROXY_URL, env.D1_PROXY_KEY ?? '') } : env;
 
 // OpenTimestamps public calendars — free, keyless Bitcoin anchoring.
 const OTS_CALENDARS = [
@@ -993,6 +1002,7 @@ const r2Store = (pages: R2Bucket, key: string, epoch: string, e: PageEntry): Pro
 
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    env = proxiedDb(env);
     // CORS preflight short-circuit.
     if (req.method === 'OPTIONS')
       return new Response(null, { status: 204, headers: corsHeaders(env, req.headers.get('origin')) });
@@ -4209,6 +4219,7 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
   // possibility sweep rides the same cadence: expiry and quorum
   // transitions are time-driven too.
   async scheduled(_ev: unknown, env: Env): Promise<void> {
+    env = proxiedDb(env);
     const nodes = (await list<PlanNode>(env.DB, 'plannode'))
       .filter((n) => n.kind === 'action' && n.h3);
     for (const n of nodes) await runOracleSources(env, n);

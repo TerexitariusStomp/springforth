@@ -10,12 +10,19 @@ export const makeErr = () => {
 export type Err = ReturnType<typeof makeErr>;
 type Init = { method?: string; headers?: Record<string, string>; body?: string };
 
+// Fetch timeout — adapters ride the hourly cron and admin sync routes; a
+// hung upstream must not stall the whole cycle. Overridable for callers
+// that know a source is slow.
+const FETCH_TIMEOUT_MS = 15_000;
+
 // fetch with UA + error capture; null on transport/HTTP failure.
 export async function fetchOk(
   f: typeof fetch, url: string, err: Err, init: Init = {},
+  timeoutMs = FETCH_TIMEOUT_MS,
 ): Promise<Response | null> {
   const res = await f(url, {
     ...init, headers: { 'user-agent': UA, ...init.headers },
+    signal: AbortSignal.timeout(timeoutMs),
   }).catch((e) => { err.set(`fetch: ${e}`); return null; });
   if (!res) return null;
   if (!res.ok) { err.set(`http ${res.status}`); return null; }

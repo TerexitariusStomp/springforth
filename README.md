@@ -102,7 +102,8 @@ pnpm web:dev                          # React frontend dev server
 ```bash
 wrangler d1 create springforth-coord    # then set database_id in wrangler.toml
 wrangler d1 migrations apply springforth-coord --remote
-pnpm deploy                           # edge worker
+pnpm run deploy                       # edge worker — `pnpm deploy` alone
+                                      # collides with pnpm's builtin deploy
 pnpm web:deploy                       # frontend worker
 node --experimental-strip-types scripts/seed-d1.mjs   # demo fixture
 ```

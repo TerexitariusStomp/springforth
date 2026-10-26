@@ -4,6 +4,10 @@
 
 - `wrangler deploy` runs TruffleHog + Trivy + Semgrep before deploying; HIGH/CRITICAL findings block. Do not use `SECURITY_SKIP` unless the user explicitly approves.
 - `git push` runs Gitleaks on the pushed range via the global pre-push hook. Never commit secrets.
+- Secret comparisons go through `timingSafeEq` (src/index.ts) — never `===`/`!==` on ADMIN_TOKEN or webhook secrets.
+- Request bodies are capped in `handle()`: 256KB unauthenticated writes, 8MB hard ceiling (authed callers keep headroom for evidence packs). Don't add an unbounded `req.json()` path around it.
+- `fetchOk` (src/adapters/fetch.ts) applies a 15s `AbortSignal.timeout` to every upstream call — keep adapter fetches behind it so a hung source can't stall the hourly cron.
+- Deploy via `pnpm run deploy` / `pnpm web:deploy` (or `npx wrangler deploy`) — bare `pnpm deploy` collides with pnpm's builtin.
 
 ## Frontend design gate (StyleSeed)
 
@@ -12,10 +16,11 @@ The portal uses the vendored StyleSeed suite in `.devin/skills/` (upstream: bitj
 Before shipping frontend changes:
 
 ```bash
-pnpm design:check                 # deterministic scan across all 6 artifacts — must be 0 findings
-pnpm typecheck
-pnpm test
+pnpm check                        # typecheck + vitest + design:check — same as CI
+pnpm a11y:check                   # axe vs the LIVE site — run after deploy to catch regressions
 ```
+
+CI (`.github/workflows/ci.yml`) runs typecheck, vitest, design:check, web:typecheck, web:build on every push/PR.
 
 Golden rules (StyleSeed core invariants — apply to all UI work):
 

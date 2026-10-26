@@ -8,6 +8,7 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm test && pnpm design:check",
     "test": "vitest run",
     "seed": "node --experimental-strip-types scripts/seed-d1.mjs",
     "design:check": "node scripts/design-check.mjs",

@@ -332,8 +332,22 @@ const page = (req: Request, render: (...a: any[]) => string, ...args: unknown[])
   req.headers.get('x-sf-ui') === '1'
     ? new Response(devalueStringify(args), { headers: { 'content-type': 'application/x-sf-ui' } })
     : html(render(...args));
+// Constant-time secret comparison — `===`/`!==` short-circuits on the first
+// differing byte, leaking prefix information across a network boundary.
+export const timingSafeEq = (a: string, b: string): boolean => {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+};
 const authed = (req: Request, env: Env) =>
-  !!env.ADMIN_TOKEN && req.headers.get('authorization') === `Bearer ${env.ADMIN_TOKEN}`;
+  !!env.ADMIN_TOKEN && timingSafeEq(req.headers.get('authorization') ?? '', `Bearer ${env.ADMIN_TOKEN}`);
+
+// Body caps — ~68 routes parse JSON/formData without bounds; a giant POST
+// burns isolate CPU on the free plan. Unauthenticated writes are small
+// forms; the 8MB ceiling leaves headroom for admin uploads (evidence packs).
+const MAX_BODY = 8 * 1024 * 1024;
+const MAX_BODY_ANON = 256 * 1024;
 
 // Feed POSTs may carry a `next` path to land on after the redirect —
 // strictly same-origin deck paths only (no protocol-relative escapes).
@@ -959,6 +973,15 @@ export default {
         write ? 30 : 600);
       if (!ok) return err('rate limit exceeded — retry shortly', 429);
     }
+    // Cheap pre-parse bound on declared size (no body read). Chunked bodies
+    // with no content-length slip through, but the honest-bulk case — an
+    // accidental or hostile large POST — is caught here. Authed callers get
+    // the generous ceiling for evidence-pack uploads.
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      const len = Number(req.headers.get('content-length') ?? 0);
+      const cap = authed(req, env) ? MAX_BODY : MAX_BODY_ANON;
+      if (len > cap) return err(`body exceeds ${cap >> 10}KB`, 413);
+    }
     try {
       // Retired surfaces → hub sections. "always" routes had no JSON form;
       // the rest redirect only for browsers (JSON stays byte-identical).
@@ -1225,7 +1248,7 @@ export default {
       // Commands mirror the possibility lifecycle; actors are tg:<username>.
       if (req.method === 'POST' && seg[0] === 'tg' && seg.length === 1) {
         if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_WEBHOOK_SECRET
-          || req.headers.get('x-telegram-bot-api-secret-token') !== env.TELEGRAM_WEBHOOK_SECRET)
+          || !timingSafeEq(req.headers.get('x-telegram-bot-api-secret-token') ?? '', env.TELEGRAM_WEBHOOK_SECRET))
           return err('unauthorized', 401);
         try {
           await handleTelegramUpdate(env, await req.json());

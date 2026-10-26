@@ -1027,7 +1027,8 @@ export default {
         if (env.PAGES) {
           if (epoch === '0')
             epoch = (await env.PAGES.get(PAGE_EPOCH_KEY).then((o) => o?.text()).catch(() => undefined)) ?? '0';
-          const p = r2Store(env.PAGES, key, epoch, e).catch(() => undefined);
+          const p = r2Store(env.PAGES, key, epoch, e)
+            .catch((err) => console.error('r2store failed', err));
           ctx ? ctx.waitUntil(p) : await p;
         }
       }
@@ -1037,7 +1038,8 @@ export default {
       // Global invalidation: bump the epoch so every cached page is
       // unreachable; the 303'd reload renders fresh for all colos.
       if (env.PAGES) {
-        const p = env.PAGES.put(PAGE_EPOCH_KEY, String(Date.now())).catch(() => undefined);
+        const p = env.PAGES.put(PAGE_EPOCH_KEY, String(Date.now()))
+          .catch((err) => console.error('epoch bump failed', err));
         ctx ? ctx.waitUntil(p) : await p;
       }
     }

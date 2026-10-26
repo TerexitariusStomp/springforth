@@ -164,6 +164,7 @@ export interface Env {
     Promise<{ data: number[][] }> };   // Workers AI bge embeddings
   WEB?: Fetcher;              // springforth-web — React frontend Worker
   WEB_FRONTEND?: string;      // '1' → browser page requests forward to WEB
+  PAGES?: R2Bucket;           // optional R2 page-cache binding (springforth-cache)
 }
 
 // OpenTimestamps public calendars — free, keyless Bitcoin anchoring.
@@ -955,17 +956,40 @@ const anonGetKey = (req: Request, env: Env): string | undefined => {
 };
 
 const TEXTUAL = /text\/html|application\/(x-sf-ui|json)/;
-// Cross-isolate layer: the in-isolate Map only helps repeats on the same
-// isolate; Cloudflare's Cache API is shared per colo, so one successful
-// render shelters every visitor at that PoP for 30s. `x-sf-at` double-
-// checks freshness (match() expiry semantics vary by plan).
-const ANON_CACHE_TTL = 30_000;
-const anonCacheUrl = (key: string) =>
-  `https://anon-get-memo.internal/${encodeURIComponent(key)}`;
-// `caches.default` is Workers-only — the DOM CacheStorage type lacks it,
-// and vitest has no Cache API at all.
-const edgeCache = (): Cache | undefined =>
-  (globalThis as { caches?: { default?: Cache } }).caches?.default;
+// Persistent layer: R2 object storage is global and strongly consistent —
+// one successful render shelters every visitor everywhere for PAGES_TTL,
+// and it costs zero D1 reads (the free-tier row quota is the second
+// availability cliff). Writes invalidate globally by bumping `page-epoch`
+// — orphaned objects under old epochs are cleaned by a bucket lifecycle
+// rule (abort multipart / expire after 1d).
+const PAGES_TTL = 60_000;
+const PAGE_EPOCH_KEY = 'page-epoch';
+const pageKey = (key: string, epoch: string) =>
+  `pages/${epoch}/${encodeURIComponent(key)}`;
+
+interface PageEntry {
+  at: number; status: number; headers: [string, string][]; body: string;
+}
+
+const r2Entry = async (o: R2ObjectBody | null): Promise<PageEntry | undefined> => {
+  const m = o?.customMetadata;
+  if (!o || !m?.at || !m.status || !m.h) return undefined;
+  const entry: PageEntry = { at: Number(m.at), status: Number(m.status),
+    headers: JSON.parse(m.h), body: await o.text() };
+  return entry;
+};
+
+const r2Store = (pages: R2Bucket, key: string, epoch: string, e: PageEntry): Promise<unknown> => {
+  // customMetadata caps at 2048 bytes — fall back to content-type only if
+  // the full header set is unusually fat.
+  let h = JSON.stringify(e.headers);
+  if (h.length > 1800) {
+    const ct = e.headers.find(([k]) => k === 'content-type');
+    h = JSON.stringify(ct ? [ct] : []);
+  }
+  return pages.put(pageKey(key, epoch), e.body, { customMetadata: {
+    at: String(e.at), status: String(e.status), h } });
+};
 
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -973,20 +997,21 @@ export default {
     if (req.method === 'OPTIONS')
       return new Response(null, { status: 204, headers: corsHeaders(env, req.headers.get('origin')) });
     const key = anonGetKey(req, env);
+    let epoch = '0';
     let res: Response | undefined;
-    let hit = key ? anonGetCache.get(key) : undefined;
-    if (hit && Date.now() - hit.at < ANON_GET_TTL) {
-      res = new Response(hit.body, { status: hit.status, headers: hit.headers });
-    } else if (key) {
-      const cached = await edgeCache()?.match(anonCacheUrl(key));
-      const at = Number(cached?.headers.get('x-sf-at') ?? 0);
-      if (cached && Date.now() - at < ANON_CACHE_TTL) {
-        const headers = [...cached.headers].filter(([k]) =>
-          !['x-sf-at', 'cache-control'].includes(k)) as [string, string][];
-        const body = await cached.text();
-        hit = { at, status: cached.status, headers, body };
+    let entry = key ? anonGetCache.get(key) : undefined;
+    if (entry && Date.now() - entry.at < ANON_GET_TTL) {
+      res = new Response(entry.body, { status: entry.status, headers: entry.headers });
+    } else if (key && env.PAGES) {
+      // R2 layer — epoch-scoped key so a write anywhere invalidates
+      // globally (epoch object is bumped on every non-GET below).
+      epoch = (await env.PAGES.get(PAGE_EPOCH_KEY).then((o) => o?.text()).catch(() => undefined)) ?? '0';
+      const hit = await env.PAGES.get(pageKey(key, epoch))
+        .then(r2Entry).catch(() => undefined);
+      if (hit && Date.now() - hit.at < PAGES_TTL) {
+        entry = hit;
         anonGetCache.set(key, hit);
-        res = new Response(body, { status: cached.status, headers });
+        res = new Response(hit.body, { status: hit.status, headers: hit.headers });
       }
     }
     if (!res) {
@@ -994,27 +1019,26 @@ export default {
         json({ error: 'internal', detail: String(e) }, 500));
       if (key && res.ok && TEXTUAL.test(res.headers.get('content-type') ?? '')) {
         const copy = res.clone();
-        const entry = { at: Date.now(), status: copy.status,
+        const e: PageEntry = { at: Date.now(), status: copy.status,
           headers: [...copy.headers].filter(([k]) => k !== 'set-cookie') as [string, string][],
           body: await copy.text() };
-        anonGetCache.set(key, entry);
+        anonGetCache.set(key, e);
         if (anonGetCache.size > 300) anonGetCache.clear();
-        const stored = new Response(entry.body, { status: entry.status, headers: entry.headers });
-        stored.headers.set('x-sf-at', String(entry.at));
-        stored.headers.set('cache-control', `public, max-age=${ANON_CACHE_TTL / 1000}`);
-        const cache = edgeCache();
-        if (cache) { const p = cache.put(anonCacheUrl(key), stored); ctx ? ctx.waitUntil(p) : await p; }
+        if (env.PAGES) {
+          if (epoch === '0')
+            epoch = (await env.PAGES.get(PAGE_EPOCH_KEY).then((o) => o?.text()).catch(() => undefined)) ?? '0';
+          const p = r2Store(env.PAGES, key, epoch, e).catch(() => undefined);
+          ctx ? ctx.waitUntil(p) : await p;
+        }
       }
     }
     if (req.method !== 'GET') {
       anonGetCache.clear();
-      // Best-effort: the form page the write came from is what the 303
-      // redirect reloads — drop its colo-cached copy so the flip shows.
-      const ref = req.headers.get('referer');
-      if (ref) {
-        const refKey = anonGetKey(new Request(ref, { headers: { accept: 'text/html' } }), env);
-        const cache = edgeCache();
-        if (refKey && cache) { const p = cache.delete(anonCacheUrl(refKey)); ctx ? ctx.waitUntil(p) : await p; }
+      // Global invalidation: bump the epoch so every cached page is
+      // unreachable; the 303'd reload renders fresh for all colos.
+      if (env.PAGES) {
+        const p = env.PAGES.put(PAGE_EPOCH_KEY, String(Date.now())).catch(() => undefined);
+        ctx ? ctx.waitUntil(p) : await p;
       }
     }
     // HTML pages embed live state (footer timestamp, ticker, counts) — never

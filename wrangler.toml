@@ -65,5 +65,12 @@ crons = ["0 * * * *"]
 #binding = "MEDIA"
 #bucket_name = "springforth-media"
 
+# R2 page cache — anonymous GET responses memoized globally (see
+# anonGetCache / PAGES in src/index.ts). Same manual step: enable R2 in
+# the dashboard, create bucket `springforth-cache`, uncomment, deploy.
+#[[r2_buckets]]
+#binding = "PAGES"
+#bucket_name = "springforth-cache"
+
 # secrets (set via `wrangler secret put`):
 #   ADMIN_TOKEN — bearer token for write endpoints

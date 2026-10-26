@@ -1,0 +1,290 @@
+<!doctype html>
+<!-- Springforth pitch deck — 8-minute presentation, Sustainable FinanceLive 2026.
+     Keys: →/space/PgDn next · ←/PgUp back · F fullscreen · N presenter notes.
+     Presenter notes carry the timing from PITCH-LIVE.md. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Springforth — PS1 pitch deck</title>
+<style>
+  :root{
+    --green:#123b2c; --green-0:#102c22; --ink:#123629; --pale:#f7f8f2;
+    --cream:#f4f6ef; --lime:#c8f36d; --lime-2:#d2efa1; --coral:#f17e64;
+    --coral-ink:#8a3c22; --muted:#5a6a60; --gold:#e4b34d;
+    --serif:'DM Serif Display',Georgia,'Times New Roman',serif;
+    --sans:'Figtree','Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--green-0);font-family:var(--sans)}
+  .slide{display:none;width:100vw;height:100vh;padding:6vh 7vw;position:relative;flex-direction:column;justify-content:center}
+  .slide.on{display:flex}
+  .dark{background:var(--green);color:var(--pale)}
+  .light{background:var(--cream);color:var(--ink)}
+  .eyebrow{font-size:clamp(11px,1.2vw,15px);letter-spacing:.22em;text-transform:uppercase;font-weight:800;color:var(--lime-2);margin-bottom:2.2vh}
+  .light .eyebrow{color:var(--coral-ink)}
+  h1{font-family:var(--serif);font-weight:400;letter-spacing:-.02em;line-height:1;font-size:clamp(40px,5.6vw,84px);margin:0 0 3vh}
+  h2{font-family:var(--serif);font-weight:400;letter-spacing:-.02em;line-height:1.02;font-size:clamp(34px,4.4vw,66px);margin:0 0 3.4vh}
+  .dark h1,.dark h2{color:var(--pale)}
+  .sub{font-size:clamp(16px,1.9vw,26px);line-height:1.45;max-width:60ch;margin:0}
+  .dark .sub{color:#dbe6d8}
+  .light .sub{color:#3c4a40}
+  .rows{display:flex;gap:2.6vw;align-items:flex-start}
+  .rows>.col{flex:1;min-width:0}
+  ul.map{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1.6vh}
+  ul.map li{display:flex;gap:1.4vw;align-items:baseline;font-size:clamp(15px,1.7vw,23px);line-height:1.35}
+  ul.map .t{color:var(--lime);font-weight:800;white-space:nowrap;min-width:9.5ch}
+  .light ul.map .t{color:var(--coral-ink)}
+  .arrow{color:var(--muted);font-weight:400}
+  .card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:2.4vh 2vw}
+  .light .card{background:#fff;border:1px solid #dfe4d6;box-shadow:0 6px 24px rgba(18,59,44,.06)}
+  .card h3{margin:0 0 1vh;font-size:clamp(14px,1.5vw,20px);letter-spacing:.06em;text-transform:uppercase;color:var(--coral)}
+  .light .card h3{color:var(--coral-ink)}
+  .card p{margin:0;font-size:clamp(13px,1.4vw,19px);line-height:1.4}
+  .num{font-family:var(--serif);font-size:clamp(34px,4vw,58px);color:var(--lime);line-height:1}
+  .light .num{color:var(--coral)}
+  img.shot{max-width:100%;max-height:64vh;border-radius:10px;box-shadow:0 18px 60px rgba(0,0,0,.35);display:block;margin:0 auto}
+  .light img.shot{box-shadow:0 14px 44px rgba(18,59,44,.18)}
+  .cap{font-size:clamp(11px,1.15vw,15px);color:var(--muted);text-align:center;margin-top:1.4vh}
+  .dark .cap{color:#9fb3a4}
+  .qr{width:clamp(90px,10vw,140px);border-radius:8px}
+  .foot{position:absolute;left:7vw;right:7vw;bottom:4vh;display:flex;justify-content:space-between;align-items:flex-end;font-size:clamp(11px,1.1vw,14px)}
+  .dark .foot{color:#8fa698}
+  .light .foot{color:var(--muted)}
+  .url{font-weight:800;color:var(--lime)}
+  .light .url{color:var(--coral-ink)}
+  .badge{display:inline-block;background:var(--lime);color:var(--ink);border-radius:99px;padding:.5em 1em;font-weight:800;font-size:clamp(12px,1.2vw,16px)}
+  .prog{position:fixed;left:0;bottom:0;height:5px;background:var(--lime);z-index:50;transition:width .25s}
+  .pageno{position:fixed;right:1.6vw;bottom:1.6vh;font-size:13px;color:#7d947f;z-index:50;font-variant-numeric:tabular-nums}
+  .notes{display:none}
+  body.notes-on .notes{display:block;position:absolute;top:2.4vh;right:7vw;max-width:30vw;background:rgba(228,179,77,.14);border:1px dashed var(--gold);border-radius:10px;padding:1.4vh 1.2vw;font-size:clamp(11px,1.15vw,15px);line-height:1.45;color:#efe2bd}
+  .light .notes{background:#fdf6e3;color:#6b5522}
+  .appendix-tag{position:absolute;top:6vh;right:7vw;font-size:clamp(11px,1.1vw,14px);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  @media print{
+    html,body{overflow:visible;height:auto}
+    .slide{display:flex;page-break-after:always;width:100%;height:100vh}
+    .prog,.pageno{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- 1 · TITLE — 0:00 -->
+<section class="slide dark on">
+  <div class="eyebrow">Sustainable FinanceLive 2026 · Team Two · PS1</div>
+  <h1>Springforth</h1>
+  <p class="sub">Coordinate first. Community plans, “I want to…” declarations and funding pledges become coordinated commitments — activated at quorum, evidenced on a hash-chained ledger.</p>
+  <div class="foot"><span>Live: springforth.widespread.workers.dev</span><span>MIT-open · github.com/TerexitariusStomp/springforth</span></div>
+  <div class="notes">0:00–0:45 — Open on the team-as-proof line: “the problem we solve is the one this hackathon just performed.” One honesty line: platform predates the event; what’s new here is the evidence layer + funding path.</div>
+</section>
+
+<!-- 2 · PROBLEM + ORGANISER MODEL — 0:45 -->
+<section class="slide light">
+  <div class="eyebrow">The coordination gap</div>
+  <h2>Plans live in different systems.<br>Overlap stays invisible until it’s too late.</h2>
+  <div class="rows">
+    <div class="col">
+      <ul class="map">
+        <li><span class="t">Surface</span><span class="arrow">→ declare a possibility</span></li>
+        <li><span class="t">Match</span><span class="arrow">→ quorum + overlap detection</span></li>
+        <li><span class="t">Fund</span><span class="arrow">→ demand-gated pledges</span></li>
+        <li><span class="t">Deliver</span><span class="arrow">→ reports + appreciation</span></li>
+        <li><span class="t">Measure</span><span class="arrow">→ oracle checks + ledger</span></li>
+        <li><span class="t">Steward</span><span class="arrow">→ council seats at quorum</span></li>
+      </ul>
+    </div>
+    <div class="col card">
+      <h3>Your own model</h3>
+      <p>The bootcamp’s marketplace for community liquidity — Surface, Match, Fund, Deliver, Measure, Steward — is literally this lifecycle. Springforth is that layer, running.</p>
+    </div>
+  </div>
+  <div class="notes">0:45–1:45 — Name the organisers’ slide back to them. Show architecture image ~10s only, point at the right rail.</div>
+</section>
+
+<!-- 3 · ARCHITECTURE -->
+<section class="slide dark">
+  <div class="eyebrow">Logical architecture</div>
+  <img class="shot" src="demo-assets/architecture.png" alt="Springforth logical architecture">
+  <p class="cap">Coordination kernel → evidence lane → funding lane → stewardship. Ten seconds.</p>
+  <div class="notes">1:45 boundary — don’t dwell; the diagram backs the demo, not the other way round.</div>
+</section>
+
+<!-- 4 · LIVE DEMO CUE — 1:45 -->
+<section class="slide light">
+  <div class="eyebrow">Live on production — not a mockup</div>
+  <h2>The demo, in six legs</h2>
+  <div class="rows">
+    <div class="col">
+      <ul class="map">
+        <li><span class="t">Feed</span><span class="arrow">reason lines + signals — /possibilities</span></li>
+        <li><span class="t">Card</span><span class="arrow">quorum, council, value — click a card</span></li>
+        <li><span class="t">Overlap</span><span class="arrow">4 pursuing one outcome — /collaborate</span></li>
+        <li><span class="t">Evidence</span><span class="arrow">endorsed sources — /impact</span></li>
+        <li><span class="t">Funding</span><span class="arrow">demand-gated rounds — /fund</span></li>
+        <li><span class="t">Audit</span><span class="arrow">map + ledger-verify</span></li>
+      </ul>
+    </div>
+    <div class="col" style="text-align:center">
+      <img class="qr" src="demo-assets/join-qr.png" alt="QR to the live quorum card">
+      <p class="cap">Audience quorum card — scan, join, watch it activate.</p>
+      <p class="cap url">springforth.widespread.workers.dev</p>
+    </div>
+  </div>
+  <div class="notes">1:45–4:45 — Run DEMO-SCRIPT.md legs. If live fails → appendix slides 11+ walk the same beats.</div>
+</section>
+
+<!-- 5 · FOUR CAPITALS — 4:45 -->
+<section class="slide dark">
+  <div class="eyebrow">Treasurer-grade value</div>
+  <div class="rows">
+    <div class="col">
+      <h2 style="font-size:clamp(28px,3.4vw,50px)">Four capitals, kept distinct — every figure replayable from the ledger.</h2>
+      <ul class="map">
+        <li><span class="t">Financial</span><span class="arrow">committed + matched</span></li>
+        <li><span class="t">Human</span><span class="arrow">volunteer hours at ONS rates</span></li>
+        <li><span class="t">Social</span><span class="arrow">in-kind, never converted</span></li>
+        <li><span class="t">Natural</span><span class="arrow">risk-avoided, e.g. £360k flood</span></li>
+      </ul>
+    </div>
+    <div class="col"><img class="shot" src="demo-assets/severn-value-block.png" alt="Value block"></div>
+  </div>
+  <div class="notes">4:45–6:00 — BRP answer: co-benefit quantification + avoided-cost harvesting. £1→£10 claim becomes an auditable number. Name OnePlanet MCP import + Sarafu fit.</div>
+</section>
+
+<!-- 6 · EVIDENCE -->
+<section class="slide light">
+  <div class="eyebrow">Use of datasets</div>
+  <div class="rows">
+    <div class="col"><img class="shot" src="demo-assets/12-datasets.png" alt="Endorsed data sources"></div>
+    <div class="col">
+      <h2 style="font-size:clamp(26px,3vw,44px)">Endorsed sources, read hourly — honestly tiered.</h2>
+      <p class="sub">EA Flood, Open-Meteo, FHRS, IoD 2025, Sentinel-2 STAC live and keyless; Companies House, OS, EO Data Hub marked key-gated. OnePlanet MCP + Sarafu imports carry provenance.</p>
+    </div>
+  </div>
+  <div class="notes">Criterion: use of datasets. Point at the honest key-gated labelling — that’s the credibility beat.</div>
+</section>
+
+<!-- 7 · BUSINESS MODEL — 6:00 -->
+<section class="slide dark">
+  <div class="eyebrow">Business model + feasibility</div>
+  <h2>Revenue where value already moves</h2>
+  <div class="rows">
+    <div class="col card"><h3>Settlement fee</h3><p>Funder-side fee on matched rounds — no new behaviour required.</p></div>
+    <div class="col card"><h3>Hosted deployments</h3><p>Councils and partnerships run their own coordination instance.</p></div>
+    <div class="col card"><h3>Dataset revenue</h3><p>Consented, ledger-anchored audit corpus — sold only when worth selling.</p></div>
+  </div>
+  <p class="sub" style="margin-top:3vh">Non-custodial by construction — the only money we touch is the fee. Pilot path: BRP in the UK, a Sarafu community in Kenya; the seed data already spans both.</p>
+  <div class="notes">6:00–7:00 — Keep this brisk; the demo already argued feasibility.</div>
+</section>
+
+<!-- 8 · PROOF -->
+<section class="slide light">
+  <div class="eyebrow">Feasibility — it runs now</div>
+  <div class="rows">
+    <div class="col"><img class="shot" src="demo-assets/18-severn-round.png" alt="Severn round page"></div>
+    <div class="col">
+      <ul class="map">
+        <li><span class="t">7,123</span><span class="arrow">hash-chained ledger events, /ledger/verify green</span></li>
+        <li><span class="t">3,689</span><span class="arrow">plan nodes — OnePlanet, Sarafu, Treegens, council CSVs</span></li>
+        <li><span class="t">2</span><span class="arrow">countries live — UK flood response + Kenya mangroves</span></li>
+        <li><span class="t">186</span><span class="arrow">real field-evidence pins on /map</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="notes">Numbers are live-loaded, not slide-fiction — judges can check /ledger/verify themselves.</div>
+</section>
+
+<!-- 9 · CLOSE — 7:00 -->
+<section class="slide dark">
+  <div class="eyebrow">Why this wins</div>
+  <h2>The coordination problem that<br>formed this team is the one we sell the fix for.</h2>
+  <p class="sub">Demo, business idea, technical implementation, datasets, feasibility, scalability, impact — answered live, on a ledger any reviewer can replay.</p>
+  <div class="foot"><span class="url">springforth.widespread.workers.dev</span><span>github.com/TerexitariusStomp/springforth</span></div>
+  <div class="notes">7:00–7:30 — Close on the criteria callback. Buffer to 8:00 for one breath.</div>
+</section>
+
+<!-- 10 · LINKS / Q&A -->
+<section class="slide light">
+  <div class="eyebrow">Q&amp;A</div>
+  <h2>Everything is inspectable.</h2>
+  <ul class="map">
+    <li><span class="t">Demo</span><span class="arrow">springforth.widespread.workers.dev — /how-it-works self-serve</span></li>
+    <li><span class="t">Code</span><span class="arrow">github.com/TerexitariusStomp/springforth — MIT-clean</span></li>
+    <li><span class="t">Ledger</span><span class="arrow">/ledger/verify — hash chain, live</span></li>
+    <li><span class="t">Value</span><span class="arrow">/impact — per-currency, never converted</span></li>
+  </ul>
+  <div class="notes">Pocket answers in PITCH-LIVE.md §Judge-Q&amp;A: crowdfunding-difference, OnePlanet-difference, provenance, team.</div>
+</section>
+
+<!-- ═══ APPENDIX — fallback if the live demo fails ═══ -->
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix · demo fallback</span>
+  <div class="eyebrow">If the demo fails — same beats, on screenshots</div>
+  <img class="shot" src="demo-assets/01-landing.png" alt="Landing">
+  <p class="cap">1 · Landing — live stats in the hero.</p>
+</section>
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix</span>
+  <img class="shot" src="demo-assets/02-possibilities.png" alt="Possibilities feed">
+  <p class="cap">2 · Possibilities feed — reason lines, interest signals, since-engagement badges.</p>
+</section>
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix</span>
+  <img class="shot" src="demo-assets/17-uk-card.png" alt="Quorum card overlay">
+  <p class="cap">3 · Quorum card — council, forum, audit trail, value block with verifier-replay.</p>
+</section>
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix</span>
+  <img class="shot" src="demo-assets/04-outcomes.png" alt="Outcomes">
+  <p class="cap">4 · /collaborate#outcomes — four plans pursuing one outcome, Treegens footage.</p>
+</section>
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix</span>
+  <img class="shot" src="demo-assets/07-verify.png" alt="Evidence">
+  <p class="cap">5 · /impact#evidence — oracle checks + methodology citations.</p>
+</section>
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix</span>
+  <img class="shot" src="demo-assets/09-rounds.png" alt="Funding rounds">
+  <p class="cap">6 · /fund#rounds — demand met vs matching locked, endowment.</p>
+</section>
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix</span>
+  <img class="shot" src="demo-assets/10-pairwise.png" alt="Pairwise matching">
+  <p class="cap">7 · Pairwise + quadratic allocation — clique discount visible.</p>
+</section>
+
+<section class="slide dark">
+  <span class="appendix-tag">Appendix</span>
+  <img class="shot" src="demo-assets/08-trust.png" alt="Mutual recognition">
+  <p class="cap">8 · /community — trust counts only where it runs both ways; every edge ledger-attested.</p>
+</section>
+
+<div class="prog" id="prog"></div>
+<div class="pageno" id="pageno"></div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];let i=0;
+  const go=n=>{i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('on',k===i));
+    document.getElementById('prog').style.width=(100*(i+1)/slides.length)+'%';
+    document.getElementById('pageno').textContent=(i+1)+' / '+slides.length;};
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' '].includes(e.key))go(i+1);
+    else if(['ArrowLeft','PageUp'].includes(e.key))go(i-1);
+    else if(e.key==='f'||e.key==='F')document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
+    else if(e.key==='n'||e.key==='N')document.body.classList.toggle('notes-on');
+    else if(e.key==='Home')go(0);else if(e.key==='End')go(slides.length-1);
+  });
+  addEventListener('click',e=>{if(e.clientX>innerWidth*0.66)go(i+1);else if(e.clientX<innerWidth*0.33)go(i-1)});
+  go(0);
+</script>
+</body>
+</html>

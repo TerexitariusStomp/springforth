@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/map";
-import type { renderMapPage, MapMarker } from '../../../src/portal/index';
-import { LAND_RINGS } from '../../../src/portal/index';
+import type { renderMapPage, MapMarker } from '../../../src/portal/map.ts';
+import { LAND_RINGS } from '../../../src/portal/worldmap-data.ts';
 import { fetchUI } from "~/lib/api";
 import { SiteHeader, SiteFooter } from "~/components/site-header";
 import { HubHead } from "~/components/hub";

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/plan";
-import type { renderPlanPage } from '../../../src/portal/index';
-import { sparkline } from '../../../src/portal/index';
+import type { renderPlanPage } from '../../../src/portal/plans.ts';
+import { sparkline } from '../../../src/portal/sparkline.ts';
 import type { PlanNode } from '../../../src/coordination';
 import { marked } from "marked";
 import { fetchUI } from "~/lib/api";

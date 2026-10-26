@@ -934,13 +934,89 @@ const RETIRED: Record<string, { to: string; always?: boolean; keep: string[] }> 
 };
 const HUB_SEGS = new Set(['collaborate', 'fund', 'impact', 'community', 'how-it-works']);
 
+// Anon-GET memo — a full page render burns ~20ms CPU against the free
+// plan's 10ms limit (Cloudflare kills the request with error 1102). The
+// render work is identical for anonymous viewers, so cache the produced
+// response per (URL, output variant) for a few seconds per isolate. Any
+// write on this isolate clears the map; cross-isolate staleness is ≤ TTL.
+// Personalized callers (cookie/x-actor/authorization) always bypass.
+const ANON_GET_TTL = 5_000;
+const anonGetCache = new Map<string,
+  { at: number; status: number; headers: [string, string][]; body: string }>();
+
+const anonGetKey = (req: Request, env: Env): string | undefined => {
+  if (req.method !== 'GET') return undefined;
+  if (req.headers.get('cookie') || req.headers.get('x-actor')
+    || req.headers.get('authorization') || authed(req, env)) return undefined;
+  // `accept` + `x-sf-ui` select the output variant for the same URL.
+  const variant = `${req.headers.get('accept')?.includes('text/html') ? 'h' : 'j'}` +
+    `${req.headers.get('x-sf-ui') === '1' ? 'u' : ''}`;
+  return `${req.url}|${variant}`;
+};
+
+const TEXTUAL = /text\/html|application\/(x-sf-ui|json)/;
+// Cross-isolate layer: the in-isolate Map only helps repeats on the same
+// isolate; Cloudflare's Cache API is shared per colo, so one successful
+// render shelters every visitor at that PoP for 30s. `x-sf-at` double-
+// checks freshness (match() expiry semantics vary by plan).
+const ANON_CACHE_TTL = 30_000;
+const anonCacheUrl = (key: string) =>
+  `https://anon-get-memo.internal/${encodeURIComponent(key)}`;
+// `caches.default` is Workers-only — the DOM CacheStorage type lacks it,
+// and vitest has no Cache API at all.
+const edgeCache = (): Cache | undefined =>
+  (globalThis as { caches?: { default?: Cache } }).caches?.default;
+
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // CORS preflight short-circuit.
     if (req.method === 'OPTIONS')
       return new Response(null, { status: 204, headers: corsHeaders(env, req.headers.get('origin')) });
-    const res = await this.handle(req, env).catch((e) =>
-      json({ error: 'internal', detail: String(e) }, 500));
+    const key = anonGetKey(req, env);
+    let res: Response | undefined;
+    let hit = key ? anonGetCache.get(key) : undefined;
+    if (hit && Date.now() - hit.at < ANON_GET_TTL) {
+      res = new Response(hit.body, { status: hit.status, headers: hit.headers });
+    } else if (key) {
+      const cached = await edgeCache()?.match(anonCacheUrl(key));
+      const at = Number(cached?.headers.get('x-sf-at') ?? 0);
+      if (cached && Date.now() - at < ANON_CACHE_TTL) {
+        const headers = [...cached.headers].filter(([k]) =>
+          !['x-sf-at', 'cache-control'].includes(k)) as [string, string][];
+        const body = await cached.text();
+        hit = { at, status: cached.status, headers, body };
+        anonGetCache.set(key, hit);
+        res = new Response(body, { status: cached.status, headers });
+      }
+    }
+    if (!res) {
+      res = await this.handle(req, env).catch((e) =>
+        json({ error: 'internal', detail: String(e) }, 500));
+      if (key && res.ok && TEXTUAL.test(res.headers.get('content-type') ?? '')) {
+        const copy = res.clone();
+        const entry = { at: Date.now(), status: copy.status,
+          headers: [...copy.headers].filter(([k]) => k !== 'set-cookie') as [string, string][],
+          body: await copy.text() };
+        anonGetCache.set(key, entry);
+        if (anonGetCache.size > 300) anonGetCache.clear();
+        const stored = new Response(entry.body, { status: entry.status, headers: entry.headers });
+        stored.headers.set('x-sf-at', String(entry.at));
+        stored.headers.set('cache-control', `public, max-age=${ANON_CACHE_TTL / 1000}`);
+        const cache = edgeCache();
+        if (cache) { const p = cache.put(anonCacheUrl(key), stored); ctx ? ctx.waitUntil(p) : await p; }
+      }
+    }
+    if (req.method !== 'GET') {
+      anonGetCache.clear();
+      // Best-effort: the form page the write came from is what the 303
+      // redirect reloads — drop its colo-cached copy so the flip shows.
+      const ref = req.headers.get('referer');
+      if (ref) {
+        const refKey = anonGetKey(new Request(ref, { headers: { accept: 'text/html' } }), env);
+        const cache = edgeCache();
+        if (refKey && cache) { const p = cache.delete(anonCacheUrl(refKey)); ctx ? ctx.waitUntil(p) : await p; }
+      }
+    }
     // HTML pages embed live state (footer timestamp, ticker, counts) — never
     // let the browser heuristically cache them; assets carry their own TTLs.
     if (res.headers.get('content-type')?.includes('text/html')) {

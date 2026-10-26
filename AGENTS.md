@@ -9,6 +9,15 @@
 - `fetchOk` (src/adapters/fetch.ts) applies a 15s `AbortSignal.timeout` to every upstream call — keep adapter fetches behind it so a hung source can't stall the hourly cron.
 - Deploy via `pnpm run deploy` / `pnpm web:deploy` (or `npx wrangler deploy`) — bare `pnpm deploy` collides with pnpm's builtin.
 
+## CPU budget (free Workers plan — ~10ms/request)
+
+- A full page render costs ~20ms CPU → Cloudflare kills ~half of requests with error 1102 (observed via `wrangler tail`: `outcome: exceededCpu`). This is why anonymous GETs are memoized.
+- `anonGetCache` (src/index.ts, in `fetch`) caches anonymous GET responses per `(url, accept/sf-ui variant)` for 5s per isolate. Cookie/`x-actor`/authorization always bypass — never cache personalized output. Any non-GET request clears the map (joins/pledges flip card state, so a post-write GET on the same isolate re-renders fresh).
+- Cross-isolate staleness is ≤5s — writes on one isolate don't invalidate another's cache. Don't raise the TTL without considering the live quorum-flip demo.
+- i18n instances are cached per lang in `web/app/lib/i18n.ts` (nothing ever calls `changeLanguage`). If mutable i18n state is ever needed, revert to per-request instances.
+- Web routes must import portal modules by file (`src/portal/ui.ts`), never the `src/portal/index` barrel — tree-shaking keeps the bundle lean but the barrel pulls every renderer + worldmap data into the graph.
+- The durable fix is Workers Paid + `limits: { cpu_ms: 30000 }` in `web/wrangler.jsonc` and `wrangler.toml` (line is already commented there). If upgraded, the memo is still worth keeping for latency.
+
 ## Frontend design gate (StyleSeed)
 
 The portal uses the vendored StyleSeed suite in `.devin/skills/` (upstream: bitjaru/styleseed, MIT — see `.devin/skills/PROVENANCE.md`). Design lock: `STYLESEED.md`. Artifact registry: `.styleseed/`.

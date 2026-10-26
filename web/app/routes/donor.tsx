@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/donor";
-import type { renderDonorPage, DonorPageInput } from '../../../src/portal/index';
-import { displayNameText } from '../../../src/portal/index';
+import type { renderDonorPage, DonorPageInput } from '../../../src/portal/actor.ts';
+import { displayNameText } from '../../../src/portal/ui.ts';
 import { fetchUI } from "~/lib/api";
 import { SiteHeader, SiteFooter } from "~/components/site-header";
 import { HubHead, tableCls, thCls, tdCls } from "~/components/hub";

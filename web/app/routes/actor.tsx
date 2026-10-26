@@ -1,8 +1,8 @@
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/actor";
-import type { renderActorProfile, ActorProfileInput } from '../../../src/portal/index';
-import { displayNameText } from '../../../src/portal/index';
+import type { renderActorProfile, ActorProfileInput } from '../../../src/portal/actor.ts';
+import { displayNameText } from '../../../src/portal/ui.ts';
 import { fetchUI } from "~/lib/api";
 import { SiteHeader, SiteFooter } from "~/components/site-header";
 import { HubHead, HowNote, tableCls, thCls, tdCls } from "~/components/hub";

@@ -15,10 +15,10 @@ TMP = "/tmp/springforth-video"
 W, H, QUALITY = 1920, 1080, 62
 
 SECTIONS = [
-    ("01-landing", [("/", None)], """Communities have overlapping plans in
+    ("01-landing", [("/", "scroll")], """Communities have overlapping plans in
 different systems. Springforth deduplicates them into coordinated, funded
-action. This is the live deployment. The landing page opens with what
-needs attention right now."""),
+action. This is the live deployment. Good things happen when we move
+together — the landing page shows live cards nearest to quorum."""),
     ("02-coordination", [("/coordination", "scroll")], """Across imported plans:
 One Planet, a county C S V, Treegens field records, Silvi. The overlap
 layer flags where strategies collide or complement. Each record carries
@@ -51,15 +51,18 @@ quorum means."""),
 decision is hash chained, the head anchored to Bitcoin via Open
 Timestamps. The full A P I is documented with a typed client. This is
 infrastructure others build on."""),
-    ("09-close", [("/tour", "scroll")], """Overlapping plans to coordinated,
+    ("09-close", [("/how-it-works", "scroll")], """Overlapping plans to coordinated,
 funded action, with collusion resistance grown from the coordination
 itself. Springforth, P S one, Team Two."""),
 ]
 
-FLIP_ID = "poss-you-in-this-room-join-to-activate-mvhatz77"
+FLIP_ID = "poss-you-in-this-room-join-to-activate-mvhc8jlq"
+# React frontend cards are divs carrying bg-card — find the smallest one
+# containing the flip card's title text.
 SCROLL_TO_CARD = (
-    "[...document.querySelectorAll('.card')]"
-    ".find(c=>c.innerText.includes('in this room'))"
+    "[...document.querySelectorAll('.bg-card, [class*=\"bg-card\"]')]"
+    ".filter(c=>c.innerText&&c.innerText.includes('in this room'))"
+    ".sort((a,b)=>a.innerText.length-b.innerText.length)[0]"
     "?.scrollIntoView({behavior:'smooth',block:'center'})")
 # keeps the compositor emitting frames on static pages
 PULSE = """(() => {
@@ -202,7 +205,7 @@ for name, pages, narration in SECTIONS:
          "-i", wav, "-t", f"{actual:.2f}",
          "-vf", f"scale={W}:{H}:force_original_aspect_ratio=decrease,"
                 f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,fps=25",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast",
+         "-c:v", "mpeg4", "-q:v", "4", "-pix_fmt", "yuv420p",
          "-crf", "21", "-c:a", "aac", "-b:a", "128k",
          "-shortest", seg], check=True, capture_output=True)
     segs.append(seg)

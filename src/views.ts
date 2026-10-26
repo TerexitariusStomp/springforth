@@ -21,7 +21,7 @@ import {
   resolvePlace,
 } from './coordination';
 import { SOURCES, evidenceBoost } from './oracle';
-import { list, ledgerEventsMentioning, ledgerTail, ledgerVerifyIncremental } from './store.js';
+import { list, listWhere, ledgerEventsMentioning, ledgerTail, ledgerVerifyIncremental } from './store.js';
 import type { Env } from './index.js';
 
 // Volunteer-time benchmark (treasury lane): ONS Household Satellite
@@ -363,13 +363,20 @@ export async function loadSources(env: Env) {
 }
 
 // GET /verify — open-evidence readings + their target nodes + sources.
+// Only nodes the checks actually reference are loaded — shipping all
+// ~3.7k plan nodes for a label lookup made /impact the heaviest render
+// in the app (~2.6MB page-data, ~400ms CPU on a cold miss).
 export async function loadEvidence(env: Env) {
-  const [checks, nodes, sources] = await Promise.all([
+  const [checks, sources] = await Promise.all([
     list<OracleCheck & { nodeId?: string }>(env.DB, 'oracle-check'),
-    list<PlanNode>(env.DB, 'plannode'),
     loadSources(env),
   ]);
-  return { checks, nodes, sources };
+  const ids = [...new Set(checks.map((c) => c.nodeId).filter((x): x is string => !!x))];
+  const chunks: PlanNode[][] = [];
+  for (let i = 0; i < ids.length; i += 90)
+    chunks.push(await listWhere<PlanNode>(env.DB, 'plannode',
+      `id IN (${ids.slice(i, i + 90).map(() => '?').join(',')})`, ...ids.slice(i, i + 90)));
+  return { checks, nodes: chunks.flat(), sources };
 }
 
 // GET /ledger — verify result + recent events.

@@ -18,6 +18,14 @@
 - Web routes must import portal modules by file (`src/portal/ui.ts`), never the `src/portal/index` barrel — tree-shaking keeps the bundle lean but the barrel pulls every renderer + worldmap data into the graph.
 - The durable fix is Workers Paid + `limits: { cpu_ms: 30000 }` in `web/wrangler.jsonc` and `wrangler.toml` (line is already commented there). If upgraded, the memo is still worth keeping for latency.
 
+## D1 free-tier quota (~5M rows read/day, resets 00:00 UTC)
+
+- **Observed 2026-10-26**: quota exhausted → every data-backed route 500s until reset. Each page `list()`s whole entity kinds — a few hundred requests/day of uncached traffic can burn it.
+- `list()` parses every row of a kind; hot pages must use `listWhere` with a real `json_extract` filter (precedent: the deck loads only plannodes with `possibilityId`; `loadEvidence` loads only check-referenced nodes).
+- The anon-GET cache also shields the quota — cached hits do zero D1 reads.
+- `verify-checkpoint` (kind `verify-checkpoint`, id `head`) memoizes ledger chain verification — never clear it unnecessarily; a miss re-scans all ~7k events.
+- If quota is out, cached pages still serve; uncached data routes return 500 until 00:00 UTC. Workers Paid removes this class entirely (D1 paid = usage-based).
+
 ## Frontend design gate (StyleSeed)
 
 The portal uses the vendored StyleSeed suite in `.devin/skills/` (upstream: bitjaru/styleseed, MIT — see `.devin/skills/PROVENANCE.md`). Design lock: `STYLESEED.md`. Artifact registry: `.styleseed/`.

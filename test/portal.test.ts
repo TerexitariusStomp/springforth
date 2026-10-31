@@ -265,8 +265,15 @@ describe('card connections', () => {
   });
   it('hides the pledge form on expired cards and shows reason lines', () => {
     const dead = { ...card(), status: 'expired' as const };
+    const conns = { p1: { ...conn,
+      personal: { joined: false, interested: false, recognized: 2, near: 'Mida Creek', newSince: 0 } } };
+    // Compost: expired cards leave the default deck but stay reachable
+    // through the Expired filter for audit.
+    const def = renderPossibilitiesPage([dead] as never, [], 'priya', { connections: conns });
+    expect(def).toContain('1 composted cards');
+    expect(def).not.toContain('class="reason"');
     const html = renderPossibilitiesPage([dead] as never, [], 'priya',
-      { connections: { p1: { ...conn, personal: { joined: false, interested: false, recognized: 2, near: 'Mida Creek', newSince: 0 } } } });
+      { status: 'expired', connections: conns });
     expect(html).not.toContain('/possibilities/p1/pledge');
     expect(html).toContain('class="reason"');
     expect(html).toContain('2 people you recognize');

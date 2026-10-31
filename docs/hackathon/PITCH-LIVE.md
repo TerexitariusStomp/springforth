@@ -1,23 +1,13 @@
 # Live pitch — 8 minutes (Emerging class)
 
-Timing target: 7:30, leaving buffer. Rehearse with a visible timer; the
-demo legs are scripted in `DEMO-SCRIPT.md`.
+Timing target: 7:30, leaving buffer. Rehearse with a visible timer.
+This file is self-contained — the demo legs are scripted inline below.
 
-## 0:00–0:45 — The team is the proof
-
-> "We formed during this hackathon — which is fitting, because the problem
-> we solve is the one this hackathon just performed. Twelve days ago a dozen
-> strangers with skills, plans, and good intentions landed in a Teams
-> environment. Finding who needed what, which plans overlapped, and when
-> enough people had committed to act — that coordination happened over
-> sticky notes and chat threads. Springforth is the layer that does it
-> properly."
-
-Honesty beat (one line, don't dwell): "The platform underneath predates
-the event — what this team built *here* is the evidence layer, the
+Honesty beat if asked (one line, don't dwell): "The platform underneath
+predates the event — what I built *here* is the evidence layer, the
 Brighton framing, and the funding path you're about to see."
 
-## 0:45–1:45 — Problem + the organizer's own model
+## 0:00–1:00 — Problem + the organizer's own model
 
 > "Communities' plans live in different systems. Strategies conflict or
 > duplicate, and it's invisible until it's too late. Your own bootcamp
@@ -27,21 +17,47 @@ Brighton framing, and the funding path you're about to see."
 
 Show the architecture SVG for ~10s only — point at the right rail.
 
-## 1:45–4:45 — Live demo (scripted legs)
+## 1:00–5:00 — Live demo (six legs, 4 min)
 
-Follow `DEMO-SCRIPT.md` — compressed order for pitch:
+Base: https://springforth.widespread.workers.dev
+Each leg ends on a line that maps to a judging criterion.
 
-1. `/possibilities` — feed with reason lines + interest signals (30s)
-2. Quorum card overlay — council, forum, reviews, value block with
-   verifier-replay `<details>` (60s)
-3. `/collaborate#outcomes` — "4 pursuing this outcome", real Treegens
-   footage (45s)
-4. `/impact#evidence` + `/impact#data` — endorsed sources visible,
-   keyless vs key-gated honest (45s)
-5. `/fund#rounds` — demand-gated matching + endowment (30s)
-6. `/map` + `/ledger/verify` — geography + audit trail (30s)
+1. **Possibilities feed** (/possibilities?actor=priya) — the deck learns
+   yes/no: "Not now" records a pass, "I'm interested" records interest;
+   reason lines show "you're in / watching this / N people you recognise";
+   since-engagement badges show what moved. *Criterion: demo — live, not
+   slides.* 30s.
+2. **Quorum card overlay** (click the Severn flood card) — audit trail
+   (#seq → /ledger), council seats auto-seated at quorum, council-gated
+   forum, participant reviews, "Coordinated value" split by capital
+   (financial/human/social/natural), and the verifier-replay `<details>`
+   on every figure. Pledge form is live at quorum. *Criterion: technical
+   implementation.* 60s.
+3. **Outcomes** (/collaborate#outcomes) — "4 pursuing this outcome":
+   Kilifi County's plan, the community card, and Treegens' real filmed
+   plots at Kisiwani + Dabaso. Overlap shows evidence **and**
+   counter-evidence; humans validate. *Criterion: impact potential.* 45s.
+4. **Impact → data + evidence** (/impact#data, /impact#evidence) — the
+   endorsed-sources block: EA Flood, Open-Meteo, EA WQ, FHRS, Sentinel-2
+   STAC live keyless; Companies House / OS / EO Data Hub / Alpha-Klima
+   honestly marked key-gated; OnePlanet MCP + Sarafu imports listed with
+   provenance. Evidence rows carry methodology citations. *Criterion: use
+   of datasets.* 45s.
+5. **Fund → rounds** (/fund#rounds) — demand met vs matching locked;
+   quadratic allocation with visible clique discount; permanent endowment
+   (locked principal + accrued activity fees). *Criterion: business
+   idea.* 30s.
+6. **Map + ledger** (/map, /ledger/verify) — Kenya + UK pins on one map;
+   hash-chain verify + OpenTimestamps anchor. *Criterion: feasibility —
+   it runs now, across two countries.* 30s.
 
-## 4:45–6:00 — BRP answer + value categories
+Telegram lane (optional +20s): /new declares a card from a group chat;
+quorum announcements post back to the declaring group.
+
+Backup: `docs/hackathon/demo-assets/` screenshots numbered in this order.
+If the live demo fails: walk the screenshots and narrate the same beats.
+
+## 5:00–6:15 — BRP answer + value categories
 
 > "For Brighton Resilience Partnership: joined-up projects need co-benefit
 > quantification and avoided-cost harvesting. Our cards compute four
@@ -52,7 +68,7 @@ Follow `DEMO-SCRIPT.md` — compressed order for pitch:
 
 Name the OnePlanet MCP import + Sarafu commitment-pool fit here.
 
-## 6:00–7:00 — Business model + feasibility
+## 6:15–7:15 — Business model + feasibility
 
 > "Revenue: funder-side settlement fee on rounds — no new behavior —
 > then hosted deployments for councils, then consented dataset revenue
@@ -60,12 +76,12 @@ Name the OnePlanet MCP import + Sarafu commitment-pool fit here.
 > the only money we touch is the fee. Pilot path: BRP in the UK, a Sarafu
 > community in Kenya — the seed data already spans both."
 
-## 7:00–7:30 — Close on impact
+## 7:15–7:30 — Close on impact
 
 > "The criteria ask for demo, business idea, technical implementation,
 > datasets, feasibility, scalability, impact. You just watched a live,
 > ledger-anchored system across two countries answer all eight. The
-> coordination problem that formed this team is the one we sell the
+> coordination problem that motivated this build is the one we sell the
 > fix for."
 
 ## Judge-Q&A pocket answers
@@ -78,5 +94,6 @@ Name the OnePlanet MCP import + Sarafu commitment-pool fit here.
 - **"Data provenance?"** — Every figure labels ledger-derived / declared /
   cited-estimate; sources tier visible at `/impact#data`; key-gated lanes
   are honestly marked as such.
-- **"Team?"** — Assembled at this hackathon; platform lineage is open
-  source (MIT-clean, ~2% custom code over vendored libraries).
+- **"Team?"** — Solo build on open source (MIT-clean, ~2% custom code
+  over vendored libraries) — the coordination layer, not the institution,
+  is what scales.

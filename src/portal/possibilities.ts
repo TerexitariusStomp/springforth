@@ -5,6 +5,8 @@ import { pageShell } from './theme.ts';
 import { t, type Lang } from './i18n.ts';
 import { displayName } from './ui.ts';
 import { worldMapSvg, mapLegend, MAP_CSS } from './map.ts';
+import { STRUCTURE_PHASES } from '../data/structures.ts';
+import { ecocycleStage, ecocycleTraps, ecocycleSvg } from '../data/ecocycle.ts';
 
 // /possibilities — the card deck. Compact Figma cards in a filterable grid;
 // each card opens a full detail overlay (pure CSS :target — no JS needed)
@@ -32,6 +34,12 @@ export interface PossibilityCard {
   bringing: PlanNode[];
   quorum: { met: boolean; required: number; requiredMet: number };
   report?: { summary: string; evidence: string; learnings: string; at: string };
+  // Structured design brief — per-field attributed narrative fields;
+  // place/participants/deadline render alongside from the card itself.
+  brief?: { problem?: { text: string; by?: string; at?: string };
+    purpose?: { text: string; by?: string; at?: string };
+    boundaries?: { text: string; by?: string; at?: string };
+    resources?: { text: string; by?: string; at?: string } };
   context?: { datasets?: { name: string; value: string; source: string; fetchedAt: string }[] };
   // Derived monetary valuation (ledger + declared + cited-benchmark inputs,
   // per currency) — see docs/hackathon/VALUATION.md for the methodology.
@@ -52,13 +60,28 @@ export interface CardConnections {
   // Megaplan extras (all optional — older payloads render unchanged):
   trail?: { seq: number; at: string; actor: string; kind: string }[];
   interestCount?: number;
+  // Σ interest level ("how juiced") — demand depth, not just counts.
+  interestHeat?: number;
+  questions?: { id: string; actor: string; text: string; state: string;
+    answer?: { actor: string; text: string; at: string } }[];
+  decisions?: { id: string; title: string; mode: string; state: string;
+    outcome?: string; rationale?: string; proposer: string;
+    objections: number; responses: number }[];
+  referredCount?: number;
+  // Test cards — belief/action/measure/failure experiments.
+  tests?: { id: string; actor: string; belief: string; action: string;
+    measure: string; failState: string; state: string; runner?: string;
+    result?: { actor: string; text: string; at: string };
+    questionId?: string }[];
   seats?: { actor: string; role: string }[];
   posts?: { id: string; parentId?: string; actor: string; kind: string; text: string; at: string }[];
   notes?: { from: string; to: string; note: string }[];
   geo?: { lat: number; lon: number };
+  // "Do I know a nerd" — trusted peers holding matching offers.
+  suggest?: { actor: string; offer: string; need: string }[];
   // Viewer-personalized relevance, computed edge-side where full
   // participant data exists (counts only — names stay gated).
-  personal?: { joined: boolean; interested: boolean; recognized: number; near?: string; newSince: number; lastEvent?: string };
+  personal?: { joined: boolean; interested: boolean; recognized: number; near?: string; newSince: number; lastEvent?: string; referred?: string };
 }
 
 const money0 = (amount: number, currency: string) =>
@@ -161,13 +184,18 @@ function trailKey(kind: string): string {
       appreciated: 'trail.appreciated', passed: 'trail.passed',
       interested: 'trail.interested',
       need_flagged: 'trail.need',
+      question_asked: 'trail.question', question_answered: 'trail.answer',
+      referred: 'trail.referral', brief: 'trail.brief',
     };
     return map[kind.slice('possibility.'.length)] ?? 'trail.other';
   }
   if (kind.startsWith('pledge.')) return 'trail.pledge';
+  if (kind.startsWith('decision.')) return 'trail.decision';
+  if (kind.startsWith('test.')) return 'trail.test';
   if (kind === 'council.seated') return 'trail.seat';
   if (kind === 'forum.posted') return 'trail.post';
   if (kind === 'context.refreshed') return 'trail.context';
+  if (kind === 'constellation.complete') return 'trail.constellation';
   return 'trail.other';
 }
 
@@ -242,6 +270,210 @@ ${open ? `<form method="post" action="/possibilities/${esc(c.id)}/forum" class="
 </form>` : ''}</div>`;
 }
 
+// Open questions — the engaged-curiosity layer: indexed uncertainties,
+// askable and answerable by any actor. Open questions never block
+// quorum — they mark what the card hasn't figured out yet.
+function questionsBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
+  const qs = conn?.questions ?? [];
+  const live = c.status === 'active' || c.status === 'draft' || c.status === 'quorum';
+  if (!qs.length && !live) return '';
+  const rows = qs.map((q) => `<li>
+    <span class="badge">${esc(tt(q.state === 'answered' ? 'q.answered' : 'q.open'))}</span>
+    ${esc(q.text)} <span class="nice">— ${displayName(q.actor)}</span>
+    ${q.answer ? `<br><span class="nice">${esc(tt('q.answer'))}: ${esc(q.answer.text)} — ${displayName(q.answer.actor)}</span>` : ''}
+    ${q.state === 'open' && live ? `<form method="post" action="/possibilities/${esc(c.id)}/answer" class="val">
+      <input type="hidden" name="questionId" value="${esc(q.id)}">
+      <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+      <input name="text" placeholder="${esc(tt('q.answerPh'))}" aria-label="${esc(tt('q.answerPh'))}" required maxlength="600">
+      <button>${esc(tt('q.answerCta'))}</button>
+    </form>` : ''}</li>`).join('');
+  return `<div class="quest"><strong>${esc(tt('q.title'))}</strong>
+<span class="nice"> — ${esc(tt('q.lede'))}</span>
+${rows ? `<ul class="needs">${rows}</ul>` : `<p class="nice">${esc(tt('q.empty'))}</p>`}
+${live ? `<form method="post" action="/possibilities/${esc(c.id)}/question" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="text" placeholder="${esc(tt('q.ph'))}" aria-label="${esc(tt('q.ph'))}" required maxlength="300">
+  <button>${esc(tt('q.cta'))}</button>
+</form>` : ''}</div>`;
+}
+
+// Council decisions — the decision matrix as an auditable record layer.
+// Consent objections are visible blockers; every resolution carries its
+// rationale on the record.
+function decisionsBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
+  const open = c.status === 'quorum' || c.status === 'completed';
+  const ds = conn?.decisions ?? [];
+  if (!open && !ds.length) return '';
+  const rows = ds.map((d) => `<li>
+    <span class="badge">${esc(tt(`dec.mode.${d.mode}`))}</span> <strong>${esc(d.title)}</strong>
+    <span class="nice">— ${esc(tt(`dec.state.${d.state}`))} · ${displayName(d.proposer)}</span>
+    ${d.state === 'decided' ? `<br>${esc(d.outcome ?? '')} <span class="nice">${esc(tt('dec.why'))}: ${esc(d.rationale ?? '')}</span>` : ''}
+    ${d.objections ? ` <span class="req">${d.objections} ${esc(tt('dec.objections'))}</span>` : ''}
+    ${d.state === 'open' && open ? `<form method="post" action="/decisions/${esc(d.id)}/respond" class="val">
+      <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+      <select name="kind" aria-label="${esc(tt('dec.kind'))}">
+        <option value="input">${esc(tt('dec.k.input'))}</option>
+        <option value="support">${esc(tt('dec.k.support'))}</option>
+        <option value="objection">${esc(tt('dec.k.objection'))}</option>
+      </select>
+      <input name="text" placeholder="${esc(tt('dec.ph'))}" aria-label="${esc(tt('dec.ph'))}" required maxlength="600">
+      <button>${esc(tt('dec.respond'))}</button>
+    </form>
+    <form method="post" action="/decisions/${esc(d.id)}/resolve" class="val">
+      <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+      <input name="outcome" placeholder="${esc(tt('dec.outcomePh'))}" aria-label="${esc(tt('dec.outcomePh'))}" required maxlength="600">
+      <input name="rationale" placeholder="${esc(tt('dec.rationalePh'))}" aria-label="${esc(tt('dec.rationalePh'))}" required maxlength="600">
+      <button>${esc(tt('dec.resolve'))}</button>
+    </form>` : ''}</li>`).join('');
+  return `<div class="decide"><strong>${esc(tt('dec.title'))}</strong>
+<span class="nice"> — ${esc(tt('dec.lede'))}</span>
+${rows ? `<ul class="needs">${rows}</ul>` : `<p class="nice">${esc(tt('dec.empty'))}</p>`}
+${open ? `<details class="how-note"><summary>${esc(tt('dec.propose'))}</summary><div class="hn-body">
+<p class="nice">${esc(tt('dec.modes'))}</p>
+<form method="post" action="/possibilities/${esc(c.id)}/decide" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="title" placeholder="${esc(tt('dec.titlePh'))}" aria-label="${esc(tt('dec.titlePh'))}" required maxlength="200">
+  <select name="mode" aria-label="${esc(tt('dec.mode'))}">
+    <option value="consent">${esc(tt('dec.mode.consent'))}</option>
+    <option value="advice">${esc(tt('dec.mode.advice'))}</option>
+    <option value="duocracy">${esc(tt('dec.mode.duocracy'))}</option>
+    <option value="empowered">${esc(tt('dec.mode.empowered'))}</option>
+  </select>
+  <input name="decider" placeholder="${esc(tt('dec.deciderPh'))}" aria-label="${esc(tt('dec.deciderPh'))}">
+  <button>${esc(tt('dec.cta'))}</button>
+</form></div></details>` : ''}</div>`;
+}
+
+// "Know a nerd?" — referrals + trusted-peer suggestions. Suggestions are
+// the complement matcher's pairs filtered through the viewer's
+// mutual-recognition edges: someone you recognize holds the matching offer.
+function referBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
+  const open = c.status === 'active' || c.status === 'draft' || c.status === 'quorum';
+  if (!open && !conn?.suggest?.length && !conn?.referredCount) return '';
+  return `<div class="refer"><strong>${esc(tt('refer.title'))}</strong>
+<span class="nice"> — ${esc(tt('refer.lede'))}</span>
+${conn?.suggest?.length ? `<ul class="needs">${conn.suggest.map((s) =>
+    `<li>${displayName(s.actor)} ${esc(tt('refer.has'))} <strong>${esc(s.offer)}</strong> ${esc(tt('refer.for'))} <em>${esc(s.need)}</em></li>`).join('')}</ul>` : ''}
+${conn?.referredCount ? `<p class="nice">${conn.referredCount} ${esc(tt('refer.count'))}</p>` : ''}
+${open ? `<form method="post" action="/possibilities/${esc(c.id)}/refer" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="to" placeholder="${esc(tt('refer.who'))}" aria-label="${esc(tt('refer.who'))}" required>
+  <input name="note" placeholder="${esc(tt('refer.note'))}" aria-label="${esc(tt('refer.note'))}">
+  <button>${esc(tt('refer.cta'))}</button>
+</form>` : ''}</div>`;
+}
+
+// "Play this game" — a phase-appropriate liberating-structures pick.
+// Method names are public prior art; summaries are original one-liners.
+function structuresBlock(c: PossibilityCard, tt: (k: string) => string): string {
+  const phase = c.status === 'completed' ? 'completed'
+    : c.status === 'quorum' ? 'quorum' : 'building';
+  const picks = (STRUCTURE_PHASES[phase] ?? []).slice(0, 2);
+  if (!picks.length) return '';
+  return `<div class="structures"><strong>${esc(tt('struct.title'))}</strong>
+<span class="nice"> — ${esc(tt('struct.lede'))}</span>
+<ul class="needs">${picks.map((k) =>
+    `<li><strong>${esc(tt(`struct.${k}.name`))}</strong> — ${esc(tt(`struct.${k}.body`))}</li>`).join('')}</ul></div>`;
+}
+
+// Ecocycle ribbon — the card's stage on the ∞ loop plus trap markers
+// (scarcity: deadline closing without quorum; rigidity: completed with
+// no report). Stage and traps are derived, never stored.
+function ecocycleBlock(c: PossibilityCard, tt: (k: string) => string): string {
+  const traps = ecocycleTraps({
+    status: c.status, quorumMet: c.quorum.met,
+    deadline: c.deadline, hasReport: !!c.report,
+  });
+  return `<div class="eco">${ecocycleSvg({
+    stage: ecocycleStage(c.status),
+    scarcity: traps.scarcity, rigidity: traps.rigidity,
+    labels: {
+      title: tt('eco.title'), seed: tt('eco.seed'), sprout: tt('eco.sprout'),
+      maturity: tt('eco.maturity'), compost: tt('eco.compost'),
+      trapScarcity: tt('eco.trap.scarcity'), trapRigidity: tt('eco.trap.rigidity'),
+    },
+  })}
+${traps.scarcity ? `<p class="nice">${esc(tt('eco.trap.scarcity.body'))}</p>` : ''}
+${traps.rigidity ? `<p class="nice">${esc(tt('eco.trap.rigidity.body'))}</p>` : ''}</div>`;
+}
+
+// Design brief — the transcript's six fields: place/participants/
+// deadline come from first-class card fields; problem/purpose/
+// boundaries/resources are stored per-field attributed (by/at).
+// Wiki-editable by any actor — "anyone, but linked".
+function briefBlock(c: PossibilityCard, tt: (k: string) => string): string {
+  const live = c.status === 'active' || c.status === 'draft' || c.status === 'quorum';
+  const b = c.brief ?? {};
+  const row = (label: string, f?: { text: string; by?: string }) =>
+    f?.text ? `<li><strong>${esc(label)}:</strong> ${esc(f.text)}${f.by ? ` <span class="nice">— ${displayName(f.by)}</span>` : ''}</li>` : '';
+  const rows = [
+    c.place ? `<li><strong>${esc(tt('brief.place'))}:</strong> ${esc(c.place)}</li>` : '',
+    row(tt('brief.problem'), b.problem),
+    row(tt('brief.purpose'), b.purpose),
+    `<li><strong>${esc(tt('brief.participants'))}:</strong> ${c.minParticipants}${c.maxParticipants ? `–${c.maxParticipants}` : '+'}${c.deadline ? ` · ${esc(tt('brief.deadline'))} ${esc(c.deadline.slice(0, 10))}` : ''}</li>`,
+    row(tt('brief.boundaries'), b.boundaries),
+    row(tt('brief.resources'), b.resources),
+  ].filter(Boolean).join('');
+  if (!rows && !live) return '';
+  return `<div class="brief"><strong>${esc(tt('brief.title'))}</strong>
+<span class="nice"> — ${esc(tt('brief.lede'))}</span>
+${rows ? `<ul class="needs">${rows}</ul>` : `<p class="nice">${esc(tt('brief.empty'))}</p>`}
+${live ? `<details class="how-note"><summary>${esc(tt('brief.edit'))}</summary><div class="hn-body">
+<form method="post" action="/possibilities/${esc(c.id)}/brief" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <input name="problem" placeholder="${esc(tt('brief.ph.problem'))}" aria-label="${esc(tt('brief.ph.problem'))}" maxlength="1000">
+  <input name="purpose" placeholder="${esc(tt('brief.ph.purpose'))}" aria-label="${esc(tt('brief.ph.purpose'))}" maxlength="1000">
+  <input name="boundaries" placeholder="${esc(tt('brief.ph.boundaries'))}" aria-label="${esc(tt('brief.ph.boundaries'))}" maxlength="1000">
+  <input name="resources" placeholder="${esc(tt('brief.ph.resources'))}" aria-label="${esc(tt('brief.ph.resources'))}" maxlength="1000">
+  <button>${esc(tt('brief.cta'))}</button>
+</form></div></details>` : ''}</div>`;
+}
+
+// Test cards — belief/action/measure/expected-failure, chained from the
+// open questions above. Anyone proposes or takes one on; the council
+// resolves (pre-quorum the declarer stewards).
+function testsBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
+  const ts = conn?.tests ?? [];
+  const live = c.status === 'active' || c.status === 'draft' || c.status === 'quorum';
+  if (!ts.length && !live) return '';
+  const openQs = (conn?.questions ?? []).filter((q) => q.state === 'open');
+  const rows = ts.map((x) => `<li>
+    <span class="badge">${esc(tt(`test.state.${x.state}`))}</span> <strong>${esc(x.belief)}</strong>
+    <span class="nice">— ${displayName(x.actor)}${x.runner ? ` · ${esc(tt('test.runner'))} ${displayName(x.runner)}` : ''}</span>
+    <br><span class="nice">${esc(tt('test.action'))}: ${esc(x.action)} · ${esc(tt('test.measure'))}: ${esc(x.measure)}${x.failState ? ` · ${esc(tt('test.fail'))}: ${esc(x.failState)}` : ''}</span>
+    ${x.result ? `<br><span class="nice">${esc(tt('test.result'))}: ${esc(x.result.text)} — ${displayName(x.result.actor)}</span>` : ''}
+    ${x.state === 'proposed' && live ? `<form method="post" action="/tests/${esc(x.id)}/run" class="val">
+      <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+      <button>${esc(tt('test.run'))}</button>
+    </form>` : ''}
+    ${(x.state === 'proposed' || x.state === 'running') && live ? `<form method="post" action="/tests/${esc(x.id)}/resolve" class="val">
+      <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+      <select name="outcome" aria-label="${esc(tt('test.outcome'))}">
+        <option value="passed">${esc(tt('test.state.passed'))}</option>
+        <option value="failed">${esc(tt('test.state.failed'))}</option>
+      </select>
+      <input name="inference" placeholder="${esc(tt('test.inferencePh'))}" aria-label="${esc(tt('test.inferencePh'))}" required maxlength="600">
+      <button>${esc(tt('test.resolve'))}</button>
+    </form>` : ''}</li>`).join('');
+  return `<div class="tests"><strong>${esc(tt('test.title'))}</strong>
+<span class="nice"> — ${esc(tt('test.lede'))}</span>
+${rows ? `<ul class="needs">${rows}</ul>` : `<p class="nice">${esc(tt('test.empty'))}</p>`}
+${live ? `<details class="how-note"><summary>${esc(tt('test.propose'))}</summary><div class="hn-body">
+<p class="nice">${esc(tt('test.resolveHint'))}</p>
+<form method="post" action="/possibilities/${esc(c.id)}/test" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  ${openQs.length ? `<select name="questionId" aria-label="${esc(tt('test.linkedQ'))}">
+    <option value="">${esc(tt('test.linkedQ.none'))}</option>
+    ${openQs.map((q) => `<option value="${esc(q.id)}">${esc(q.text.slice(0, 60))}</option>`).join('')}
+  </select>` : ''}
+  <input name="belief" placeholder="${esc(tt('test.ph.belief'))}" aria-label="${esc(tt('test.ph.belief'))}" required maxlength="300">
+  <input name="action" placeholder="${esc(tt('test.ph.action'))}" aria-label="${esc(tt('test.ph.action'))}" required maxlength="300">
+  <input name="measure" placeholder="${esc(tt('test.ph.measure'))}" aria-label="${esc(tt('test.ph.measure'))}" required maxlength="300">
+  <input name="failState" placeholder="${esc(tt('test.ph.fail'))}" aria-label="${esc(tt('test.ph.fail'))}" maxlength="300">
+  <button>${esc(tt('test.cta'))}</button>
+</form></div></details>` : ''}</div>`;
+}
+
 // "Why it matters" — who benefits, what the ask costs, what's pledged.
 function whyBlock(c: PossibilityCard, conn: CardConnections | undefined, tt: (k: string) => string): string {
   const vals = Object.entries(c.value?.byCurrency ?? {});
@@ -288,12 +520,13 @@ function cardDetail(c: PossibilityCard, conn: CardConnections | undefined, lang:
 ${c.tipping ? `<span class="badge gold">${esc(tt('card.tipping'))}</span>` : ''}
 <span class="badge">${esc(countdown(c.deadline, tt))}</span>
 <span class="badge">${c.participantCount}/${c.minParticipants} ${esc(tt('card.in'))}${partCap}</span>
-${conn?.interestCount ? `<span class="badge">${conn.interestCount} ${esc(tt('card.interested'))}</span>` : ''}
+${conn?.interestCount ? `<span class="badge">${conn.interestCount} ${esc(tt('card.interested'))}${conn.interestHeat && conn.interestHeat > conn.interestCount ? ` · <svg width="30" height="8" viewBox="0 0 30 8" aria-label="${esc(tt('card.heat'))} ${(conn.interestHeat / conn.interestCount).toFixed(1)}">${[0, 1, 2].map((i) => `<circle cx="${i * 10 + 4}" cy="4" r="3.2" fill="${i < Math.round(conn.interestHeat! / conn.interestCount!) ? 'var(--sf-coral)' : 'var(--sf-line)'}"/>`).join('')}</svg>` : ''}</span>` : ''}
 <span class="badge">${esc(tt('card.needs').toLowerCase())} ${c.quorum.requiredMet}/${c.quorum.required}</span>
 <span class="badge">${esc(tt('card.score'))} ${c.score.toFixed(2)}</span></p>
 <div class="bar"><div class="fill" style="width:${Math.round(cover * 100)}%"></div></div>
 <p class="meta">${esc(tt('card.cover'))} ${(cover * 100).toFixed(0)}% ·
 ${esc(tt('card.trust'))} ${c.scoring.trust.toFixed(2)} · ${esc(tt('card.urgency'))} ${c.scoring.urgency.toFixed(2)}</p>
+${ecocycleBlock(c, tt)}
 ${c.value ? valueBlock(c.value, tt) : ''}
 <p>${esc(tt('card.declaredBy'))} <strong>${displayName(c.declarerId)}</strong>${c.place ? ` · ${esc(c.place)}` : ''}
 ${c.timeStart ? ` · ${esc(c.timeStart.slice(0, 10))}${c.timeEnd ? ` → ${esc(c.timeEnd.slice(0, 10))}` : ''}` : ''}
@@ -302,12 +535,16 @@ ${conn?.geo ? `<div class="map-mini">${worldMapSvg([{ id: c.id, lat: conn.geo.la
 ${c.description ? `<p>${esc(c.description)}</p>` : ''}
 ${whyBlock(c, conn, tt)}
 ${scenarioBlock(c, tt)}
+${briefBlock(c, tt)}
 ${c.context?.datasets?.length ? `<p class="ctx"><strong>${esc(tt('card.verified'))}</strong></p><ul class="needs">${c.context.datasets.map((d) => `<li>◆ ${esc(d.name)}: ${esc(d.value)}${d.source ? ` <span class="nice">(${esc(d.source)})</span>` : ''}</li>`).join('')}</ul>` : ''}
 ${needRows ? `<p><strong>${esc(tt('card.needs'))}</strong></p><ul class="needs">${needRows}</ul>` : ''}
 ${bringing ? `<p><strong>${esc(tt('card.bringing'))}</strong></p><ul class="needs">${bringing}</ul>` : ''}
 ${c.participants === undefined
   ? `<p><strong>${esc(tt('card.inH'))}:</strong> ${c.participantCount} — <em>${esc(tt('card.namesReveal'))}</em></p>`
   : joined ? `<p><strong>${esc(tt('card.inH'))} (${c.participantCount})</strong></p><ul class="needs">${joined}</ul>` : ''}
+${questionsBlock(c, conn, tt)}
+${testsBlock(c, conn, tt)}
+${referBlock(c, conn, tt)}
 ${live ? `<form method="post" action="/possibilities/${esc(c.id)}/join" class="val">
   <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
   <input name="bringing" placeholder="${esc(tt('form.bringing'))}" aria-label="${esc(tt('form.bringing'))}">
@@ -319,6 +556,17 @@ ${live ? `<form method="post" action="/possibilities/${esc(c.id)}/join" class="v
   <input name="title" placeholder="${esc(tt('form.needMissing'))}" aria-label="${esc(tt('form.needMissing'))}" required>
   <input name="category" placeholder="${esc(tt('form.category'))}" aria-label="${esc(tt('form.category'))}">
   <button>${esc(tt('form.flagNeed'))}</button>
+</form>
+<form method="post" action="/possibilities/${esc(c.id)}/interest" class="val">
+  <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
+  <select name="level" aria-label="${esc(tt('feed.interested.level'))}">
+    <option value="">${esc(tt('feed.interested'))}</option>
+    <option value="1">${esc(tt('feed.level.1'))}</option>
+    <option value="2">${esc(tt('feed.level.2'))}</option>
+    <option value="3">${esc(tt('feed.level.3'))}</option>
+  </select>
+  <input type="hidden" name="next" value="/possibilities#${esc(c.id)}">
+  <button>${esc(tt('feed.interested'))}</button>
 </form>
 <form method="post" action="/possibilities/${esc(c.id)}/pass" class="val">
   <input name="actor" placeholder="${esc(tt('form.name'))}" aria-label="${esc(tt('form.name'))}" required>
@@ -340,7 +588,9 @@ ${c.status === 'completed' || c.status === 'quorum' ? `<form method="post" actio
 </form>` : ''}
 ${c.report ? `<p class="res"><strong>${esc(tt('card.report'))}</strong> ${esc(c.report.summary)}${c.report.learnings ? ` — <em>${esc(c.report.learnings)}</em>` : ''}</p>` : ''}
 ${conn?.notes?.length ? reviewsBlock(conn.notes, tt) : ''}
+${structuresBlock(c, tt)}
 ${councilBlock(c, conn, tt)}
+${decisionsBlock(c, conn, tt)}
 ${forumBlock(c, conn, tt)}
 ${conn?.trail?.length ? trailBlock(conn.trail, tt) : ''}
 ${connectedBlock(c, conn, lang)}
@@ -360,7 +610,7 @@ const DECK_CSS = `
 .needs{list-style:none;padding-left:.25rem;margin:.2rem 0;font-size:13px}
 .detail-panel .needs li{padding:.15rem 0}
 .val{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
-.val input{min-height:2.75rem;padding:.5rem .7rem;flex:1;min-width:8rem;border:1px solid var(--sf-line);border-radius:8px;font:inherit;font-size:13px}
+.val input,.val select{min-height:2.75rem;padding:.5rem .7rem;flex:1;min-width:8rem;border:1px solid var(--sf-line);border-radius:8px;font:inherit;font-size:13px;background:var(--sf-cream-2);color:var(--sf-ink-2)}
 .val button{min-height:2.75rem;padding:.5rem 1.1rem;cursor:pointer;background:var(--sf-green-3);color:var(--sf-cream);border:0;border-radius:99px;font-weight:800;font-size:12px}
 .res{background:rgba(200,243,109,.25);padding:.6rem .8rem;border-radius:.5rem;font-size:13px}
 .req{color:var(--sf-danger-ink);font-size:.8rem}.nice{color:var(--sf-muted);font-size:.8rem}.met{color:var(--sf-ok);font-size:.8rem}
@@ -384,7 +634,15 @@ ${MAP_CSS}
 .replay summary,.valrow>summary{cursor:pointer;font-size:.8rem;color:var(--sf-info)}
 .valrow>summary{font-size:13px}
 .replay ul,.valrow ul{list-style:none;padding-left:.5rem;font-size:.78rem;color:var(--sf-muted)}
-.trail summary,.reviews,.council,.forum{margin-top:.75rem}
+.trail summary,.reviews,.council,.forum,.quest,.decide,.refer,.structures,.brief,.tests{margin-top:.75rem}
+.quest,.decide,.refer,.structures,.brief,.tests{font-size:13px}
+/* theme .needs is a chip-row flex; these lists carry text + embedded
+   forms and must stack. */
+.quest ul.needs,.decide ul.needs,.refer ul.needs,.structures ul.needs,.brief ul.needs,.tests ul.needs{display:block}
+.quest ul.needs li,.decide ul.needs li,.brief ul.needs li,.tests ul.needs li{padding:.3rem 0;border-bottom:1px solid var(--sf-line-2)}
+.refer ul.needs li,.structures ul.needs li{padding:.3rem 0}
+.eco{margin:.5rem 0;max-width:16.25rem}
+.eco .nice{margin-top:.2rem}
 .trail summary{cursor:pointer;font-size:.8rem;color:var(--sf-info)}
 .trail ol{list-style:none;padding-left:.25rem;font-size:.8rem}
 .trail li{padding:.2rem 0;border-bottom:1px solid var(--sf-line-2)}
@@ -416,7 +674,12 @@ export function renderPossibilitiesPage(
   const lang = opts.lang ?? 'en';
   const mine = !!opts.mine;
   const tt = (k: string) => t(lang, k);
-  const filtered = status ? cards.filter((c) => c.status === status) : cards;
+  // Compost — expired cards leave the default deck (the ecocycle's
+  // creative-destruction stage: "delete it, don't clog the landscape").
+  // They stay reachable via the Expired filter + deep links for audit.
+  const compostedCount = cards.filter((c) => c.status === 'expired').length;
+  const filtered = status ? cards.filter((c) => c.status === status)
+    : cards.filter((c) => c.status !== 'expired');
   const keep = `${viewer ? `actor=${encodeURIComponent(viewer)}` : ''}${mine ? `${viewer ? '&' : ''}for=${encodeURIComponent(viewer ?? '')}` : ''}`;
   const qp = (extra: string) => `?${[extra, keep].filter(Boolean).join('&')}`;
   const reasonFor = (c: PossibilityCard): string | undefined => {
@@ -425,6 +688,7 @@ export function renderPossibilitiesPage(
     const bits: string[] = [];
     if (p.joined) bits.push(tt('reason.joined'));
     else if (p.interested) bits.push(tt('reason.watching'));
+    if (p.referred) bits.push(`${tt('reason.referred')} ${displayName(p.referred)}`);
     if (p.recognized > 0) bits.push(`${p.recognized} ${tt('reason.recognized')}`);
     if (p.near) bits.push(`${tt('reason.near')} ${p.near}`);
     if (p.newSince > 0) bits.push(`${p.newSince} ${tt('feed.since')}${p.lastEvent ? ` — ${tt(trailKey(p.lastEvent))}` : ''}`);
@@ -484,6 +748,7 @@ export function renderPossibilitiesPage(
     <a href="/fund">${esc(t(lang, 'nav.fund'))}</a> ·
     <a href="/impact">${esc(t(lang, 'nav.impact'))}</a><br>
     <span title="${esc(t(lang, 'deck.ordering.body'))}">${esc(t(lang, 'deck.ordering'))}</span><br>
+    ${!status && compostedCount ? `<a href="/possibilities${qp('status=expired')}">${compostedCount} ${esc(tt('deck.composted'))}</a> — ${esc(tt('deck.composted.body'))}<br>` : ''}
     ${esc(t(lang, 'deck.telegram.pre'))} <a href="https://t.me/springforth_bot" rel="noopener">@springforth_bot</a> ${esc(t(lang, 'deck.telegram'))}</p>
   <details class="how-note" style="max-width:78.125rem;margin:0 auto"><summary>${esc(tt('detail.data'))}</summary>
   <div class="hn-body"><a href="/possibilities?format=json">JSON</a></div></details>
@@ -514,6 +779,13 @@ ${overlays}
             <input name="minParticipants" type="number" min="1" value="3"></label>
           <label>${esc(tt('declare.desc'))} <input name="description" placeholder="${esc(tt('declare.descPh'))}"></label>
         </div>
+        <details class="how-note"><summary>${esc(tt('declare.brief'))}<span class="hn-mark" aria-hidden="true"></span></summary>
+        <div class="hn-body">
+          <label>${esc(tt('brief.problem'))} <input name="problem" placeholder="${esc(tt('brief.ph.problem'))}"></label>
+          <label>${esc(tt('brief.purpose'))} <input name="purpose" placeholder="${esc(tt('brief.ph.purpose'))}"></label>
+          <label>${esc(tt('brief.boundaries'))} <input name="boundaries" placeholder="${esc(tt('brief.ph.boundaries'))}"></label>
+          <label>${esc(tt('brief.resources'))} <input name="resources" placeholder="${esc(tt('brief.ph.resources'))}"></label>
+        </div></details>
         <button class="modal-submit" type="submit">${esc(tt('declare.submit'))}</button>
       </form>
     </div>

@@ -44,7 +44,11 @@ export default function Possibilities({ loaderData }: Route.ComponentProps) {
 	const keep = `${viewer ? `actor=${encodeURIComponent(viewer)}` : ""}${mine ? `${viewer ? "&" : ""}for=${encodeURIComponent(viewer ?? "")}` : ""}`;
 	const qp = (extra: string) => `?${[extra, keep].filter(Boolean).join("&")}`;
 
-	const filtered = status ? cards.filter((c) => c.status === status) : cards;
+	// Compost — expired cards leave the default deck (creative destruction);
+	// the Expired filter + deep links keep them reachable for audit.
+	const compostedCount = cards.filter((c) => c.status === "expired").length;
+	const filtered = status ? cards.filter((c) => c.status === status)
+		: cards.filter((c) => c.status !== "expired");
 	const searched = q
 		? filtered.filter((c) => `${c.title} ${c.place ?? ""}`.toLowerCase().includes(q.toLowerCase()))
 		: filtered;
@@ -74,6 +78,7 @@ export default function Possibilities({ loaderData }: Route.ComponentProps) {
 		const bits: string[] = [];
 		if (p.joined) bits.push(t("reason.joined"));
 		else if (p.interested) bits.push(t("reason.watching"));
+		if (p.referred) bits.push(`${t("reason.referred")} ${p.referred}`);
 		if (p.recognized > 0) bits.push(`${p.recognized} ${t("reason.recognized")}`);
 		if (p.near) bits.push(`${t("reason.near")} ${p.near}`);
 		if (p.newSince > 0) bits.push(`${p.newSince} ${t("feed.since")}${p.lastEvent ? ` — ${t(trailKey(p.lastEvent))}` : ""}`);
@@ -205,6 +210,13 @@ export default function Possibilities({ loaderData }: Route.ComponentProps) {
 					<br />
 					<span title={t("deck.ordering.body")}>{t("deck.ordering")}</span>
 					<br />
+					{!status && compostedCount > 0 && (
+						<>
+							<Link to={qp("status=expired")} className="underline">{compostedCount} {t("deck.composted")}</Link>{" "}
+							— {t("deck.composted.body")}
+							<br />
+						</>
+					)}
 					{t("deck.telegram.pre")}{" "}
 					<a href="https://t.me/springforth_bot" rel="noopener" className="underline">@springforth_bot</a> {t("deck.telegram")}
 				</p>
@@ -319,6 +331,27 @@ function DeclareForm() {
 					<input name="description" placeholder={t("declare.descPh")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
 				</label>
 			</div>
+			<details className="rounded-xl border border-line">
+				<summary className="cursor-pointer p-3 text-sm font-semibold">{t("declare.brief")}</summary>
+				<div className="grid gap-4 border-t border-line p-4 sm:grid-cols-2">
+					<label className="block text-sm font-semibold">
+						{t("brief.problem")}
+						<input name="problem" placeholder={t("brief.ph.problem")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+					</label>
+					<label className="block text-sm font-semibold">
+						{t("brief.purpose")}
+						<input name="purpose" placeholder={t("brief.ph.purpose")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+					</label>
+					<label className="block text-sm font-semibold">
+						{t("brief.boundaries")}
+						<input name="boundaries" placeholder={t("brief.ph.boundaries")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+					</label>
+					<label className="block text-sm font-semibold">
+						{t("brief.resources")}
+						<input name="resources" placeholder={t("brief.ph.resources")} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-sm" />
+					</label>
+				</div>
+			</details>
 			<button type="submit" className="w-full rounded-full bg-coral py-3.5 font-bold text-ink transition-colors hover:bg-coral-ink">
 				{t("declare.submit")}
 			</button>

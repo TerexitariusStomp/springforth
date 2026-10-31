@@ -1,5 +1,6 @@
 import type {
   Appreciation, ImpactClaim, OracleCheck, Participation, Possibility,
+  TestCard,
 } from '../core';
 import type { PlanNode } from '../coordination';
 import type { Trajectory } from '../oracle';
@@ -25,6 +26,7 @@ export function renderReportPage(opts: {
   trajectories: Trajectory[];
   seats?: { actor: string; role: string }[];
   posts?: { id: string; parentId?: string; actor: string; kind: string; text: string; at: string }[];
+  tests?: TestCard[];
   lang?: Lang;
 }): string {
   const { possibility: p, participants, nodes, checks, appreciations, claim, trajectories } = opts;
@@ -74,6 +76,9 @@ ${p.report ? `<div class="box"><h2 style="margin-top:0">${esc(t(lang, 'detail.re
 <p>${esc(p.report.summary)}</p>
 <p><strong>${esc(t(lang, 'detail.report.evidence'))}:</strong> ${esc(p.report.evidence)}</p>
 <p><strong>${esc(t(lang, 'detail.report.learnings'))}:</strong> ${esc(p.report.learnings)}</p></div>` : `<p><em>${esc(t(lang, 'detail.report.none'))}</em></p>`}
+${p.brief && Object.values(p.brief).some((f) => f?.text) ? `<h2>${esc(t(lang, 'brief.title'))}</h2>
+<ul>${(['problem', 'purpose', 'boundaries', 'resources'] as const).map((k) =>
+  p.brief?.[k]?.text ? `<li><strong>${esc(t(lang, `brief.${k}`))}:</strong> ${esc(p.brief[k]!.text)}${p.brief[k]!.by ? ` <span class="muted">— ${displayName(p.brief[k]!.by!)}</span>` : ''}</li>` : '').join('')}</ul>` : ''}
 <h2>${esc(t(lang, 'detail.report.who'))}</h2>
 <p>${participants.length} ${esc(t(lang, 'detail.report.people'))}: ${participants.map((x) => displayName(x.actor)).join(', ') || '—'}</p>
 <h2>${esc(t(lang, 'detail.report.readings'))}</h2>
@@ -83,6 +88,8 @@ ${evidenceRows || `<tr><td colspan="4"><em>${esc(t(lang, 'detail.report.noReadin
 <ul>${appList || `<li><em>${esc(t(lang, 'detail.report.noneRecorded'))}</em></li>`}</ul>
 ${(seats.length || posts.length) ? `<h2>${esc(t(lang, 'detail.report.council'))}</h2>
 ${seatList}${postList}` : ''}
+${opts.tests?.length ? `<h2>${esc(t(lang, 'test.title'))}</h2>
+<ul>${opts.tests.map((x) => `<li><span class="badge">${esc(t(lang, `test.state.${x.state}`))}</span> ${esc(x.belief)} — ${esc(t(lang, 'test.action'))}: ${esc(x.action)}${x.result ? ` · <em>${esc(x.result.text)}</em>` : ''}</li>`).join('')}</ul>` : ''}
 ${claim ? `<h2>${esc(t(lang, 'detail.report.claim'))}</h2>
 <p>${esc(t(lang, 'detail.report.claimWord'))} <code>${esc(claim.id)}</code> — ${esc(t(lang, 'detail.report.state'))} <strong>${esc(claim.state)}</strong> —
 ${claim.oracleCheckIds.length} ${esc(t(lang, 'detail.report.checksCited'))}; ${claim.contributors.length} ${esc(t(lang, 'detail.report.contributors'))}.

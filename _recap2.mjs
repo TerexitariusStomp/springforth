@@ -1,0 +1,21 @@
+import { chromium } from 'playwright';
+const BASE = 'https://springforth.widespread.workers.dev';
+const CARD = 'poss-shrewsbury-riverside-flood-response-rive-mvhpdi84';
+const b = await chromium.launch();
+const pg = await b.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 });
+await pg.goto(`${BASE}/possibilities?card=${CARD}#${CARD}`, { waitUntil: 'networkidle', timeout: 45000 });
+await pg.waitForTimeout(1500);
+console.log('panel count:', await pg.locator('.detail-panel').count());
+const box = await pg.evaluate(() => {
+  const m = [...document.querySelectorAll('.detail-panel .meta')].find(e => e.textContent.includes('Coordinated value'));
+  if (!m) return null;
+  let end = m.nextElementSibling;
+  while (end && !end.matches('ul.needs')) end = end.nextElementSibling;
+  const a = m.getBoundingClientRect(), c = end ? end.getBoundingClientRect() : a;
+  return { x: a.x - 8, y: a.y - 8, width: a.width + 16, height: Math.max(a.bottom, c.bottom) - a.y + 16 };
+});
+console.log('value box:', JSON.stringify(box));
+if (box) await pg.screenshot({ path: 'docs/hackathon/demo-assets/crop/severn-value-block.png', clip: box });
+await pg.locator('.detail-panel').first().screenshot({ path: 'docs/hackathon/demo-assets/crop/17-uk-card.png' });
+console.log('done');
+await b.close();

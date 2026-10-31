@@ -1,6 +1,7 @@
 import {
   Possibility, Participation, Appreciation, Pass, Interest, AssuranceCredit,
   OracleCheck, Signal, CouncilSeat, ForumPost,
+  Question, CouncilDecision, DecisionMode, Referral, TestCard,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
   RetroRound, RetroBallot, ChainTx, YieldStream,
   ActorWallet, ActorPersonhood, ActorNonce, RoundApplication, RecurringSupport,
@@ -52,6 +53,7 @@ import {
   earnedRecognition, eigenTrust, viewerDeck, identitiesRevealed,
   resolvePlace,
 } from './coordination';
+import { enactments } from './data/knowledge.js';
 import { normalizePlan, fromCsv, fromMarkdown } from './adapters/oneplanet';
 import { fromClcJson } from './adapters/formats';
 import { fromHolonsJson } from './adapters/formats';
@@ -110,6 +112,7 @@ import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
 import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -168,6 +171,7 @@ export interface Env {
   PAGES?: R2Bucket;           // optional R2 page-cache binding (springforth-cache)
   D1_PROXY_URL?: string;      // sf-d1proxy worker URL — routes env.DB cross-account
   D1_PROXY_KEY?: string;      // bearer secret for the proxy (wrangler secret)
+  EXPORT_SALT?: string;       // rotates the ops-export actor pseudonym salt
 }
 
 // When D1_PROXY_URL is set, env.DB is replaced by an HTTP facade pointed at
@@ -458,6 +462,33 @@ async function sweepPossibilities(env: Env, actor = 'system',
         if (await seatCouncil(env, p.id, pt.actor, 'participant', iso)) seated++;
       if (seated)
         await ledgerAppend(env.DB, actor, 'council.seated', { id: p.id, seats: seated });
+      // Constellation announcement — the GDD's membrane moment: at quorum
+      // the system tells the group it has everything it needs and asks how
+      // they'll bring it together. Posted once (deterministic id) directly
+      // into the forum — system messages bypass the council-write gate.
+      const fpId = `fp-constellation-${p.id}`;
+      if (!(await get<ForumPost>(env.DB, 'forum-post', fpId))) {
+        const myNodes = nodes.filter((n) => n.possibilityId === p.id);
+        const myNeedIds = new Set(myNodes.filter((n) => n.kind === 'need').map((n) => n.id));
+        const pairs = recs.filter((o) => o.kind === 'complement'
+          && (o.status === 'confirmed' || o.status === 'coordinated')
+          && myNeedIds.has(o.nodeIds[0]))
+          .map((o) => {
+            const need = myNodes.find((n) => n.id === o.nodeIds[0]);
+            const offer = nodes.find((n) => n.id === o.nodeIds[1]);
+            return `${need?.label ?? 'need'} ← ${offer?.label ?? 'offer'}`;
+          }).slice(0, 6);
+        const aboard = parts.filter((x) => x.possibilityId === p.id).length;
+        await put(env.DB, 'forum-post', fpId, ForumPost.parse({
+          id: fpId, possibilityId: p.id, actor: 'system', kind: 'note',
+          text: `Constellation complete — amongst this group you have everything you need`
+            + `${pairs.length ? `: ${pairs.join('; ')}` : ''}`
+            + ` — ${aboard} aboard. How will you bring it together?`,
+          at: iso,
+        }));
+        await ledgerAppend(env.DB, actor, 'constellation.complete',
+          { id: p.id, pairs: pairs.length, aboard });
+      }
       await notifySubscribers(env, p.id, 'quorum',
         `Quorum reached: ${p.title} — commitment bound, the council chamber is open`,
         `https://springforth.widespread.workers.dev/possibilities#${p.id}`);
@@ -964,7 +995,7 @@ const anonGetKey = (req: Request, env: Env): string | undefined => {
   return `${req.url}|${variant}`;
 };
 
-const TEXTUAL = /text\/html|application\/(x-sf-ui|json)/;
+const TEXTUAL = /text\/html|application\/(x-sf-ui|json|x-ndjson)/;
 // Persistent layer: R2 object storage is global and strongly consistent —
 // one successful render shelters every visitor everywhere for PAGES_TTL,
 // and it costs zero D1 reads (the free-tier row quota is the second
@@ -2827,11 +2858,25 @@ export default {
           if (b.website) return json({ ok: true }, 201); // honeypot
           const iso = new Date().toISOString();
           const pid = `poss-${String(b.title ?? '').toLowerCase().replace(/\W+/g, '-').replace(/^-|-$/g, '').slice(0, 40)}-${Date.now().toString(36)}`;
+          // Design brief — JSON accepts a nested `brief` object; the
+          // form posts flat problem/purpose/boundaries/resources fields.
+          // Every field is attributed to the declarer at declare time.
+          const briefSrc = (b.brief ?? {}) as Record<string, unknown>;
+          const bf = (k: string) => {
+            const v = typeof briefSrc[k] === 'string' ? briefSrc[k] : b[k];
+            const text = String(v ?? '').slice(0, 1000).trim();
+            return text ? { text, by: String(b.declarerId ?? b.actor ?? ''), at: iso } : undefined;
+          };
+          const brief = {
+            problem: bf('problem'), purpose: bf('purpose'),
+            boundaries: bf('boundaries'), resources: bf('resources'),
+          };
           const p = Possibility.parse({
             id: pid, title: b.title, description: String(b.description ?? ''),
             declarerId: String(b.declarerId ?? b.actor ?? ''),
             place: b.place, timeStart: b.timeStart, timeEnd: b.timeEnd,
             deadline: b.deadline, minParticipants: Number(b.minParticipants ?? 0),
+            ...(Object.values(brief).some(Boolean) ? { brief } : {}),
             maxParticipants: b.maxParticipants ? Number(b.maxParticipants) : undefined,
             householdsProtected: b.householdsProtected ? Number(b.householdsProtected) : undefined,
             // Optional geo: explicit h3 wins, else lat/lon → cell, else the
@@ -2905,12 +2950,12 @@ export default {
           // (quorumMet, scoreCard, needs/bringing, resolvePlace,
           // loadCardConnections) filters by possibilityId anyway; parsing
           // all ~1k imported plan nodes per request trips the CPU limit.
-          const [possBefore, nodes, recs, parts, apps, passes, interests, { dons, matchByNeed }] = await Promise.all([
+          const [possBefore, nodes, recs, parts, apps, passes, interests, referrals, { dons, matchByNeed }] = await Promise.all([
             list<Possibility>(env.DB, 'possibility'),
             listWhere<PlanNode>(env.DB, 'plannode', "json_extract(json,'$.possibilityId') IS NOT NULL"),
             list<OverlapRecord>(env.DB, 'overlap'), list<Participation>(env.DB, 'participation'),
             list<Appreciation>(env.DB, 'appreciation'), list<Pass>(env.DB, 'pass'),
-            list<Interest>(env.DB, 'interest'),
+            list<Interest>(env.DB, 'interest'), list<Referral>(env.DB, 'referral'),
             fundingMaps(env),
           ]);
           // Sweep with the same snapshot (it only mutates possibility
@@ -3003,7 +3048,24 @@ export default {
                 near: !myJoin && c.place && myPlaces.has(c.place.toLowerCase()) ? c.place : undefined,
                 newSince: fresh.length,
                 lastEvent: fresh.length ? fresh[fresh.length - 1]!.kind : undefined,
+                referred: referrals.find((r) => r.possibilityId === c.id
+                  && r.toActor === me)?.fromActor,
               };
+              // "Do I know a nerd" — mutual-recognition peers holding an
+              // offer the complement matcher already paired with one of
+              // this card's open needs. Suggestions only ever expose
+              // public offer nodes + the viewer's own trust edges.
+              const openNeedIds = new Set(c.needs.filter((n) => !n.met).map((n) => n.id));
+              const sug = recs.filter((o) => o.kind === 'complement'
+                  && o.status !== 'rejected' && openNeedIds.has(o.nodeIds[0]))
+                .flatMap((o) => {
+                  const offer = nodes.find((n) => n.id === o.nodeIds[1]);
+                  const need = c.needs.find((n) => n.id === o.nodeIds[0]);
+                  return (offer?.orgIds ?? [])
+                    .filter((a) => recognized.has(a) && a !== me)
+                    .map((a) => ({ actor: a, offer: offer!.label, need: need?.label ?? '' }));
+                }).slice(0, 3);
+              if (sug.length) connections[c.id]!.suggest = sug;
             }
           }
           return page(req, renderPossibilitiesPage, cards, edges, viewer ?? forActor, {
@@ -3028,6 +3090,12 @@ export default {
             edges: trustEdges(apps), now: Date.now(),
           });
           const revealed = identitiesRevealed(p, s.cover, status);
+          const [questions, decisions, referrals, tests] = await Promise.all([
+            list<Question>(env.DB, 'question'),
+            list<CouncilDecision>(env.DB, 'decision'),
+            list<Referral>(env.DB, 'referral'),
+            list<TestCard>(env.DB, 'test'),
+          ]);
           return json({
             ...p, status,
             participantCount: mine.length,
@@ -3035,6 +3103,15 @@ export default {
               ? mine.map((x) => ({ actor: x.actor, bringingNodeId: x.bringingNodeId }))
               : undefined,
             appreciations: apps, nodes,
+            questions: questions.filter((q) => q.possibilityId === p.id),
+            decisions: decisions.filter((d) => d.possibilityId === p.id),
+            tests: tests.filter((tc) => tc.possibilityId === p.id),
+            // Referral identities follow the same gradation as
+            // participants — the count is always public.
+            referralCount: referrals.filter((r) => r.possibilityId === p.id).length,
+            referrals: revealed
+              ? referrals.filter((r) => r.possibilityId === p.id)
+              : undefined,
           });
         }
         // "I'm coming" (+ optional "I'm bringing X" — an offer node on the card)
@@ -3153,9 +3230,14 @@ export default {
             : await req.json() as Record<string, unknown>;
           const actor = String(b.actor ?? '');
           if (!actor) return err('actor required');
+          const lvl = Number(b.level);
           const interest = Interest.parse({
             id: `interest-${p.id}-${actor.toLowerCase().replace(/\W+/g, '-')}`,
-            possibilityId: p.id, actor, at: new Date().toISOString(),
+            possibilityId: p.id, actor,
+            // "How juiced" — optional intensity 1–3; out-of-range input
+            // degrades to a plain interest rather than a 500.
+            level: Number.isInteger(lvl) && lvl >= 1 && lvl <= 3 ? lvl : undefined,
+            at: new Date().toISOString(),
           });
           await put(env.DB, 'interest', interest.id, interest);
           await ledgerAppend(env.DB, actor, 'possibility.interested', { id: p.id });
@@ -3192,6 +3274,182 @@ export default {
             ? new Response(null, { status: 303, headers: { location: '/possibilities' } })
             : json(node, 201);
         }
+        // Ask — the engaged-curiosity layer: index the uncertainty before
+        // it hardens. Any actor asks; open questions never block quorum,
+        // but they mark what the card hasn't figured out yet.
+        if (req.method === 'POST' && seg[2] === 'question' && seg.length === 3) {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const actor = String(b.actor ?? ''), text = String(b.text ?? b.question ?? '').slice(0, 300).trim();
+          if (!actor || !text) return err('actor and text required');
+          if (effectiveStatus(p) === 'expired')
+            return err('possibility is expired', 409);
+          const q = Question.parse({
+            id: `q-${p.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+            possibilityId: p.id, actor, text, at: new Date().toISOString(),
+          });
+          await put(env.DB, 'question', q.id, q);
+          await ledgerAppend(env.DB, actor, 'possibility.question_asked', { id: p.id, questionId: q.id });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+            : json(q, 201);
+        }
+        // Answer — whoever's motivated does it. Any actor may metabolize
+        // an open question; the resolution lands on the record.
+        if (req.method === 'POST' && seg[2] === 'answer' && seg.length === 3) {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const actor = String(b.actor ?? ''), text = String(b.text ?? '').slice(0, 600).trim();
+          const qid = String(b.questionId ?? '');
+          if (!actor || !text || !qid) return err('actor, questionId and text required');
+          const q = await get<Question>(env.DB, 'question', qid);
+          if (!q || q.possibilityId !== p.id) return err('question not found on this card', 404);
+          const next = Question.parse({ ...q, state: 'answered',
+            answer: { actor, text, at: new Date().toISOString() } });
+          await put(env.DB, 'question', qid, next);
+          await ledgerAppend(env.DB, actor, 'possibility.question_answered', { id: p.id, questionId: qid });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+            : json(next, 201);
+        }
+        // Brief — the design brief's narrative fields. Wiki-editable by
+        // any actor, but every field is per-field attributed (by/at) and
+        // each edit lands on the ledger — "anyone, but linked". Fields
+        // not sent are untouched; a submission with no fields is a no-op.
+        if (req.method === 'POST' && seg[2] === 'brief' && seg.length === 3) {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const actor = String(b.actor ?? '');
+          if (!actor) return err('actor required');
+          if (effectiveStatus(p) === 'expired')
+            return err('possibility is expired', 409);
+          const iso = new Date().toISOString();
+          const brief: Record<string, unknown> = { ...(p.brief ?? {}) };
+          let touched = 0;
+          for (const f of ['problem', 'purpose', 'boundaries', 'resources'] as const) {
+            const text = String(b[f] ?? '').slice(0, 1000).trim();
+            if (text) { brief[f] = { text, by: actor, at: iso }; touched++; }
+          }
+          if (!touched) return err('at least one brief field required');
+          const next = Possibility.parse({ ...p, brief });
+          await put(env.DB, 'possibility', p.id, next);
+          await ledgerAppend(env.DB, actor, 'possibility.brief', { id: p.id });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+            : json(next, 200);
+        }
+        // Test card — belief/action/measure/expected-failure, the
+        // transcript's "act on it" step. Any actor proposes (optionally
+        // linked to an open question on this card); running and
+        // resolution live under /tests/:id.
+        if (req.method === 'POST' && seg[2] === 'test' && seg.length === 3) {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const actor = String(b.actor ?? '').trim();
+          const belief = String(b.belief ?? '').slice(0, 300).trim();
+          const action = String(b.action ?? '').slice(0, 300).trim();
+          const measure = String(b.measure ?? '').slice(0, 300).trim();
+          if (!actor || !belief || !action || !measure)
+            return err('actor, belief, action and measure required');
+          if (effectiveStatus(p) === 'expired')
+            return err('possibility is expired', 409);
+          let questionId: string | undefined;
+          if (b.questionId) {
+            const q = await get<Question>(env.DB, 'question', String(b.questionId));
+            if (!q || q.possibilityId !== p.id)
+              return err('question not found on this card', 404);
+            questionId = q.id;
+          }
+          const tc = TestCard.parse({
+            id: `test-${p.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+            possibilityId: p.id, questionId, actor, belief, action, measure,
+            failState: String(b.failState ?? '').slice(0, 300),
+            at: new Date().toISOString(),
+          });
+          await put(env.DB, 'test', tc.id, tc);
+          await ledgerAppend(env.DB, actor, 'test.proposed',
+            { id: tc.id, possibilityId: p.id, ...(questionId ? { questionId } : {}) });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+            : json(tc, 201);
+        }
+        // Refer — "do I know a nerd?" A named nudge toward a card that
+        // could use them. Idempotent per (card, from, to); the referee is
+        // notified over their subscription channels.
+        if (req.method === 'POST' && seg[2] === 'refer') {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const actor = String(b.actor ?? ''), toActor = String(b.to ?? b.toActor ?? '');
+          if (!actor || !toActor) return err('actor and to required');
+          if (actor === toActor) return err('self-referral does not count');
+          if (effectiveStatus(p) === 'expired')
+            return err('possibility is expired', 409);
+          const ref = Referral.parse({
+            id: `ref-${p.id}-${actor.toLowerCase().replace(/\W+/g, '-')}-${toActor.toLowerCase().replace(/\W+/g, '-')}`,
+            possibilityId: p.id, fromActor: actor, toActor,
+            note: String(b.note ?? '').slice(0, 300), at: new Date().toISOString(),
+          });
+          await put(env.DB, 'referral', ref.id, ref);
+          await ledgerAppend(env.DB, actor, 'possibility.referred', { id: p.id, to: toActor });
+          await notifySubscribers(env, p.id, 'referred',
+            `${actor} referred ${toActor} to: ${p.title}`,
+            `https://springforth.widespread.workers.dev/possibilities#${p.id}`);
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+            : json(ref, 201);
+        }
+        // Decide — the decision matrix, council-gated like the forum:
+        // consent (many affected, wide context), advice (many affected,
+        // few hold context), duocracy (few affected, wide context — just
+        // do it, logged), empowered (rights/permissions by role).
+        if (req.method === 'POST' && seg[2] === 'decide') {
+          const ct = req.headers.get('content-type') ?? '';
+          const b = ct.includes('form')
+            ? Object.fromEntries((await req.formData()).entries())
+            : await req.json() as Record<string, unknown>;
+          const actor = String(b.actor ?? ''), title = String(b.title ?? '').slice(0, 200).trim();
+          const mode = String(b.mode ?? 'consent');
+          if (!actor || !title) return err('actor and title required');
+          if (!(DecisionMode.options as readonly string[]).includes(mode))
+            return err('mode must be consent|advice|duocracy|empowered');
+          const eff = effectiveStatus(p);
+          if (eff !== 'quorum' && eff !== 'completed')
+            return err('decisions open at quorum — the council decides', 409);
+          const seats = (await list<CouncilSeat>(env.DB, 'council-seat'))
+            .filter((s) => s.possibilityId === p.id);
+          if (!seats.some((s) => s.actor === actor))
+            return err('decisions are council-only — hold a seat first', 403);
+          const d = CouncilDecision.parse({
+            id: `dec-${p.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+            possibilityId: p.id, title, mode: mode as DecisionMode,
+            proposer: actor,
+            decider: b.decider ? String(b.decider) : undefined,
+            closesAt: typeof b.closesAt === 'string' && b.closesAt ? b.closesAt : undefined,
+            createdAt: new Date().toISOString(),
+          });
+          await put(env.DB, 'decision', d.id, d);
+          await ledgerAppend(env.DB, actor, 'decision.proposed',
+            { id: d.id, possibilityId: p.id, mode });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
+            : json(d, 201);
+        }
         // Completion report (Bloom Action Report pattern): summary/evidence/
         // learnings recorded on the card; `nextNeeds` — "what support would
         // help" — become new need nodes so the loop continues.
@@ -3226,12 +3484,13 @@ export default {
         // Composed field report — report + participants + evidence +
         // appreciations + linked claim, assembled from structured records.
         if (req.method === 'GET' && seg[2] === 'report') {
-          const [parts, nodes, checks, apps, claims] = await Promise.all([
+          const [parts, nodes, checks, apps, claims, tests] = await Promise.all([
             list<Participation>(env.DB, 'participation'),
             list<PlanNode>(env.DB, 'plannode'),
             list<OracleCheck & { nodeId?: string }>(env.DB, 'oracle-check'),
             list<Appreciation>(env.DB, 'appreciation'),
             list<ImpactClaim>(env.DB, 'claim'),
+            list<TestCard>(env.DB, 'test'),
           ]);
           const myNodes = nodes.filter((n) => n.possibilityId === p.id);
           const claim = claims.find((c) => c.possibilityId === p.id);
@@ -3249,6 +3508,7 @@ export default {
             posts: (await list<ForumPost>(env.DB, 'forum-post'))
               .filter((f) => f.possibilityId === p.id)
               .map((f) => ({ id: f.id, parentId: f.parentId, actor: f.actor, kind: f.kind, text: f.text, at: f.at })),
+            tests: tests.filter((x) => x.possibilityId === p.id),
             lang: langFrom(url, req.headers.get('cookie')),
           });
         }
@@ -3367,14 +3627,36 @@ export default {
       }
       if (req.method === 'GET' && seg[0] === 'actors') {
         const id = seg[1] ?? '';
-        const [poss, parts, apps, credits] = await Promise.all([
+        const [poss, parts, apps, credits, seats, tests] = await Promise.all([
           list<Possibility>(env.DB, 'possibility'), list<Participation>(env.DB, 'participation'),
           list<Appreciation>(env.DB, 'appreciation'), list<AssuranceCredit>(env.DB, 'assurance-credit'),
+          list<CouncilSeat>(env.DB, 'council-seat'), list<TestCard>(env.DB, 'test'),
         ]);
         const edges = trustEdges(apps);
         const vec = eigenTrust(edges);
         const mean = Object.values(vec).length
           ? Object.values(vec).reduce((a, b) => a + b, 0) / Object.values(vec).length : 0;
+        // "Loved by those that love me" — mutual-recognition peers, the
+        // GDD's safe-to-share circle made visible.
+        const recognizedBy = [...edges
+          .filter((e) => e.mutual > 0 && (e.from === id || e.to === id))
+          .reduce((m, e) => {
+            const other = e.from === id ? e.to : e.from;
+            m.set(other, Math.max(m.get(other) ?? 0, e.mutual));
+            return m;
+          }, new Map<string, number>())
+          .entries()]
+          .map(([actor, mutual]) => ({ actor, mutual }))
+          .sort((a, b) => b.mutual - a.mutual);
+        // Participatory knowledge — what this actor knows by having done:
+        // role-scoped enactments on cards that reached quorum, derived
+        // from the ledger (declared / joined / council / test-ran /
+        // test-resolved), never stored.
+        const nowActor = Date.now();
+        const participatory = enactments(id, {
+          possibilities: poss.map((p) => ({ ...p, status: effectiveStatus(p, nowActor) })),
+          parts, seats, tests,
+        });
         if (id && (req.headers.get('accept') ?? '').includes('text/html')) {
           const [wallets, donations] = await Promise.all([
             list<ActorWallet>(env.DB, 'actor-wallet'), list<Donation>(env.DB, 'donation'),
@@ -3392,6 +3674,8 @@ export default {
             donations: donations.filter((d) => d.donor === id),
             recognitions: apps.filter((a) => a.toActor === id && a.note.trim())
               .map((a) => ({ from: a.fromActor, note: a.note, possibilityId: a.possibilityId })),
+            recognizedBy,
+            participatory,
           }, langFrom(url, req.headers.get('cookie')));
         }
         return json({
@@ -3403,6 +3687,8 @@ export default {
           earned: earnedRecognition(edges, credits)[id] ?? 0,
           assuranceCredits: credits.filter((c) => c.actor === id).length,
           trustScore: mean > 0 ? +((vec[id] ?? 0) / mean).toFixed(4) : 0,
+          recognizedBy,
+          participatory,
         });
       }
       // Resource commons — every published offer, who brings it, and how
@@ -3980,6 +4266,130 @@ export default {
         return json({ seats: await list<CouncilSeat>(env.DB, 'council-seat') });
       if (req.method === 'GET' && seg[0] === 'forum')
         return json({ posts: await list<ForumPost>(env.DB, 'forum-post') });
+      // Council decisions — the decision matrix as an auditable record
+      // layer. Respond + resolve ride the same council gate as forum
+      // writes: only seats on the decision's card may act.
+      if (seg[0] === 'decisions') {
+        if (req.method === 'GET' && seg.length === 1)
+          return json({ decisions: await list<CouncilDecision>(env.DB, 'decision') });
+        const d = await get<CouncilDecision>(env.DB, 'decision', seg[1] ?? '');
+        if (!d) return err('decision not found', 404);
+        const ct = req.headers.get('content-type') ?? '';
+        const b = ct.includes('form')
+          ? Object.fromEntries((await req.formData()).entries())
+          : req.method === 'POST' ? await req.json() as Record<string, unknown> : {};
+        const actor = String(b.actor ?? '');
+        const councilOk = async () =>
+          (await list<CouncilSeat>(env.DB, 'council-seat'))
+            .some((s) => s.possibilityId === d.possibilityId && s.actor === actor);
+        // Input — support / objection / input on an open decision.
+        if (req.method === 'POST' && seg[2] === 'respond') {
+          const kind = String(b.kind ?? 'input');
+          if (!actor) return err('actor required');
+          if (!['support', 'objection', 'input'].includes(kind))
+            return err('kind must be support|objection|input');
+          if (d.state !== 'open') return err(`decision is ${d.state}`, 409);
+          if (!(await councilOk()))
+            return err('responses are council-only', 403);
+          const next = CouncilDecision.parse({ ...d,
+            responses: [...d.responses, {
+              actor, kind: kind as 'support' | 'objection' | 'input',
+              text: String(b.text ?? '').slice(0, 600), at: new Date().toISOString(),
+            }] });
+          await put(env.DB, 'decision', d.id, next);
+          await ledgerAppend(env.DB, actor, 'decision.responded',
+            { id: d.id, possibilityId: d.possibilityId, kind });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${d.possibilityId}` } })
+            : json(next, 201);
+        }
+        // Resolve — outcome + mandatory rationale (the storyboard "why").
+        // Advice/empowered resolve through the named decider when set;
+        // consent refuses to close while objections stand.
+        if (req.method === 'POST' && seg[2] === 'resolve') {
+          const outcome = String(b.outcome ?? '').slice(0, 600).trim();
+          const rationale = String(b.rationale ?? '').slice(0, 600).trim();
+          if (!actor || !outcome || !rationale)
+            return err('actor, outcome and rationale required');
+          if (d.state !== 'open') return err(`decision is ${d.state}`, 409);
+          if (!(await councilOk()))
+            return err('resolutions are council-only', 403);
+          if ((d.mode === 'advice' || d.mode === 'empowered')
+            && d.decider && actor !== d.decider)
+            return err(`mode ${d.mode} resolves through the decider`, 403);
+          const objections = d.responses.filter((r) => r.kind === 'objection').length;
+          if (d.mode === 'consent' && objections)
+            return err(`consent is blocked by ${objections} open objection(s) — integrate or withdraw`, 409);
+          const next = CouncilDecision.parse({ ...d, state: 'decided',
+            outcome, rationale, decidedAt: new Date().toISOString() });
+          await put(env.DB, 'decision', d.id, next);
+          await ledgerAppend(env.DB, actor, 'decision.resolved',
+            { id: d.id, possibilityId: d.possibilityId, mode: d.mode });
+          const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
+          return wantsHtml
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${d.possibilityId}` } })
+            : json(next, 201);
+        }
+        if (req.method === 'GET' && seg.length === 2) return json(d);
+      }
+      // Test cards — anyone proposes or takes one on; resolution rides
+      // the council gate (pre-quorum, when no seats exist, the card's
+      // declarer resolves as steward — the only steward a card has).
+      if (seg[0] === 'tests') {
+        if (req.method === 'GET' && seg.length === 1)
+          return json({ tests: await list<TestCard>(env.DB, 'test') });
+        const tc = await get<TestCard>(env.DB, 'test', seg[1] ?? '');
+        if (!tc) return err('test not found', 404);
+        const ct = req.headers.get('content-type') ?? '';
+        const b = ct.includes('form')
+          ? Object.fromEntries((await req.formData()).entries())
+          : req.method === 'POST' ? await req.json() as Record<string, unknown> : {};
+        const actor = String(b.actor ?? '');
+        const wantsHtml = () => ct.includes('form')
+          || (req.headers.get('accept') ?? '').includes('text/html');
+        // Take it on — "whoever's motivated should do that".
+        if (req.method === 'POST' && seg[2] === 'run') {
+          if (!actor) return err('actor required');
+          if (tc.state !== 'proposed') return err(`test is ${tc.state}`, 409);
+          const next = TestCard.parse({ ...tc, state: 'running', runner: actor });
+          await put(env.DB, 'test', tc.id, next);
+          await ledgerAppend(env.DB, actor, 'test.running',
+            { id: tc.id, possibilityId: tc.possibilityId });
+          return wantsHtml()
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${tc.possibilityId}` } })
+            : json(next, 201);
+        }
+        // Resolve — passed|failed + the inference, on the record.
+        if (req.method === 'POST' && seg[2] === 'resolve') {
+          const outcome = String(b.outcome ?? '');
+          const inference = String(b.inference ?? b.result ?? '').slice(0, 600).trim();
+          if (!actor || !inference || !['passed', 'failed'].includes(outcome))
+            return err('actor, outcome (passed|failed) and inference required');
+          if (tc.state !== 'proposed' && tc.state !== 'running')
+            return err(`test is ${tc.state}`, 409);
+          const seats = await listWhere<CouncilSeat>(env.DB, 'council-seat',
+            `json_extract(json,'$.possibilityId') = ?`, tc.possibilityId);
+          const ok = seats.length ? seats.some((s) => s.actor === actor)
+            : actor === (await get<Possibility>(env.DB, 'possibility', tc.possibilityId))?.declarerId;
+          if (!ok) return err(seats.length
+            ? 'resolutions are council-only — hold a seat first'
+            : 'pre-quorum only the declarer resolves', 403);
+          const iso = new Date().toISOString();
+          const next = TestCard.parse({ ...tc, state: outcome as 'passed' | 'failed',
+            result: { actor, text: inference, at: iso }, resolvedAt: iso });
+          await put(env.DB, 'test', tc.id, next);
+          await ledgerAppend(env.DB, actor, 'test.resolved',
+            { id: tc.id, possibilityId: tc.possibilityId, outcome });
+          return wantsHtml()
+            ? new Response(null, { status: 303, headers: { location: `/possibilities#${tc.possibilityId}` } })
+            : json(next, 201);
+        }
+        if (req.method === 'GET' && seg.length === 2) return json(tc);
+      }
+      // Open questions — the engaged-curiosity index across all cards.
+      if (req.method === 'GET' && seg[0] === 'questions' && seg.length === 1)
+        return json({ questions: await list<Question>(env.DB, 'question') });
       // ── /map — the geography surface. Server-rendered SVG, no tiles,
       // no CDN, no JS — markers link into the deck.
       if (req.method === 'GET' && seg[0] === 'map' && seg.length === 1) {
@@ -4200,6 +4610,47 @@ export default {
           return page(req, renderLedgerPage, events, await ledgerVerifyIncremental(env.DB), langFrom(url, req.headers.get('cookie')));
         return json({ events });
       }
+      // Ops export — pilot charter §5 interface: a stored NDJSON
+      // materialized view the ops leg polls read-only. The manifest is
+      // the last line and carries ledger_head (same value /ledger/verify
+      // publishes) plus file_sha256 over every line before it —
+      // recompute with: sed '$d' ops.ndjson | sha256sum
+      if (seg[0] === 'export') {
+        const nd = (body: string) => new Response(body, { headers: {
+          'content-type': 'application/x-ndjson; charset=utf-8',
+          'cache-control': 'public, max-age=30',
+        } });
+        if (req.method === 'GET' && seg[1] === 'ops.ndjson' && seg.length === 2) {
+          const snap = await refreshOpsExport(env);
+          return nd(snap.body);
+        }
+        if (seg[1] === 'ops') {
+          if (req.method === 'POST' && seg[2] === 'rebuild' && seg.length === 3) {
+            if (!authed(req, env)) return err('unauthorized', 401);
+            const { body: _body, ...meta } = await refreshOpsExport(env, { force: true });
+            return json(meta, 201);
+          }
+          if (req.method === 'GET' && seg.length === 2) {
+            const days = await listOpsExportDays(env);
+            const latest = await getOpsExport(env);
+            return json({
+              spec: OPS_EXPORT_SPEC,
+              latest: latest ? {
+                day: latest.day, generatedAt: latest.generatedAt, cut: latest.cut,
+                records: latest.records, file_sha256: latest.file_sha256,
+                file: '/export/ops.ndjson',
+              } : null,
+              days: days.map((d) => ({ ...d, file: `/export/ops/${d.day}.ndjson` })),
+              note: "manifest is the last line — recompute: sed '$d' file.ndjson | sha256sum",
+            });
+          }
+          const dated = seg.length === 3 ? seg[2]!.match(/^(\d{4}-\d{2}-\d{2})\.ndjson$/) : null;
+          if (req.method === 'GET' && dated) {
+            const snap = await getOpsExport(env, dated[1]);
+            return snap ? nd(snap.body) : err('no export for that day', 404);
+          }
+        }
+      }
       if ((req.headers.get('accept') ?? '').includes('text/html')) {
         const lang = langFrom(url, req.headers.get('cookie'));
         return new Response(pageShell({ title: `${t(lang, 'nf.title')} — Springforth`, htmx: false, lang }, `<div class="page">
@@ -4227,6 +4678,8 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
     const chainConfirmed = await syncChain(env).catch(() => 0);
     const streamsAccrued = await accrueStreams(env).catch(() => 0);
     const yieldCredited = await syncYield(env).catch(() => 0);
+    // Ops export snapshot — rebuilds only when the ledger head moved.
+    await refreshOpsExport(env).catch(() => undefined);
     await ledgerAppend(env.DB, 'cron', 'oracle.cycle',
       { nodes: nodes.length, chainConfirmed, yieldCredited, at: new Date().toISOString() });
   },

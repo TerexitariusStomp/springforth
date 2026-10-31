@@ -14,7 +14,7 @@ export interface LedgerEventRow {
   seq: number; at: string; actor: string; kind: string;
   payload: unknown; prev_hash: string; hash: string;
 }
-export interface LedgerVerify { ok: boolean; events?: number; brokenAt?: number }
+export interface LedgerVerify { ok: boolean; events?: number; brokenAt?: number; head?: string }
 
 export function renderLedgerPage(
   events: LedgerEventRow[], verify: LedgerVerify, lang: Lang = 'en',
@@ -59,6 +59,7 @@ ${statGrid([
     { v: String(v.events ?? '—'), l: t(lang, 'detail.verify.events') },
     { v: v.ok ? '✓' : '✗', l: t(lang, 'detail.verify.integrity') },
     { v: 'OTS', l: t(lang, 'detail.verify.anchored') },
+    { v: v.head ? short(v.head) : '—', l: t(lang, 'detail.verify.head') },
   ])}
 <p class="muted"><a href="/ledger">${esc(t(lang, 'detail.ledger.browse'))}</a></p>
 <details class="how-note"><summary>${esc(t(lang, 'detail.data'))}</summary>

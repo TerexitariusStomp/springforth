@@ -143,7 +143,9 @@ export async function ledgerVerify(db: D1Database) {
     const prev = i === 0 ? '0'.repeat(64) : events[i - 1]!.hash;
     if (e.prev_hash !== prev || e.hash !== eventHash(e)) return { ok: false, brokenAt: e.seq };
   }
-  return { ok: true, events: events.length };
+  // `head` is the published chain tip — the ops export's manifest
+  // `ledger_head` is byte-identical to this value at the same cut.
+  return { ok: true, events: events.length, head: events.at(-1)?.hash };
 }
 
 // Incremental verify for display banners: a `verify-checkpoint` entity

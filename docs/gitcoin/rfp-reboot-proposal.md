@@ -69,6 +69,5 @@ I'm A-only because solo means honest scope. If you want B and C covered well, aw
 
 ## References
 
-- Lin Jiaze — ops executor, love.fund pilot (the counterparty on that signed charter — ask him how I negotiate)
 - Djimo — Silvi (Silvi's data feeds are live integrations in my stack — ask him what working with me looks like)
 - Leo (CivilMonkey) — regen community (ecosystem standing)

@@ -3,6 +3,7 @@ import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/impact";
 import type { renderImpactPage } from '../../../src/portal/index';
+import { ecocycleSvg } from '../../../src/data/ecocycle.ts';
 import { fetchUI } from "~/lib/api";
 import { SiteHeader, SiteFooter } from "~/components/site-header";
 import { HubHead, HubNav, HubSection, HowNote, StatGrid, emptyCls, cardCls, tableCls, thCls, tdCls } from "~/components/hub";
@@ -57,13 +58,31 @@ export default function Impact({ loaderData }: Route.ComponentProps) {
 			<main id="main">
 				<HubHead kicker={t("hub.impact.kicker")} title={t("hub.impact.h1")} em={t("hub.impact.h1.em")} lede={t("hub.impact.lede")} />
 				<div className="mx-auto max-w-7xl px-5 pb-16 lg:px-10">
-					<HubNav items={["results", "value", "claims", "evidence", "proof", "data"].map((id) => ({
+					<HubNav items={["results", "ecocycle", "value", "claims", "evidence", "proof", "data"].map((id) => ({
 						href: `#${id}`, label: t(`hub.impact.${id}.t`),
 					}))} />
 
 					<HubSection id="results" kicker={t("hub.impact.results.k")} title={t("hub.impact.results.t")}>
 						<StatGrid items={stats} />
 						<p className="mt-3 text-xs text-muted">{t("metric.benchmark")}</p>
+					</HubSection>
+
+					<HubSection id="ecocycle" kicker={t("hub.impact.ecocycle.k")} title={t("hub.impact.ecocycle.t")} lede={t("hub.impact.ecocycle.lede")}>
+						<div className="max-w-sm" role="presentation" dangerouslySetInnerHTML={{ __html: ecocycleSvg({
+							variant: "portfolio",
+							scarcity: false, rigidity: false,
+							labels: {
+								title: t("eco.title"), seed: t("eco.seed"), sprout: t("eco.sprout"),
+								maturity: t("eco.maturity"), compost: t("eco.compost"),
+								trapScarcity: t("eco.trap.scarcity"), trapRigidity: t("eco.trap.rigidity"),
+							},
+							counts: {
+								...((o.metrics.ecocycle as { stages?: Record<string, number> } | undefined)?.stages ?? {}),
+								scarcity: (o.metrics.ecocycle as { scarcityTrapped?: number } | undefined)?.scarcityTrapped ?? 0,
+								rigidity: (o.metrics.ecocycle as { rigidityTrapped?: number } | undefined)?.rigidityTrapped ?? 0,
+							},
+						}) }} />
+						<p className="mt-2 text-xs text-muted">{t("hub.impact.ecocycle.traps")}</p>
 					</HubSection>
 
 					<HubSection id="value" kicker={t("hub.impact.value.k")} title={t("hub.impact.value.t")} count={Object.keys(vals).length} lede={t("hub.impact.value.lede")}>

@@ -2,6 +2,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ActorName } from "~/components/actor-name";
 import type { CardConnections, PossibilityCard } from '../../../src/portal/index';
+import { STRUCTURE_PHASES } from '../../../src/data/structures.ts';
+import { ecocycleStage, ecocycleTraps, ecocycleSvg } from '../../../src/data/ecocycle.ts';
 import { cn } from "~/lib/utils";
 import { Badge } from "~/components/ui/badge";
 import { Check } from "lucide-react";
@@ -18,10 +20,15 @@ function trailKey(kind: string): string {
 			completed: "trail.completed", expired: "trail.expired",
 			appreciated: "trail.appreciated", passed: "trail.passed",
 			interested: "trail.interested", need_flagged: "trail.need",
+			question_asked: "trail.question", question_answered: "trail.answer",
+			referred: "trail.referral", brief: "trail.brief",
 		};
 		return map[kind.slice("possibility.".length)] ?? "trail.other";
 	}
 	if (kind.startsWith("pledge.")) return "trail.pledge";
+	if (kind.startsWith("decision.")) return "trail.decision";
+	if (kind.startsWith("test.")) return "trail.test";
+	if (kind === "constellation.complete") return "trail.constellation";
 	if (kind === "council.seated") return "trail.seat";
 	if (kind === "forum.posted") return "trail.post";
 	if (kind === "context.refreshed") return "trail.context";
@@ -64,7 +71,20 @@ export function CardDetail({ c, conn }: { c: PossibilityCard; conn?: CardConnect
 				{c.tipping && <Badge variant="gold">{t("card.tipping")}</Badge>}
 				<Badge>{countdown(c.deadline, t)}</Badge>
 				<Badge>{c.participantCount}/{c.minParticipants} {t("card.in")}{partCap}</Badge>
-				{conn?.interestCount ? <Badge>{conn.interestCount} {t("card.interested")}</Badge> : null}
+				{conn?.interestCount ? (
+					<Badge>
+						{conn.interestCount} {t("card.interested")}
+						{conn.interestHeat && conn.interestHeat > conn.interestCount ? (
+							<svg width="30" height="8" viewBox="0 0 30 8" className="ml-1 inline"
+								aria-label={`${t("card.heat")} ${(conn.interestHeat / conn.interestCount).toFixed(1)}`}>
+								{[0, 1, 2].map((i) => (
+									<circle key={i} cx={i * 10 + 4} cy="4" r="3.2"
+										className={i < Math.round(conn.interestHeat! / conn.interestCount!) ? "fill-coral" : "fill-line"} />
+								))}
+							</svg>
+						) : null}
+					</Badge>
+				) : null}
 				<Badge>{t("card.needs").toLowerCase()} {c.quorum.requiredMet}/{c.quorum.required}</Badge>
 				<Badge>{t("card.score")} {c.score.toFixed(2)}</Badge>
 			</div>
@@ -75,6 +95,7 @@ export function CardDetail({ c, conn }: { c: PossibilityCard; conn?: CardConnect
 				{t("card.cover")} {(cover * 100).toFixed(0)}% · {t("card.trust")} {c.scoring.trust.toFixed(2)} · {t("card.urgency")}{" "}
 				{c.scoring.urgency.toFixed(2)}
 			</p>
+			<Ecocycle c={c} />
 
 			{c.value && <ValueBlock v={c.value} />}
 			<p className="text-sm">
@@ -92,6 +113,7 @@ export function CardDetail({ c, conn }: { c: PossibilityCard; conn?: CardConnect
 			{c.description && <p className="text-sm leading-relaxed">{c.description}</p>}
 			<WhyBlock c={c} conn={conn} />
 			<ScenarioBlock c={c} />
+			<Brief c={c} />
 			{c.context?.datasets?.length ? (
 				<div>
 					<p className="text-sm text-info"><strong>{t("card.verified")}</strong></p>
@@ -161,6 +183,17 @@ export function CardDetail({ c, conn }: { c: PossibilityCard; conn?: CardConnect
 						<input name="category" placeholder={t("form.category")} aria-label={t("form.category")} className={field} />
 						<button className={submit}>{t("form.flagNeed")}</button>
 					</Form>
+					<Form action={`/possibilities/${c.id}/interest`}>
+						<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+						<select name="level" aria-label={t("feed.interested.level")} className={cn(field, "max-w-32")}>
+							<option value="">{t("feed.interested")}</option>
+							<option value="1">{t("feed.level.1")}</option>
+							<option value="2">{t("feed.level.2")}</option>
+							<option value="3">{t("feed.level.3")}</option>
+						</select>
+						<input type="hidden" name="next" value={`/possibilities#${c.id}`} />
+						<button className={submit}>{t("feed.interested")}</button>
+					</Form>
 					<Form action={`/possibilities/${c.id}/pass`}>
 						<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
 						<button className={submit}>{t("form.pass")}</button>
@@ -199,8 +232,13 @@ export function CardDetail({ c, conn }: { c: PossibilityCard; conn?: CardConnect
 				</p>
 			)}
 
+			<Questions c={c} conn={conn} />
+			<Tests c={c} conn={conn} />
+			<Refer c={c} conn={conn} />
 			{conn?.notes?.length ? <Reviews notes={conn.notes} /> : null}
+			<Structures c={c} />
 			<Council c={c} conn={conn} />
+			<Decisions c={c} conn={conn} />
 			<Forum c={c} conn={conn} />
 			{conn?.trail?.length ? <Trail trail={conn.trail} /> : null}
 			<Connected c={c} conn={conn} />
@@ -412,6 +450,335 @@ function Forum({ c, conn }: { c: PossibilityCard; conn?: CardConnections }) {
 					<button className={submit}>{t("forum.cta")}</button>
 				</Form>
 			)}
+		</div>
+	);
+}
+
+// Open questions — the engaged-curiosity layer: indexed uncertainties,
+// askable and answerable by any actor. Open questions never block quorum.
+function Questions({ c, conn }: { c: PossibilityCard; conn?: CardConnections }) {
+	const { t } = useTranslation();
+	const qs = conn?.questions ?? [];
+	const live = c.status === "active" || c.status === "draft" || c.status === "quorum";
+	if (!qs.length && !live) return null;
+	return (
+		<div className="rounded-xl border border-line p-4 text-sm">
+			<strong>{t("q.title")}</strong>
+			<span className="text-muted"> — {t("q.lede")}</span>
+			{qs.length ? (
+				<ul className="mt-2 space-y-2">
+					{qs.map((q) => (
+						<li key={q.id} className="border-b border-line pb-2">
+							<span className="me-1.5 rounded bg-forest/10 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+								{t(q.state === "answered" ? "q.answered" : "q.open")}
+							</span>
+							{q.text} <span className="text-muted">— {<ActorName id={q.actor} />}</span>
+							{q.answer ? (
+								<p className="mt-1 text-muted">
+									{t("q.answer")}: {q.answer.text} — {<ActorName id={q.answer.actor} />}
+								</p>
+							) : null}
+							{q.state === "open" && live ? (
+								<Form action={`/possibilities/${c.id}/answer`}>
+									<input type="hidden" name="questionId" value={q.id} />
+									<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+									<input name="text" placeholder={t("q.answerPh")} aria-label={t("q.answerPh")} required maxLength={600} className={field} />
+									<button className={submit}>{t("q.answerCta")}</button>
+								</Form>
+							) : null}
+						</li>
+					))}
+				</ul>
+			) : (
+				<p className="mt-1 text-muted">{t("q.empty")}</p>
+			)}
+			{live ? (
+				<Form action={`/possibilities/${c.id}/question`}>
+					<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+					<input name="text" placeholder={t("q.ph")} aria-label={t("q.ph")} required maxLength={300} className={field} />
+					<button className={submit}>{t("q.cta")}</button>
+				</Form>
+			) : null}
+		</div>
+	);
+}
+
+// "Know a nerd?" — referrals + trusted-peer suggestions: mutual-recognition
+// peers holding an offer the matcher already paired with an open need.
+function Refer({ c, conn }: { c: PossibilityCard; conn?: CardConnections }) {
+	const { t } = useTranslation();
+	const open = c.status === "active" || c.status === "draft" || c.status === "quorum";
+	if (!open && !conn?.suggest?.length && !conn?.referredCount) return null;
+	return (
+		<div className="rounded-xl border border-line p-4 text-sm">
+			<strong>{t("refer.title")}</strong>
+			<span className="text-muted"> — {t("refer.lede")}</span>
+			{conn?.suggest?.length ? (
+				<ul className="mt-2 space-y-1">
+					{conn.suggest.map((s, i) => (
+						<li key={i}>
+							<ActorName id={s.actor} /> {t("refer.has")} <strong>{s.offer}</strong> {t("refer.for")} <em>{s.need}</em>
+						</li>
+					))}
+				</ul>
+			) : null}
+			{conn?.referredCount ? <p className="mt-1 text-muted">{conn.referredCount} {t("refer.count")}</p> : null}
+			{open ? (
+				<Form action={`/possibilities/${c.id}/refer`}>
+					<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+					<input name="to" placeholder={t("refer.who")} aria-label={t("refer.who")} required className={field} />
+					<input name="note" placeholder={t("refer.note")} aria-label={t("refer.note")} className={field} />
+					<button className={submit}>{t("refer.cta")}</button>
+				</Form>
+			) : null}
+		</div>
+	);
+}
+
+// "Play this game" — a phase-appropriate liberating-structures pick.
+function Structures({ c }: { c: PossibilityCard }) {
+	const { t } = useTranslation();
+	const phase = c.status === "completed" ? "completed" : c.status === "quorum" ? "quorum" : "building";
+	const picks = (STRUCTURE_PHASES[phase] ?? []).slice(0, 2);
+	if (!picks.length) return null;
+	return (
+		<div className="rounded-xl border border-line p-4 text-sm">
+			<strong>{t("struct.title")}</strong>
+			<span className="text-muted"> — {t("struct.lede")}</span>
+			<ul className="mt-2 space-y-1.5">
+				{picks.map((k) => (
+					<li key={k}><strong>{t(`struct.${k}.name`)}</strong> — {t(`struct.${k}.body`)}</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+// Council decisions — the decision matrix as an auditable record layer.
+function Decisions({ c, conn }: { c: PossibilityCard; conn?: CardConnections }) {
+	const { t } = useTranslation();
+	const open = c.status === "quorum" || c.status === "completed";
+	const ds = conn?.decisions ?? [];
+	if (!open && !ds.length) return null;
+	return (
+		<div className="rounded-xl border border-line p-4 text-sm">
+			<strong>{t("dec.title")}</strong>
+			<span className="text-muted"> — {t("dec.lede")}</span>
+			{ds.length ? (
+				<ul className="mt-2 space-y-2">
+					{ds.map((d) => (
+						<li key={d.id} className="border-b border-line pb-2">
+							<span className="me-1.5 rounded bg-forest/10 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+								{t(`dec.mode.${d.mode}`)}
+							</span>
+							<strong>{d.title}</strong>{" "}
+							<span className="text-muted">— {t(`dec.state.${d.state}`)} · {<ActorName id={d.proposer} />}</span>
+							{d.state === "decided" ? (
+								<p className="mt-1">
+									{d.outcome} <span className="text-muted">{t("dec.why")}: {d.rationale}</span>
+								</p>
+							) : null}
+							{d.objections ? <span className="text-xs text-danger-ink">{d.objections} {t("dec.objections")}</span> : null}
+							{d.state === "open" && open ? (
+								<>
+									<Form action={`/decisions/${d.id}/respond`}>
+										<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+										<select name="kind" aria-label={t("dec.kind")} className={cn(field, "max-w-32")}>
+											<option value="input">{t("dec.k.input")}</option>
+											<option value="support">{t("dec.k.support")}</option>
+											<option value="objection">{t("dec.k.objection")}</option>
+										</select>
+										<input name="text" placeholder={t("dec.ph")} aria-label={t("dec.ph")} required maxLength={600} className={field} />
+										<button className={submit}>{t("dec.respond")}</button>
+									</Form>
+									<Form action={`/decisions/${d.id}/resolve`}>
+										<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+										<input name="outcome" placeholder={t("dec.outcomePh")} aria-label={t("dec.outcomePh")} required maxLength={600} className={field} />
+										<input name="rationale" placeholder={t("dec.rationalePh")} aria-label={t("dec.rationalePh")} required maxLength={600} className={field} />
+										<button className={submit}>{t("dec.resolve")}</button>
+									</Form>
+								</>
+							) : null}
+						</li>
+					))}
+				</ul>
+			) : (
+				<p className="mt-1 text-muted">{t("dec.empty")}</p>
+			)}
+			{open ? (
+				<details className="mt-2 rounded-lg border border-line">
+					<summary className="cursor-pointer p-3 text-sm font-semibold">{t("dec.propose")}</summary>
+					<div className="border-t border-line p-4">
+						<p className="text-xs text-muted">{t("dec.modes")}</p>
+						<Form action={`/possibilities/${c.id}/decide`}>
+							<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+							<input name="title" placeholder={t("dec.titlePh")} aria-label={t("dec.titlePh")} required maxLength={200} className={field} />
+							<select name="mode" aria-label={t("dec.mode")} className={cn(field, "max-w-36")}>
+								<option value="consent">{t("dec.mode.consent")}</option>
+								<option value="advice">{t("dec.mode.advice")}</option>
+								<option value="duocracy">{t("dec.mode.duocracy")}</option>
+								<option value="empowered">{t("dec.mode.empowered")}</option>
+							</select>
+							<input name="decider" placeholder={t("dec.deciderPh")} aria-label={t("dec.deciderPh")} className={field} />
+							<button className={submit}>{t("dec.cta")}</button>
+						</Form>
+					</div>
+				</details>
+			) : null}
+		</div>
+	);
+}
+
+// Ecocycle ribbon — the card's derived stage on the ∞ loop plus trap
+// markers. The SVG builder is shared with the server-rendered portal —
+// single source of truth, our own markup, safe to inject.
+function Ecocycle({ c }: { c: PossibilityCard }) {
+	const { t } = useTranslation();
+	const traps = ecocycleTraps({
+		status: c.status, quorumMet: c.quorum.met,
+		deadline: c.deadline, hasReport: !!c.report,
+	});
+	return (
+		<div className="max-w-64">
+			<div role="presentation" dangerouslySetInnerHTML={{ __html: ecocycleSvg({
+				stage: ecocycleStage(c.status),
+				scarcity: traps.scarcity, rigidity: traps.rigidity,
+				labels: {
+					title: t("eco.title"), seed: t("eco.seed"), sprout: t("eco.sprout"),
+					maturity: t("eco.maturity"), compost: t("eco.compost"),
+					trapScarcity: t("eco.trap.scarcity"), trapRigidity: t("eco.trap.rigidity"),
+				},
+			}) }} />
+			{traps.scarcity ? <p className="text-xs text-muted">{t("eco.trap.scarcity.body")}</p> : null}
+			{traps.rigidity ? <p className="text-xs text-muted">{t("eco.trap.rigidity.body")}</p> : null}
+		</div>
+	);
+}
+
+// Design brief — six fields; place/participants/deadline render from
+// the card itself, the four narrative fields carry per-field "by".
+function Brief({ c }: { c: PossibilityCard }) {
+	const { t } = useTranslation();
+	const live = c.status === "active" || c.status === "draft" || c.status === "quorum";
+	const b = c.brief ?? {};
+	const row = (label: string, f?: { text: string; by?: string }) =>
+		f?.text ? (
+			<li key={label} className="border-b border-line pb-1.5">
+				<strong>{label}:</strong> {f.text}
+				{f.by ? <span className="text-muted"> — {<ActorName id={f.by} />}</span> : null}
+			</li>
+		) : null;
+	const rows = [
+		c.place ? <li key="place" className="border-b border-line pb-1.5"><strong>{t("brief.place")}:</strong> {c.place}</li> : null,
+		row(t("brief.problem"), b.problem),
+		row(t("brief.purpose"), b.purpose),
+		<li key="participants" className="border-b border-line pb-1.5">
+			<strong>{t("brief.participants")}:</strong> {c.minParticipants}{c.maxParticipants ? `–${c.maxParticipants}` : "+"}
+			{c.deadline ? <> · {t("brief.deadline")} {c.deadline.slice(0, 10)}</> : null}
+		</li>,
+		row(t("brief.boundaries"), b.boundaries),
+		row(t("brief.resources"), b.resources),
+	].filter(Boolean);
+	if (!rows.length && !live) return null;
+	return (
+		<div className="rounded-xl border border-line p-4 text-sm">
+			<strong>{t("brief.title")}</strong>
+			<span className="text-muted"> — {t("brief.lede")}</span>
+			{rows.length ? <ul className="mt-2 space-y-1.5">{rows}</ul> : <p className="mt-1 text-muted">{t("brief.empty")}</p>}
+			{live ? (
+				<details className="mt-2 rounded-lg border border-line">
+					<summary className="cursor-pointer p-3 text-sm font-semibold">{t("brief.edit")}</summary>
+					<div className="border-t border-line p-4">
+						<Form action={`/possibilities/${c.id}/brief`}>
+							<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+							<input name="problem" placeholder={t("brief.ph.problem")} aria-label={t("brief.ph.problem")} maxLength={1000} className={field} />
+							<input name="purpose" placeholder={t("brief.ph.purpose")} aria-label={t("brief.ph.purpose")} maxLength={1000} className={field} />
+							<input name="boundaries" placeholder={t("brief.ph.boundaries")} aria-label={t("brief.ph.boundaries")} maxLength={1000} className={field} />
+							<input name="resources" placeholder={t("brief.ph.resources")} aria-label={t("brief.ph.resources")} maxLength={1000} className={field} />
+							<button className={submit}>{t("brief.cta")}</button>
+						</Form>
+					</div>
+				</details>
+			) : null}
+		</div>
+	);
+}
+
+// Test cards — belief/action/measure/expected-failure, chained from the
+// open questions. Anyone proposes or takes one on; the council resolves.
+function Tests({ c, conn }: { c: PossibilityCard; conn?: CardConnections }) {
+	const { t } = useTranslation();
+	const ts = conn?.tests ?? [];
+	const live = c.status === "active" || c.status === "draft" || c.status === "quorum";
+	if (!ts.length && !live) return null;
+	const openQs = (conn?.questions ?? []).filter((q) => q.state === "open");
+	return (
+		<div className="rounded-xl border border-line p-4 text-sm">
+			<strong>{t("test.title")}</strong>
+			<span className="text-muted"> — {t("test.lede")}</span>
+			{ts.length ? (
+				<ul className="mt-2 space-y-2">
+					{ts.map((x) => (
+						<li key={x.id} className="border-b border-line pb-2">
+							<span className="me-1.5 rounded bg-forest/10 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+								{t(`test.state.${x.state}`)}
+							</span>
+							<strong>{x.belief}</strong>{" "}
+							<span className="text-muted">— {<ActorName id={x.actor} />}{x.runner ? <> · {t("test.runner")} {<ActorName id={x.runner} />}</> : null}</span>
+							<p className="mt-1 text-muted">
+								{t("test.action")}: {x.action} · {t("test.measure")}: {x.measure}
+								{x.failState ? <> · {t("test.fail")}: {x.failState}</> : null}
+							</p>
+							{x.result ? (
+								<p className="mt-1 text-muted">
+									{t("test.result")}: {x.result.text} — {<ActorName id={x.result.actor} />}
+								</p>
+							) : null}
+							{x.state === "proposed" && live ? (
+								<Form action={`/tests/${x.id}/run`}>
+									<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+									<button className={submit}>{t("test.run")}</button>
+								</Form>
+							) : null}
+							{(x.state === "proposed" || x.state === "running") && live ? (
+								<Form action={`/tests/${x.id}/resolve`}>
+									<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+									<select name="outcome" aria-label={t("test.outcome")} className={cn(field, "max-w-28")}>
+										<option value="passed">{t("test.state.passed")}</option>
+										<option value="failed">{t("test.state.failed")}</option>
+									</select>
+									<input name="inference" placeholder={t("test.inferencePh")} aria-label={t("test.inferencePh")} required maxLength={600} className={field} />
+									<button className={submit}>{t("test.resolve")}</button>
+								</Form>
+							) : null}
+						</li>
+					))}
+				</ul>
+			) : (
+				<p className="mt-1 text-muted">{t("test.empty")}</p>
+			)}
+			{live ? (
+				<details className="mt-2 rounded-lg border border-line">
+					<summary className="cursor-pointer p-3 text-sm font-semibold">{t("test.propose")}</summary>
+					<div className="border-t border-line p-4">
+						<p className="text-xs text-muted">{t("test.resolveHint")}</p>
+						<Form action={`/possibilities/${c.id}/test`}>
+							<input name="actor" placeholder={t("form.name")} aria-label={t("form.name")} required className={field} />
+							{openQs.length ? (
+								<select name="questionId" aria-label={t("test.linkedQ")} className={cn(field, "max-w-44")}>
+									<option value="">{t("test.linkedQ.none")}</option>
+									{openQs.map((q) => <option key={q.id} value={q.id}>{q.text.slice(0, 60)}</option>)}
+								</select>
+							) : null}
+							<input name="belief" placeholder={t("test.ph.belief")} aria-label={t("test.ph.belief")} required maxLength={300} className={field} />
+							<input name="action" placeholder={t("test.ph.action")} aria-label={t("test.ph.action")} required maxLength={300} className={field} />
+							<input name="measure" placeholder={t("test.ph.measure")} aria-label={t("test.ph.measure")} required maxLength={300} className={field} />
+							<input name="failState" placeholder={t("test.ph.fail")} aria-label={t("test.ph.fail")} maxLength={300} className={field} />
+							<button className={submit}>{t("test.cta")}</button>
+						</Form>
+					</div>
+				</details>
+			) : null}
 		</div>
 	);
 }

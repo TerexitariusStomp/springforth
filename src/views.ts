@@ -7,7 +7,7 @@ import {
   OracleCheck, FundingRound, Donation, Pledge, ImpactClaim,
   RetroRound, ActorWallet, RecurringSupport, YieldStream,
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
-  CouncilSeat, ForumPost,
+  CouncilSeat, ForumPost, Question, CouncilDecision, Referral, TestCard,
   valueCoordinated, roundDemand, endowmentAccrual,
 } from './core';
 import {
@@ -18,8 +18,10 @@ import {
   PlanNode, OverlapRecord,
   isNeed, inferCapital, effectiveStatus, trustEdges,
   earnedRecognition, eigenTrust, successfulCoordinationsPerWeek,
-  resolvePlace,
+  resolvePlace, quorumMet,
 } from './coordination';
+import { ecocycleStage, ecocycleTraps } from './data/ecocycle.ts';
+import { enactmentStats } from './data/knowledge.ts';
 import { SOURCES, evidenceBoost } from './oracle';
 import { list, listWhere, ledgerEventsMentioning, ledgerTail, ledgerVerifyIncremental } from './store.js';
 import type { Env } from './index.js';
@@ -123,10 +125,28 @@ export async function loadMetrics(env: Env) {
   const completedApps = apps.filter((a) => a.possibilityId && completedIds.has(a.possibilityId)).length;
   const first = Math.min(...statuses.map((x) => Date.parse(x.p.createdAt)), now);
   const weeks = Math.max(1, (now - first) / (7 * 86_400_000));
-  const passes = await list<Pass>(env.DB, 'pass');
+  const [passes, questions, decisions, referrals, interests, tests, seats] = await Promise.all([
+    list<Pass>(env.DB, 'pass'), list<Question>(env.DB, 'question'),
+    list<CouncilDecision>(env.DB, 'decision'), list<Referral>(env.DB, 'referral'),
+    list<Interest>(env.DB, 'interest'), list<TestCard>(env.DB, 'test'),
+    list<CouncilSeat>(env.DB, 'council-seat'),
+  ]);
   const expiringSoon = statuses.filter((x) =>
     (x.s === 'active' || x.s === 'draft') && x.p.deadline
     && Date.parse(x.p.deadline) - now < 3 * 86_400_000).length;
+  // Surpass-gates (docs/hackathon/COMPETITIVE.md) — all live-computable:
+  // questionResolutionRate: share of questions answered on activated
+  // cards; decisionRationaleCoverage: decided decisions carrying a
+  // recorded rationale (1.0 by construction — rationale is mandatory);
+  // referralConversion: referred actors who joined or showed interest;
+  // compostedCount: expired cards released back to the commons.
+  const activatedIdSet = new Set(statuses
+    .filter((x) => x.s === 'quorum' || x.s === 'completed').map((x) => x.p.id));
+  const actQs = questions.filter((q) => activatedIdSet.has(q.possibilityId));
+  const decided = decisions.filter((d) => d.state === 'decided');
+  const converted = referrals.filter((r) =>
+    parts.some((x) => x.possibilityId === r.possibilityId && x.actor === r.toActor)
+    || interests.some((i) => i.possibilityId === r.possibilityId && i.actor === r.toActor)).length;
   // Evidence coverage: quorum/completed cards carrying at least one
   // oracle check on their nodes or a filed completion report.
   const checks = await list<OracleCheck>(env.DB, 'oracle-check');
@@ -145,6 +165,51 @@ export async function loadMetrics(env: Env) {
     successfulCoordinationsPerWeek: successfulCoordinationsPerWeek(poss, apps, now),
     expiringSoon, passesLogged: passes.length,
     complementsConfirmed: recs.filter((r) => r.kind === 'complement' && (r.status === 'confirmed' || r.status === 'coordinated')).length,
+    questionResolutionRate: actQs.length
+      ? +(actQs.filter((q) => q.state === 'answered').length / actQs.length).toFixed(3) : null,
+    openQuestions: actQs.filter((q) => q.state === 'open').length,
+    decisionRationaleCoverage: decided.length
+      ? +(decided.filter((d) => (d.rationale ?? '').trim()).length / decided.length).toFixed(3) : null,
+    referralConversion: referrals.length ? +(converted / referrals.length).toFixed(3) : null,
+    compostedCount: statuses.filter((x) => x.s === 'expired').length,
+    testsTotal: tests.length,
+    testResolutionRate: tests.length
+      ? +(tests.filter((x) => x.state === 'passed' || x.state === 'failed').length
+        / tests.length).toFixed(3) : null,
+    // The ecocycle itself — stage counts + trap counts, derived from
+    // status/quorum/report/deadline, never stored.
+    ecocycle: (() => {
+      const stages = { seed: 0, sprout: 0, maturity: 0, compost: 0 };
+      let scarcityTrapped = 0, rigidityTrapped = 0;
+      for (const { p, s } of statuses) {
+        stages[ecocycleStage(s)]++;
+        const partCount = parts.filter((x) => x.possibilityId === p.id).length;
+        const t = ecocycleTraps({
+          status: s, quorumMet: quorumMet(p, nodes, recs, partCount).met,
+          deadline: p.deadline, hasReport: !!p.report, now,
+        });
+        if (t.scarcity) scarcityTrapped++;
+        if (t.rigidity) rigidityTrapped++;
+      }
+      return { stages, scarcityTrapped, rigidityTrapped };
+    })(),
+    // Participatory knowledge — Vervaeke's fourth kind, derived from the
+    // ledger: role-scoped enactments (declared/joined/council/test-ran/
+    // test-resolved) on cards that reached quorum. Not a stored claim —
+    // a knowledge-type view over what actually happened.
+    participatory: (() => {
+      const actors = [...new Set([
+        ...poss.map((p) => p.declarerId), ...parts.map((x) => x.actor),
+        ...seats.map((s) => s.actor),
+        ...tests.flatMap((x) => [x.runner, x.result?.actor]
+          .filter((a): a is string => !!a)),
+      ])];
+      return enactmentStats({
+        actors,
+        possibilities: statuses.map(({ p, s }) => ({ ...p, status: s })),
+        parts, seats, tests,
+      });
+    })(),
     // Monetary value, per currency (never converted) — committed and
     // matched are ledger-derived; volunteer time is declared hours ×
     // the cited ONS rate where the card places in GB. Aggregated per
@@ -405,7 +470,23 @@ export interface CardConnections {
   notes?: { from: string; to: string; note: string }[];
   geo?: { lat: number; lon: number };
   interestCount?: number;
-  personal?: { joined: boolean; interested: boolean; recognized: number; near?: string; newSince: number; lastEvent?: string };
+  // Σ interest level ("how juiced") — demand depth, not just counts.
+  interestHeat?: number;
+  questions?: { id: string; actor: string; text: string; state: string;
+    answer?: { actor: string; text: string; at: string } }[];
+  decisions?: { id: string; title: string; mode: string; state: string;
+    outcome?: string; rationale?: string; proposer: string;
+    objections: number; responses: number }[];
+  referredCount?: number;
+  // Test cards on the card — belief/action/measure/failure experiments.
+  tests?: { id: string; actor: string; belief: string; action: string;
+    measure: string; failState: string; state: string;
+    runner?: string; result?: { actor: string; text: string; at: string };
+    questionId?: string }[];
+  // Viewer-scoped "do I know a nerd" suggestions — filled edge-side by
+  // the deck handler (needs the viewer's trust edges), never here.
+  suggest?: { actor: string; offer: string; need: string }[];
+  personal?: { joined: boolean; interested: boolean; recognized: number; near?: string; newSince: number; lastEvent?: string; referred?: string };
 }
 export async function loadCardConnections(
   env: Env,
@@ -415,7 +496,7 @@ export async function loadCardConnections(
     apps: Appreciation[]; interests: Interest[];
   },
 ): Promise<Record<string, CardConnections>> {
-  const [nodes, recs, rounds, dons, pledges, claims, events, seats, posts, apps, interests] = await Promise.all([
+  const [nodes, recs, rounds, dons, pledges, claims, events, seats, posts, apps, interests, questions, decisions, referrals, tests] = await Promise.all([
     pre?.nodes ?? list<PlanNode>(env.DB, 'plannode'),
     pre?.recs ?? list<OverlapRecord>(env.DB, 'overlap'),
     list<FundingRound>(env.DB, 'round'),
@@ -425,6 +506,10 @@ export async function loadCardConnections(
     list<ForumPost>(env.DB, 'forum-post'),
     pre?.apps ?? list<Appreciation>(env.DB, 'appreciation'),
     pre?.interests ?? list<Interest>(env.DB, 'interest'),
+    list<Question>(env.DB, 'question'),
+    list<CouncilDecision>(env.DB, 'decision'),
+    list<Referral>(env.DB, 'referral'),
+    list<TestCard>(env.DB, 'test'),
   ]);
   const out: Record<string, CardConnections> = {};
   for (const card of cards) {
@@ -467,6 +552,22 @@ export async function loadCardConnections(
       notes: apps.filter((a) => a.possibilityId === card.id && a.note.trim())
         .map((a) => ({ from: a.fromActor, to: a.toActor, note: a.note })),
       interestCount: interests.filter((i) => i.possibilityId === card.id).length,
+      interestHeat: interests.filter((i) => i.possibilityId === card.id)
+        .reduce((s, i) => s + (i.level ?? 1), 0) || undefined,
+      questions: questions.filter((q) => q.possibilityId === card.id)
+        .map((q) => ({ id: q.id, actor: q.actor, text: q.text, state: q.state,
+          ...(q.answer ? { answer: q.answer } : {}) })),
+      decisions: decisions.filter((d) => d.possibilityId === card.id)
+        .map((d) => ({ id: d.id, title: d.title, mode: d.mode, state: d.state,
+          outcome: d.outcome, rationale: d.rationale, proposer: d.proposer,
+          objections: d.responses.filter((r) => r.kind === 'objection').length,
+          responses: d.responses.length })),
+      referredCount: referrals.filter((r) => r.possibilityId === card.id).length,
+      tests: tests.filter((x) => x.possibilityId === card.id)
+        .map((x) => ({ id: x.id, actor: x.actor, belief: x.belief,
+          action: x.action, measure: x.measure, failState: x.failState,
+          state: x.state, runner: x.runner, result: x.result,
+          questionId: x.questionId })),
       ...(geo ? { geo: { lat: geo.lat, lon: geo.lon } } : {}),
     };
   }

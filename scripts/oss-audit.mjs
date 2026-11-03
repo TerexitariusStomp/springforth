@@ -6,20 +6,27 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
-const countLines = (dir, match) => {
+const countLines = (dir, match, exclude = '') => {
   try {
     return parseInt(execFileSync('bash', ['-c',
-      `find -L ${dir} -type f \\( ${match} \\) -not -path "*/node_modules/*" | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}'`],
+      `find -L ${dir} -type f \\( ${match} \\) ${exclude} | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}'`],
       { encoding: 'utf8' }).trim() || '0', 10);
   } catch { return 0; }
 };
 
-const customSrc = countLines('src', '-name "*.ts"')
-  + countLines('web/app', '-name "*.ts" -o -name "*.tsx"')
-  + countLines('web/workers', '-name "*.ts" -o -name "*.tsx"');
-const customTest = countLines('test', '-name "*.ts"');
-const customScripts = countLines('scripts', '-name "*.mjs"');
-const vendored = countLines('node_modules', '-name "*.js" -o -name "*.ts" -o -name "*.d.ts"');
+// `.pnpm` is excluded from the root scan — top-level package dirs are
+// symlinks into it, so counting both views would double-count.
+const customSrc = countLines('src', '-name "*.ts"', '-not -path "*/node_modules/*"')
+  + countLines('web/app', '-name "*.ts" -o -name "*.tsx"', '-not -path "*/node_modules/*"')
+  + countLines('web/workers', '-name "*.ts" -o -name "*.tsx"', '-not -path "*/node_modules/*"');
+const customTest = countLines('test', '-name "*.ts"', '-not -path "*/node_modules/*"');
+const customScripts = countLines('scripts', '-name "*.mjs"', '-not -path "*/node_modules/*"');
+// Vendored = every dep we ship, in every package dir, across all js
+// extensions. `.devin/skills` is vendored upstream StyleSeed (PROVENANCE).
+const jsExt = '-name "*.js" -o -name "*.ts" -o -name "*.d.ts" -o -name "*.cjs" -o -name "*.mjs" -o -name "*.jsx" -o -name "*.tsx"';
+const vendored = countLines('node_modules', jsExt, '-not -path "*/.pnpm/*"')
+  + countLines('web/node_modules', jsExt)
+  + countLines('.devin/skills', '-name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.css" -o -name "*.md"');
 
 // Cited contract/spec repos counted at their published size — the public
 // mechanisms this codebase calls into (allo-v2 contracts ≈35k, eas

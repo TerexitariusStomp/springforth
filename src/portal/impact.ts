@@ -10,6 +10,7 @@ import {
   pageHeader, hubNav, hubSection, howItWorks, statGrid, emptyState,
   displayName, hubScript,
 } from './ui.ts';
+import { ecocycleSvg } from '../data/ecocycle.ts';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -80,6 +81,32 @@ export function renderImpactPage(o: ImpactPageInput): string {
   });
   const resultsBody = statGrid(stats) +
     `<p class="muted"><small>${esc(t(lang, 'metric.benchmark'))}</small></p>`;
+
+  /* #ecocycle — the portfolio loop: per-stage counts + trap counts,
+     derived live in /metrics (status→stage, deadline/quorum→scarcity,
+     completed-without-report→rigidity). */
+  const eco = (o.metrics.ecocycle ?? {}) as {
+    stages?: Record<string, number>;
+    scarcityTrapped?: number; rigidityTrapped?: number;
+  };
+  const ecocycleBody = `
+<div style="max-width:22rem">${ecocycleSvg({
+    // no stage at portfolio scale — the diagram carries counts, not a cursor
+    scarcity: false, rigidity: false,
+    variant: 'portfolio',
+    labels: {
+      title: t(lang, 'eco.title'), seed: t(lang, 'eco.seed'),
+      sprout: t(lang, 'eco.sprout'), maturity: t(lang, 'eco.maturity'),
+      compost: t(lang, 'eco.compost'),
+      trapScarcity: t(lang, 'eco.trap.scarcity'),
+      trapRigidity: t(lang, 'eco.trap.rigidity'),
+    },
+    counts: { ...(eco.stages ?? {}),
+      scarcity: eco.scarcityTrapped ?? 0, rigidity: eco.rigidityTrapped ?? 0 },
+  })}</div>
+${(eco.scarcityTrapped ?? 0) + (eco.rigidityTrapped ?? 0) > 0
+  ? `<p class="muted"><small>${esc(t(lang, 'hub.impact.ecocycle.traps'))}</small></p>`
+  : ''}`;
 
   /* #value — value-by-currency with human columns. */
   const vals = o.metrics.valueByCurrency ?? {};
@@ -187,6 +214,7 @@ ${sliceList ? `<h3>${esc(t(lang, 'hub.impact.data.available'))}</h3><ul>${sliceL
 
   const sections: Array<[string, number | undefined, string, string | undefined]> = [
     ['results', undefined, resultsBody, undefined],
+    ['ecocycle', undefined, ecocycleBody, t(lang, 'hub.impact.ecocycle.lede')],
     ['value', Object.keys(vals).length, valueBody, t(lang, 'hub.impact.value.lede')],
     ['claims', o.claims.length, claimCards || emptyState(t(lang, 'hub.impact.claims.none')), t(lang, 'hub.impact.claims.lede')],
     ['evidence', o.checks.length, evidenceBody, t(lang, 'hub.impact.evidence.lede')],

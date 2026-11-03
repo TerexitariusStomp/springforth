@@ -28,6 +28,18 @@ export const PossibilityStatus = z.enum([
 ]);
 export type PossibilityStatus = z.infer<typeof PossibilityStatus>;
 
+// Design brief — the transcript's six-field brief (place / problem /
+// purpose / participants / boundaries-deadline / resources). Place,
+// participants and deadline stay first-class Possibility fields, so
+// only the four narrative fields live here. Wiki-editable by any actor
+// ("anyone can contribute — but it's linked"): every field carries
+// per-field attribution and every edit lands on the ledger.
+const BriefField = z.object({
+  text: z.string().default(''),
+  by: z.string().optional(),          // last contributor
+  at: z.string().datetime().optional(),
+});
+
 export const Possibility = z.object({
   id: z.string().min(1),
   title: z.string().min(1),                   // the "I want to…" statement
@@ -65,6 +77,14 @@ export const Possibility = z.object({
       source: z.string().default(''),
       fetchedAt: z.string().datetime(),
     })).default([]),
+  }).optional(),
+  // The structured brief — the four fields not already first-class
+  // (place/min-max/deadline render alongside, from the card itself).
+  brief: z.object({
+    problem: BriefField.optional(),     // the tension being addressed
+    purpose: BriefField.optional(),     // intended outcome
+    boundaries: BriefField.optional(),  // scope — what's in / out
+    resources: BriefField.optional(),   // what's already available
   }).optional(),
   createdAt: z.string().datetime(),
 });
@@ -113,13 +133,110 @@ export type Pass = z.infer<typeof Pass>;
 // Swipe-right — a logged "I'm interested" on a possibility card. The
 // warm signal short of joining: counts may render publicly (momentum),
 // identity stays under the same gradation rules as participants.
+// `level` is the GDD's "how juiced up am I" — optional intensity 1–3
+// (warm → all-in); the heat aggregate stays demand-shape data.
 export const Interest = z.object({
   id: z.string().min(1),
   possibilityId: z.string().min(1),
   actor: z.string().min(1),
+  level: z.number().int().min(1).max(3).optional(),
   at: z.string().datetime(),
 });
 export type Interest = z.infer<typeof Interest>;
+
+// Engaged-curiosity layer — indexed uncertainties made askable. Needs are
+// the declarer's answers; open questions are the community's uncertainties.
+// Any actor asks, any actor answers ("whoever's motivated should do that")
+// — the transcript's act-or-infer loop before commitment hardens.
+export const Question = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  actor: z.string().min(1),
+  text: z.string().min(1),
+  state: z.enum(['open', 'answered']).default('open'),
+  answer: z.object({
+    actor: z.string().min(1),
+    text: z.string().min(1),
+    at: z.string().datetime(),
+  }).optional(),
+  at: z.string().datetime(),
+});
+export type Question = z.infer<typeof Question>;
+
+// Council decision — the decision matrix made concrete: consent when many
+// are affected and context is wide; advice when many are affected but few
+// hold the context; duocracy when few are affected and context is wide
+// ("just do it", logged); empowered when rights/permissions are doled out
+// by role (few affected + few with context). `rationale` is mandatory on
+// resolve — the storyboard "why" is the auditable trail.
+export const DecisionMode = z.enum(['consent', 'advice', 'duocracy', 'empowered']);
+export type DecisionMode = z.infer<typeof DecisionMode>;
+
+export const CouncilDecision = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  title: z.string().min(1),
+  mode: DecisionMode,
+  proposer: z.string().min(1),
+  decider: z.string().optional(),           // advice/empowered: who decides
+  closesAt: z.string().datetime().optional(),
+  state: z.enum(['open', 'decided', 'withdrawn']).default('open'),
+  outcome: z.string().optional(),
+  rationale: z.string().optional(),         // required on resolve
+  responses: z.array(z.object({
+    actor: z.string().min(1),
+    kind: z.enum(['support', 'objection', 'input']),
+    text: z.string().default(''),
+    at: z.string().datetime(),
+  })).default([]),
+  createdAt: z.string().datetime(),
+  decidedAt: z.string().datetime().optional(),
+});
+export type CouncilDecision = z.infer<typeof CouncilDecision>;
+
+// Referral — "do I know a nerd?" A named nudge from a trusted peer toward
+// a card that could use them. Idempotent per (card, from, to): the unique
+// id is derived, repeat refers update the note rather than duplicating.
+export const Referral = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  fromActor: z.string().min(1),
+  toActor: z.string().min(1),
+  note: z.string().default(''),
+  at: z.string().datetime(),
+});
+export type Referral = z.infer<typeof Referral>;
+
+// Test card — the transcript's experiment record: the field vocabulary
+// (belief / action / measure / expected failure) is the Strategyzer
+// test-card shape (CC-BY-SA — names are public field vocabulary, the
+// wording here is original). Any actor proposes; any actor takes it on
+// (running); resolution (passed/failed + the inference on the record)
+// is council-gated like forum/decisions — pre-quorum, when no seats
+// exist yet, the declarer resolves as the card's steward. `questionId`
+// links the test to the indexed uncertainty it was spawned from — the
+// engaged-curiosity chain: uncertainty → experiment → inference.
+export const TestCard = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  questionId: z.string().optional(),
+  actor: z.string().min(1),            // proposer
+  belief: z.string().min(1),           // the assumption under test
+  action: z.string().min(1),           // the experiment
+  measure: z.string().min(1),          // key results — how we'll know
+  failState: z.string().default(''),   // expected failure state
+  state: z.enum(['proposed', 'running', 'passed', 'failed'])
+    .default('proposed'),
+  runner: z.string().optional(),       // whoever took it on
+  result: z.object({                   // the inference that landed
+    actor: z.string().min(1),
+    text: z.string().min(1),
+    at: z.string().datetime(),
+  }).optional(),
+  at: z.string().datetime(),
+  resolvedAt: z.string().datetime().optional(),
+});
+export type TestCard = z.infer<typeof TestCard>;
 
 // Dominant-assurance credit (Tabarrok 1998): participants who committed to
 // a possibility that *expired* earn append-only recognition — "they were
@@ -182,6 +299,9 @@ export const FundingRound = z.object({
   // endowment round — recurring revenue from transaction flow, not a
   // one-way tax on donations.
   skimBps: z.number().int().min(0).max(10000).optional(),
+  // Upstream split (love.fund criterion #6): bps of each settled
+  // donation routed upstream (ecosystem share), donor-overridable.
+  upstreamSplitBps: z.number().int().min(0).max(10000).optional(),
   // Permanent endowment: matchingFund is locked principal; only accrued
   // skim is allocable. Endowment rounds never allocate match themselves.
   endowment: z.boolean().default(false),

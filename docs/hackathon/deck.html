@@ -43,8 +43,12 @@
   .card p{margin:0;font-size:clamp(13px,1.4vw,19px);line-height:1.4}
   .num{font-family:var(--serif);font-size:clamp(34px,4vw,58px);color:var(--lime);line-height:1}
   .light .num{color:var(--coral)}
-  img.shot{max-width:100%;max-height:64vh;border-radius:10px;box-shadow:0 18px 60px rgba(0,0,0,.35);display:block;margin:0 auto}
+  img.shot{max-width:100%;max-height:68vh;border-radius:10px;box-shadow:0 18px 60px rgba(0,0,0,.35);display:block;margin:0 auto}
+  img.shot.xl{max-height:80vh}
   .light img.shot{box-shadow:0 14px 44px rgba(18,59,44,.18)}
+  .maprow{flex-direction:row!important;flex-wrap:wrap;gap:1.4vh 2.6vw!important}
+  .statrow{display:flex;gap:1.8vw;flex-wrap:wrap;margin-bottom:2.4vh}
+  .statrow .num{font-size:clamp(28px,3.2vw,46px)}
   .cap{font-size:clamp(11px,1.15vw,15px);color:var(--muted);text-align:center;margin-top:1.4vh}
   .dark .cap{color:#9fb3a4}
   .qr{width:clamp(90px,10vw,140px);border-radius:8px}
@@ -75,7 +79,7 @@
   <h1>Springforth</h1>
   <p class="sub">Coordinate first. Community plans, “I want to…” declarations and funding pledges become coordinated commitments — activated at quorum, evidenced on a hash-chained ledger.</p>
   <div class="foot"><span>Live: springforth.widespread.workers.dev</span><span>MIT-open · github.com/TerexitariusStomp/springforth</span></div>
-  <div class="notes">0:00–0:45 — Open on the team-as-proof line: “the problem we solve is the one this hackathon just performed.” One honesty line: platform predates the event; what’s new here is the evidence layer + funding path.</div>
+  <div class="notes">0:00 — Title. One honesty line if asked: platform predates the event; what’s new here is the evidence layer + funding path.</div>
 </section>
 
 <!-- 2 · PROBLEM + ORGANISER MODEL — 0:45 -->
@@ -98,15 +102,15 @@
       <p>The bootcamp’s marketplace for community liquidity — Surface, Match, Fund, Deliver, Measure, Steward — is literally this lifecycle. Springforth is that layer, running.</p>
     </div>
   </div>
-  <div class="notes">0:45–1:45 — Name the organisers’ slide back to them. Show architecture image ~10s only, point at the right rail.</div>
+  <div class="notes">0:00–1:00 — Name the organisers’ slide back to them. Show architecture image ~10s only, point at the right rail.</div>
 </section>
 
 <!-- 3 · ARCHITECTURE -->
 <section class="slide dark">
   <div class="eyebrow">Logical architecture</div>
-  <img class="shot" src="demo-assets/architecture.png" alt="Springforth logical architecture">
+  <img class="shot xl" src="demo-assets/crop/architecture-hi.png" alt="Springforth logical architecture">
   <p class="cap">Coordination kernel → evidence lane → funding lane → stewardship. Ten seconds.</p>
-  <div class="notes">1:45 boundary — don’t dwell; the diagram backs the demo, not the other way round.</div>
+  <div class="notes">shown ~10s only — don’t dwell; the diagram backs the demo, not the other way round.</div>
 </section>
 
 <!-- 4 · LIVE DEMO CUE — 1:45 -->
@@ -130,37 +134,29 @@
       <p class="cap url">springforth.widespread.workers.dev</p>
     </div>
   </div>
-  <div class="notes">1:45–4:45 — Run DEMO-SCRIPT.md legs. If live fails → appendix slides 11+ walk the same beats.</div>
+  <div class="notes">1:00–5:00 — Run the six legs in PITCH-LIVE.md. If live fails → appendix slides walk the same beats.</div>
 </section>
 
-<!-- 5 · FOUR CAPITALS — 4:45 -->
+<!-- 5 · FOUR CAPITALS — 5:00 -->
 <section class="slide dark">
   <div class="eyebrow">Treasurer-grade value</div>
-  <div class="rows">
-    <div class="col">
-      <h2 style="font-size:clamp(28px,3.4vw,50px)">Four capitals, kept distinct — every figure replayable from the ledger.</h2>
-      <ul class="map">
-        <li><span class="t">Financial</span><span class="arrow">committed + matched</span></li>
-        <li><span class="t">Human</span><span class="arrow">volunteer hours at ONS rates</span></li>
-        <li><span class="t">Social</span><span class="arrow">in-kind, never converted</span></li>
-        <li><span class="t">Natural</span><span class="arrow">risk-avoided, e.g. £360k flood</span></li>
-      </ul>
-    </div>
-    <div class="col"><img class="shot" src="demo-assets/severn-value-block.png" alt="Value block"></div>
-  </div>
-  <div class="notes">4:45–6:00 — BRP answer: co-benefit quantification + avoided-cost harvesting. £1→£10 claim becomes an auditable number. Name OnePlanet MCP import + Sarafu fit.</div>
+  <h2 style="font-size:clamp(28px,3.4vw,50px)">Four capitals, kept distinct — every figure replayable from the ledger.</h2>
+  <ul class="map maprow">
+    <li><span class="t">Financial</span><span class="arrow">committed + matched</span></li>
+    <li><span class="t">Human</span><span class="arrow">volunteer hours at ONS rates</span></li>
+    <li><span class="t">Social</span><span class="arrow">in-kind, never converted</span></li>
+    <li><span class="t">Natural</span><span class="arrow">risk-avoided, e.g. £360k flood</span></li>
+  </ul>
+  <img class="shot" style="max-height:52vh;margin-top:2.4vh" src="demo-assets/crop/severn-value-block.png" alt="Value block">
+  <div class="notes">5:00–6:15 — BRP answer: co-benefit quantification + avoided-cost harvesting. £1→£10 claim becomes an auditable number. Name OnePlanet MCP import + Sarafu fit.</div>
 </section>
 
 <!-- 6 · EVIDENCE -->
 <section class="slide light">
   <div class="eyebrow">Use of datasets</div>
-  <div class="rows">
-    <div class="col"><img class="shot" src="demo-assets/12-datasets.png" alt="Endorsed data sources"></div>
-    <div class="col">
-      <h2 style="font-size:clamp(26px,3vw,44px)">Endorsed sources, read hourly — honestly tiered.</h2>
-      <p class="sub">EA Flood, Open-Meteo, FHRS, IoD 2025, Sentinel-2 STAC live and keyless; Companies House, OS, EO Data Hub marked key-gated. OnePlanet MCP + Sarafu imports carry provenance.</p>
-    </div>
-  </div>
+  <h2 style="font-size:clamp(26px,3vw,44px)">Endorsed sources, read hourly — honestly tiered.</h2>
+  <img class="shot" style="max-height:58vh" src="demo-assets/crop/12-datasets.png" alt="Endorsed data sources">
+  <p class="cap">Live badges are keyless reads; key-gated rows are labelled — that honesty is the credibility beat.</p>
   <div class="notes">Criterion: use of datasets. Point at the honest key-gated labelling — that’s the credibility beat.</div>
 </section>
 
@@ -174,33 +170,29 @@
     <div class="col card"><h3>Dataset revenue</h3><p>Consented, ledger-anchored audit corpus — sold only when worth selling.</p></div>
   </div>
   <p class="sub" style="margin-top:3vh">Non-custodial by construction — the only money we touch is the fee. Pilot path: BRP in the UK, a Sarafu community in Kenya; the seed data already spans both.</p>
-  <div class="notes">6:00–7:00 — Keep this brisk; the demo already argued feasibility.</div>
+  <div class="notes">6:15–7:15 — Keep this brisk; the demo already argued feasibility.</div>
 </section>
 
 <!-- 8 · PROOF -->
 <section class="slide light">
   <div class="eyebrow">Feasibility — it runs now</div>
-  <div class="rows">
-    <div class="col"><img class="shot" src="demo-assets/18-severn-round.png" alt="Severn round page"></div>
-    <div class="col">
-      <ul class="map">
-        <li><span class="t">7,123</span><span class="arrow">hash-chained ledger events, /ledger/verify green</span></li>
-        <li><span class="t">3,689</span><span class="arrow">plan nodes — OnePlanet, Sarafu, Treegens, council CSVs</span></li>
-        <li><span class="t">2</span><span class="arrow">countries live — UK flood response + Kenya mangroves</span></li>
-        <li><span class="t">186</span><span class="arrow">real field-evidence pins on /map</span></li>
-      </ul>
-    </div>
+  <div class="statrow">
+    <div><span class="num">7,123</span><p class="cap" style="text-align:left">ledger events, hash-chained — /ledger/verify green</p></div>
+    <div><span class="num">3,689</span><p class="cap" style="text-align:left">plan nodes — OnePlanet, Sarafu, Treegens, council CSVs</p></div>
+    <div><span class="num">2</span><p class="cap" style="text-align:left">countries live — UK flood response + Kenya mangroves</p></div>
+    <div><span class="num">186</span><p class="cap" style="text-align:left">real field-evidence pins on /map</p></div>
   </div>
+  <img class="shot" style="max-height:56vh" src="demo-assets/crop/18-severn-round.png" alt="Severn round page">
   <div class="notes">Numbers are live-loaded, not slide-fiction — judges can check /ledger/verify themselves.</div>
 </section>
 
 <!-- 9 · CLOSE — 7:00 -->
 <section class="slide dark">
   <div class="eyebrow">Why this wins</div>
-  <h2>The coordination problem that<br>formed this team is the one we sell the fix for.</h2>
+  <h2>The coordination problem that<br>motivated this build is the one we sell the fix for.</h2>
   <p class="sub">Demo, business idea, technical implementation, datasets, feasibility, scalability, impact — answered live, on a ledger any reviewer can replay.</p>
   <div class="foot"><span class="url">springforth.widespread.workers.dev</span><span>github.com/TerexitariusStomp/springforth</span></div>
-  <div class="notes">7:00–7:30 — Close on the criteria callback. Buffer to 8:00 for one breath.</div>
+  <div class="notes">7:15–7:30 — Close on the criteria callback. Buffer to 8:00 for one breath.</div>
 </section>
 
 <!-- 10 · LINKS / Q&A -->
@@ -221,49 +213,49 @@
 <section class="slide dark">
   <span class="appendix-tag">Appendix · demo fallback</span>
   <div class="eyebrow">If the demo fails — same beats, on screenshots</div>
-  <img class="shot" src="demo-assets/01-landing.png" alt="Landing">
+  <img class="shot" src="demo-assets/crop/01-landing.png" alt="Landing">
   <p class="cap">1 · Landing — live stats in the hero.</p>
 </section>
 
 <section class="slide dark">
   <span class="appendix-tag">Appendix</span>
-  <img class="shot" src="demo-assets/02-possibilities.png" alt="Possibilities feed">
+  <img class="shot" src="demo-assets/crop/02-possibilities.png" alt="Possibilities feed">
   <p class="cap">2 · Possibilities feed — reason lines, interest signals, since-engagement badges.</p>
 </section>
 
 <section class="slide dark">
   <span class="appendix-tag">Appendix</span>
-  <img class="shot" src="demo-assets/17-uk-card.png" alt="Quorum card overlay">
+  <img class="shot" src="demo-assets/crop/17-uk-card.png" alt="Quorum card overlay">
   <p class="cap">3 · Quorum card — council, forum, audit trail, value block with verifier-replay.</p>
 </section>
 
 <section class="slide dark">
   <span class="appendix-tag">Appendix</span>
-  <img class="shot" src="demo-assets/04-outcomes.png" alt="Outcomes">
+  <img class="shot" src="demo-assets/crop/04-outcomes.png" alt="Outcomes">
   <p class="cap">4 · /collaborate#outcomes — four plans pursuing one outcome, Treegens footage.</p>
 </section>
 
 <section class="slide dark">
   <span class="appendix-tag">Appendix</span>
-  <img class="shot" src="demo-assets/07-verify.png" alt="Evidence">
+  <img class="shot" src="demo-assets/crop/07-verify.png" alt="Evidence">
   <p class="cap">5 · /impact#evidence — oracle checks + methodology citations.</p>
 </section>
 
 <section class="slide dark">
   <span class="appendix-tag">Appendix</span>
-  <img class="shot" src="demo-assets/09-rounds.png" alt="Funding rounds">
+  <img class="shot" src="demo-assets/crop/09-rounds.png" alt="Funding rounds">
   <p class="cap">6 · /fund#rounds — demand met vs matching locked, endowment.</p>
 </section>
 
 <section class="slide dark">
   <span class="appendix-tag">Appendix</span>
-  <img class="shot" src="demo-assets/10-pairwise.png" alt="Pairwise matching">
+  <img class="shot" src="demo-assets/crop/10-pairwise.png" alt="Pairwise matching">
   <p class="cap">7 · Pairwise + quadratic allocation — clique discount visible.</p>
 </section>
 
 <section class="slide dark">
   <span class="appendix-tag">Appendix</span>
-  <img class="shot" src="demo-assets/08-trust.png" alt="Mutual recognition">
+  <img class="shot" src="demo-assets/crop/08-trust.png" alt="Mutual recognition">
   <p class="cap">8 · /community — trust counts only where it runs both ways; every edge ledger-attested.</p>
 </section>
 

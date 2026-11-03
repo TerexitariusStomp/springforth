@@ -19,6 +19,12 @@ export interface ActorProfileInput {
   donations: Donation[];
   // Appreciations received — rendered as quotable recognitions.
   recognitions?: { from: string; note: string; possibilityId?: string }[];
+  // Mutual-recognition peers — "loved by those that love me".
+  recognizedBy?: { actor: string; mutual: number }[];
+  // Participatory knowledge — what the actor knows by having done:
+  // role-scoped enactments on cards that reached quorum.
+  participatory?: { possibilityId: string; title: string;
+    status: string; at: string; roles: string[] }[];
 }
 
 export function renderActorProfile(i: ActorProfileInput, lang: Lang = 'en'): string {
@@ -30,6 +36,12 @@ export function renderActorProfile(i: ActorProfileInput, lang: Lang = 'en'): str
 <td class="muted">${esc(d.settlement)}${d.settlementRef ? ` · <code>${esc(d.settlementRef.slice(0, 18))}…</code>` : ''}</td></tr>`).join('\n');
   const recList = (i.recognitions ?? []).filter((r) => r.note.trim()).map((r) =>
     `<li><em>“${esc(r.note)}”</em> — ${displayName(r.from)}${r.possibilityId ? ` · <a href="/possibilities#${esc(r.possibilityId)}">${esc(t(lang, 'detail.actor.cardLink'))}</a>` : ''}</li>`).join('\n');
+  const peerList = (i.recognizedBy ?? []).map((r) =>
+    `<li>${displayName(r.actor)} — ${r.mutual} × ${esc(t(lang, 'deck.mutual.times'))}</li>`).join('\n');
+  const enactedList = (i.participatory ?? []).map((e) =>
+    `<li><a href="/possibilities#${esc(e.possibilityId)}"><strong>${esc(e.title)}</strong></a>
+ — ${e.roles.map((r) => esc(t(lang, `detail.actor.role.${r}`))).join(' + ')}
+ <span class="muted">· ${esc(e.at.slice(0, 10))}${e.status === 'completed' ? ` · ${esc(t(lang, 'detail.actor.reportFiled'))}` : ''}</span></li>`).join('\n');
   return shell(displayNameText(i.actor), `
 ${pageHeader({
     kicker: t(lang, 'detail.actor.kicker'),
@@ -44,6 +56,8 @@ ${pageHeader({
 <tr><td>${esc(t(lang, 'detail.actor.credits'))}</td><td>${i.assuranceCredits}</td></tr>
 <tr><td>${esc(t(lang, 'detail.actor.trust'))}</td><td>${i.trustScore}</td></tr></table>
 ${recList ? `<h2>${esc(t(lang, 'detail.actor.recognitions'))}</h2><ul>${recList}</ul>` : ''}
+${peerList ? `<h2>${esc(t(lang, 'detail.actor.peers'))}</h2><p class="muted">${esc(t(lang, 'detail.actor.peers.body'))}</p><ul>${peerList}</ul>` : ''}
+${enactedList ? `<h2>${esc(t(lang, 'detail.actor.enactments'))}</h2><p class="muted">${esc(t(lang, 'detail.actor.enactments.body'))}</p><ul>${enactedList}</ul>` : ''}
 ${howItWorks(lang, 'how.actor.trust', 's3')}
 <h2>${esc(t(lang, 'detail.actor.wallets'))}</h2>
 <table><tr><th scope="col">${esc(t(lang, 'col.address'))}</th><th scope="col">${esc(t(lang, 'col.bound'))}</th></tr>

@@ -1,0 +1,19 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "springforth-next-web",
+	"account_id": "ddf0cf5b4491ba59765378877fe8c697",
+	"main": "./workers/app.ts",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	// Page data comes back from the new edge Worker via x-sf-ui.
+	"services": [
+		{ "binding": "API", "service": "springforth-next" }
+	],
+	"vars": {
+		"ENVIRONMENT": "production"
+	}
+}

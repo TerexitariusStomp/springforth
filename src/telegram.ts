@@ -1,6 +1,7 @@
 import { Possibility, Participation, Appreciation, Pass } from './core';
 import { PlanNode, canonicalize, effectiveStatus, quorumMet } from './coordination';
 import type { OverlapRecord } from './coordination';
+import { ecocycleStage } from './data/ecocycle.js';
 import { get, list, put, ledgerAppend } from './store.js';
 
 // Telegram lane — POST /tg webhook. Commands mirror the possibility-card
@@ -75,7 +76,8 @@ async function liveCards(env: TgEnv): Promise<string> {
     const n = parts.filter((x) => x.possibilityId === p.id).length;
     const q = quorumMet(p, nodes, recs, n);
     const st = effectiveStatus(p, now);
-    return `• <a href="${cardUrl(p.id)}">${esc(p.title)}</a> — ${n}${p.minParticipants ? `/${p.minParticipants}` : ''} in, ${st}${q.met ? ' ✓' : ''}`;
+    const stage = ecocycleStage(st);
+    return `• <a href="${cardUrl(p.id)}">${esc(p.title)}</a> — ${n}${p.minParticipants ? `/${p.minParticipants}` : ''} in, ${st} · ${stage}${q.met ? ' ✓' : ''}`;
   }).join('\n');
 }
 

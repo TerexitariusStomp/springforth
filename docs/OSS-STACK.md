@@ -51,10 +51,40 @@ and where the seams are.
 
 | Custom src | Custom tests | Vendored npm | Cited contract repos | Custom share |
 |---|---|---|---|---|
-| 6,355 | 1,713 | 413,787 | 125,000 | **1.25%** |
+| 29,931 | 4,063 | 228,045 | 125,000 | **8.26%** |
 
 Custom code is the coordination semantics, funding-mechanism glue, edge
 routes and renderers — every mechanism itself is cited public prior art.
+The crowd-surfing layer (questions, council decisions, referrals,
+interest intensity, compost, constellation, facilitation picks) added
+~1.5k custom LOC and **zero new npm dependencies** — it composes the
+existing store/ledger/graph modules plus published mechanisms (Sociocracy
+3.0 consent, the advice process, duocracy, liberating-structures names).
+The brief/test-card/ecocycle pass added ~0.9k more, again with **zero new
+dependencies** — `TestCard`/`Possibility.brief` are zod schemas, and the
+ecocycle is a ~120-line shared SVG builder consumed by both the portal
+and React.
+
+### Dependency evaluation — brief/test-card/ecocycle pass
+
+Every commercially-usable candidate was evaluated and rejected:
+
+| Candidate | License | Verdict |
+|---|---|---|
+| mermaid | MIT | can't express the canonical ∞ ecocycle layout; requires client JS — violates the no-JS portal rule |
+| d3 | ISC | ~600KB of library to draw 4 nodes on a bezier path — net-negative |
+| elkjs / viz.js | EPL/MIT (WASM) | layout/WASM overhead + client JS for a fixed 4-node diagram |
+| rough.js | MIT | same overhead/fit rejection |
+| lucide-static | ISC | **adopted** — the trap marker reuses its `triangle-alert` SVG path markup (already a web dep) |
+
+The test-card and ecocycle *methods* are domain content, not code —
+cited in `docs/PROVENANCE.md` (Strategyzer Test Card vocabulary
+CC-BY-SA, LS Ecocycle Planning), never copied.
+
+Honest note: the &lt;5% aspiration is not currently met — the custom
+share is dominated by the server-rendered portal + edge route layer,
+not by mechanism code. A real reduction means extracting the render
+layer into a published package, not gaming the denominator.
 
 ## Interop formats
 

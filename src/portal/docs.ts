@@ -18,7 +18,7 @@ const FAMILY: [string, RegExp][] = [
   ['claims', /^\/(claims|attestations)/],
   ['chain', /^\/chain/],
   ['governance', /^\/governance/],
-  ['data', /^\/(datasets|evidence|ledger)/],
+  ['data', /^\/(datasets|evidence|ledger|export)/],
   ['evidence', /^\/(oracle|sources|outcomes|report|verify|metrics)/],
   ['integrations', /^\/(silvi|treegens|tg)/],
 ];

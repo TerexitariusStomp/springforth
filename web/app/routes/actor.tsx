@@ -21,6 +21,8 @@ export default function Actor({ loaderData }: Route.ComponentProps) {
 	const { i } = loaderData;
 	const { t } = useTranslation();
 	const recs = (i.recognitions ?? []).filter((r) => r.note.trim());
+	const peers = i.recognizedBy ?? [];
+	const enacted = i.participatory ?? [];
 	return (
 		<div className="min-h-screen bg-cream">
 			<SiteHeader />
@@ -52,6 +54,37 @@ export default function Actor({ loaderData }: Route.ComponentProps) {
 									{r.possibilityId && (
 										<> · <Link to={`/possibilities?card=${r.possibilityId}`} className="text-info underline">{t("detail.actor.cardLink")}</Link></>
 									)}
+								</li>
+							))}
+						</ul>
+					</>
+				)}
+				{peers.length > 0 && (
+					<>
+						<h2 className="mt-10 font-display text-2xl">{t("detail.actor.peers")}</h2>
+						<p className="mt-1 text-sm text-muted">{t("detail.actor.peers.body")}</p>
+						<ul className="mt-2 space-y-2 text-sm">
+							{peers.map((r) => (
+								<li key={r.actor}>
+									<ActorName id={r.actor} /> — {r.mutual} × {t("deck.mutual.times")}
+								</li>
+							))}
+						</ul>
+					</>
+				)}
+				{enacted.length > 0 && (
+					<>
+						<h2 className="mt-10 font-display text-2xl">{t("detail.actor.enactments")}</h2>
+						<p className="mt-1 text-sm text-muted">{t("detail.actor.enactments.body")}</p>
+						<ul className="mt-2 space-y-2 text-sm">
+							{enacted.map((e) => (
+								<li key={e.possibilityId}>
+									<Link to={`/possibilities?card=${e.possibilityId}`} className="font-semibold text-info underline">
+										{e.title}
+									</Link>
+									{" — "}{e.roles.map((r) => t(`detail.actor.role.${r}`)).join(" + ")}
+									{" "}<span className="text-muted">· {e.at.slice(0, 10)}
+										{e.status === "completed" ? ` · ${t("detail.actor.reportFiled")}` : ""}</span>
 								</li>
 							))}
 						</ul>

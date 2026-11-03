@@ -142,7 +142,7 @@ describe('ops export', () => {
     const zero = buildOpsExport(i).body;
     expect(zero).not.toContain('"lane":"revshare"');
     i.rounds = [{ ...i.rounds[0], skimBps: 1000 }];
-    const lines = buildOpsExport(i).body.split('\n').filter(Boolean).map(JSON.parse);
+    const lines = buildOpsExport(i).body.split('\n').filter(Boolean).map((l) => JSON.parse(l));
     const rs = lines.find((l) => l.lane === 'revshare');
     expect(rs).toBeDefined();
     expect(rs.amount).toBe(1); // $10 settled × 1000bps

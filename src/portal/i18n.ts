@@ -1,9 +1,9 @@
 // Minimal i18n — a flat strings table keyed by (lang, key). English is
 // the fallback: any missing key renders English, so adding a locale is
 // incremental. Locales live in ./strings/*.ts — en/sw/fr ship together.
-import en from './strings/en.ts';
-import sw from './strings/sw.ts';
-import fr from './strings/fr.ts';
+import en from './strings/en.json';
+import sw from './strings/sw.json';
+import fr from './strings/fr.json';
 
 export type Lang = 'en' | 'sw' | 'fr';
 

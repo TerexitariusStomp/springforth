@@ -465,9 +465,9 @@ describe('Phase A chrome + ui kit', () => {
     expect(html).toContain('Ruka hadi maudhui'); // skip link
   });
   it('every english key exists non-empty in sw + fr', async () => {
-    const en = (await import('../src/portal/strings/en.ts')).default;
-    const sw = (await import('../src/portal/strings/sw.ts')).default;
-    const fr = (await import('../src/portal/strings/fr.ts')).default;
+    const en = (await import('../src/portal/strings/en.json')).default;
+    const sw = (await import('../src/portal/strings/sw.json')).default;
+    const fr = (await import('../src/portal/strings/fr.json')).default;
     for (const k of Object.keys(en)) {
       expect(sw[k], `sw.${k}`).toBeTruthy();
       expect(fr[k], `fr.${k}`).toBeTruthy();

@@ -12,7 +12,7 @@ import { STRUCTURE_PHASES } from '../src/data/structures.ts';
 import { ecocycleStage, ecocycleTraps, ecocycleSvg, ECOCYCLE_STAGES } from '../src/data/ecocycle.ts';
 import { enactments, enactmentStats } from '../src/data/knowledge.ts';
 import { renderActorProfile } from '../src/portal/actor.ts';
-import en from '../src/portal/strings/en.ts';
+import en from '../src/portal/strings/en.json';
 
 const iso = '2026-10-20T00:00:00Z';
 const base = {

@@ -8,7 +8,7 @@
 
 **Title:** Which oracle knows? Ledger-resolved markets, AI delegates, and human attestors for public-goods match allocation
 
-**Authors:** Terexitarius (Springforth) + Lin Jiaze (ops leg, Kilifi pilot) — confirm co-authorship line before submit.
+**Authors:** Terexitarius (Springforth) + Andra / Freeside (ops leg, Mars College pilot) — confirm co-authorship line before submit.
 
 ## Problem
 
@@ -16,7 +16,7 @@ Match allocation in small public-goods rounds is curator-bound or uniform. Curat
 
 ## Method
 
-We attach three independent prediction surfaces to each approved *possibility* in a chartered commitment-pooling round (love.fund × Kilifi pilot, opening mid-November), then score all three against the same objective resolution:
+We attach three independent prediction surfaces to each approved *possibility* in a chartered commitment-pooling round (love.fund × Mars College pilot, opening mid-November), then score all three against the same objective resolution:
 
 1. **Completion market.** One categorical market per possibility: "does P reach attested completion by close?" Venue: Seer (Gnosis conditional tokens, Kleros dispute backstop) or an internal LMSR fallback if liquidity/mobile UX fails the cohort. The market resolves on the ledger — never on a report.
 2. **AI-delegate deliberation.** The same possibilities are deliberated inside Simocracy — whose agent-built "sims" (constitutioned ATProto digital twins, each record on the owner's own PDS) run capital-allocation rounds via the S-Process. We record each sim's pre-close confidence on each possibility's completion. This is the AI surface: does a constitutioned agent, given the same public evidence, price feasibility better or worse than a market?
@@ -28,7 +28,7 @@ We attach three independent prediction surfaces to each approved *possibility* i
 
 ## Evaluation
 
-The pilot is the experiment: a real cohort (Kilifi/Mida Creek coastal crews) with an independent ops leg, published round rules, and a public daily NDJSON export whose integrity is recomputable (`sed '$d' | sha256sum`; manifest carries the ledger head).
+The pilot is the experiment: a real cohort (Mars College, Bombay Beach — a community that already runs work-trade) with an independent ops leg, published round rules, and a public daily NDJSON export whose integrity is recomputable (`sed '$d' | sha256sum`; manifest carries the ledger head).
 
 - **Primary metric:** Brier score per prediction surface per possibility — market vs. sim vs. attestor — published in the round readout (D+13).
 - **Secondary:** pairwise juror comparisons + a market anchor recovered to a weight vector on the simplex (GG24 deep-funding lineage — the market feature carried the dominant signal, ~51% degradation on removal). For rounds where possibility count outgrows per-market attention, this is the scale path; our result tests whether sims can substitute for the anchor.
@@ -57,5 +57,5 @@ $10,000 — market venue integration, resolution wiring, sim-round setup on Simo
 - [ ] Confirm cycle is still accepting on OpenReview (page says "now open"; deadline shows Feb 28, 2026 extended — if the 2025 cycle rolled, grab the 2026 group ID).
 - [ ] Confirm Simocracy contact — the sim-round setup needs their S-Process surface; message via simocracy.org/contact before claiming the surface exists. If unavailable, the proposal still stands on surfaces 1+3; sims become the round-2 lane.
 - [ ] Confirm co-authorship with Lin Jiaze.
-- [ ] Confirm Seer is viable for a phone-first Kenyan cohort (Devansh's pending review answer) — else name the LMSR fallback.
+- [ ] Confirm Seer is viable for a desert-community cohort (Devansh's pending review answer) — else name the LMSR fallback.
 - [ ] Word-count the final: keep under 1,000.

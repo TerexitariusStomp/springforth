@@ -21,9 +21,9 @@ love.fund is where techne and aligned projects raise.
 
 ## Live pilots
 
-- **Commitment pooling, Kilifi / Mida Creek** — a chartered, two-leg
-  round (platform + independent ops executor) with coastal crews who
-  already pool commitments offline. Frozen params written to a public
+- **Commitment pooling, Mars College** — a chartered, two-leg
+  round (platform + independent ops executor) with a work-trade community that
+  already pools commitments as a way of life. Frozen params written to a public
   ledger at open; daily recomputable export
   (springforth.widespread.workers.dev/export/ops.ndjson); readout ~2
   weeks after close. Charter negotiation is public:
@@ -32,8 +32,8 @@ love.fund is where techne and aligned projects raise.
   on the wide-aperture page before onboarding.*
 ```
 
-PR title: `docs: fill ecosystem page — live pilots section (commitment pooling, Kilifi)`
-Body: "The Ecosystem page was a stub. This fills it with the Gitcoin/Techne sections that were already drafted plus a Live pilots section seeded with the chartered Kilifi commitment-pooling round — a real experiment other pilots can copy the checklist from. Edit freely."
+PR title: `docs: fill ecosystem page — live pilots section (commitment pooling, Mars College)`
+Body: "The Ecosystem page was a stub. This fills it with the Gitcoin/Techne sections that were already drafted plus a Live pilots section seeded with the chartered Mars College commitment-pooling round — a real experiment other pilots can copy the checklist from. Edit freely."
 ```
 
 ---

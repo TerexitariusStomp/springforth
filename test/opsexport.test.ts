@@ -137,6 +137,20 @@ describe('ops export', () => {
     expect(body).toContain('"type":"declaration"');
   });
 
+  it('emits a revshare lane only when settled donations accrue skim', () => {
+    const i = fixture();
+    const zero = buildOpsExport(i).body;
+    expect(zero).not.toContain('"lane":"revshare"');
+    i.rounds = [{ ...i.rounds[0], skimBps: 1000 }];
+    const lines = buildOpsExport(i).body.split('\n').filter(Boolean).map(JSON.parse);
+    const rs = lines.find((l) => l.lane === 'revshare');
+    expect(rs).toBeDefined();
+    expect(rs.amount).toBe(1); // $10 settled × 1000bps
+    const mf = lines.find((l) => l.lane === 'matching_fund');
+    expect(mf.skimBps).toBe(1000);
+    expect(mf.upstreamSplitBps).toBe(0);
+  });
+
   it('is deterministic — same cut, same file_sha256', () => {
     const a = buildOpsExport(fixture());
     const b = buildOpsExport(fixture());

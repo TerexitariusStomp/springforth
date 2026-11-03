@@ -53,7 +53,12 @@ Two different checks: `file_sha256` proves the file arrived intact;
 | `quorum` | possibilityId, activated_at, committed[actor…] | quorumAt + joins ≤ activation |
 | `evidence` | id, via (oracle-check / forum-post / report / claim-artifact), nodeId/possibilityId/claimId, uriHash/textHash/refHash, at | checks (demo excluded), forum evidence posts, report.evidence, claim artifactRefs |
 | `attestation_edge` | via (appreciation / attestation), id, from, to, possibilityId, at | `appreciation`, `attestation` — deduped to one edge per pair (earliest) |
-| `match_flow` | lane (matching_fund / pledge / donation / stream / yield), id, roundId/possibilityId/needNodeId, actor, amount, currency, state, at | `round`, `pledge`, `donation`, `recurring-support`, `yieldstream` |
+| `match_flow` | lane (matching_fund / pledge / donation / stream / yield / revshare), id, roundId/possibilityId/needNodeId, actor, amount, currency, state, at | `round`, `pledge`, `donation`, `recurring-support`, `yieldstream`, derived |
+
+`matching_fund` records carry `skimBps`/`upstreamSplitBps` — the round's
+frozen revenue params (love.fund criterion #20 / #6). `revshare` records
+are derived, emitted only when accrued skim on *settled* donations is
+nonzero (same math as `endowmentAccrual`: amount × bps / 10000).
 
 Actors are pseudonymized: `a_<16-hex>` = sha256(salt, actor) — stable
 across daily files so records join over time. Pseudonymous, not

@@ -299,6 +299,9 @@ export const FundingRound = z.object({
   // endowment round — recurring revenue from transaction flow, not a
   // one-way tax on donations.
   skimBps: z.number().int().min(0).max(10000).optional(),
+  // Upstream split (love.fund criterion #6): bps of each settled
+  // donation routed upstream (ecosystem share), donor-overridable.
+  upstreamSplitBps: z.number().int().min(0).max(10000).optional(),
   // Permanent endowment: matchingFund is locked principal; only accrued
   // skim is allocable. Endowment rounds never allocate match themselves.
   endowment: z.boolean().default(false),

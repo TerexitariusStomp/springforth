@@ -6,6 +6,7 @@ import {
   RecurringSupport, YieldStream,
 } from './entities.ts';
 import type { PlanNode } from './graph.ts';
+import { endowmentAccrual } from './gate.ts';
 import { get, list, listWhere, put } from './store.js';
 
 // Ops export — the pilot charter §5 interface. A read-only materialized
@@ -164,8 +165,26 @@ export function buildOpsExport(i: OpsExportInput): {
     lines.push({
       type: 'match_flow', lane: 'matching_fund', id: r.id, roundId: r.id,
       amount: r.matchingFund.amount, currency: r.matchingFund.currency,
-      state: r.state, endowment: r.endowment ?? false, at: r.opensAt,
+      state: r.state, endowment: r.endowment ?? false,
+      skimBps: r.skimBps ?? 0, upstreamSplitBps: r.upstreamSplitBps ?? 0,
+      at: r.opensAt,
     });
+  }
+  // revshare lane — accrued skim (revshareBps of each settled donation
+  // into the round) and upstream split, derived like gate.ts
+  // endowmentAccrual: the ledger stays the record, this is a pointer to
+  // what accrues to the endowment. Emitted only when nonzero.
+  {
+    const { accrued } = endowmentAccrual(i.rounds,
+      i.donations.filter((d) => d.settlement === 'settled'));
+    for (const [currency, amount] of Object.entries(accrued)) {
+      if (amount <= 0) continue;
+      lines.push({
+        type: 'match_flow', lane: 'revshare', id: `revshare-${currency}`,
+        currency, amount: Math.round(amount * 1e6) / 1e6,
+        state: 'accrued', at: i.generatedAt,
+      });
+    }
   }
   for (const p of [...i.pledges].sort((a, b) => a.stateAt.localeCompare(b.stateAt))) {
     lines.push({

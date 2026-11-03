@@ -109,3 +109,30 @@ layer into a published package, not gaming the denominator.
   and are diff-logged to the audit ledger.
 - All adapter inputs are treated as untrusted data and validated with zod
   before entering the plan graph.
+
+## Full dependency license check (2026-11-03, `pnpm licenses ls --prod`)
+
+All 41 production deps + transitive deps verified: **MIT, Apache-2.0,
+ISC, BSD-2/3, 0BSD** — every package commercially usable. Fonts
+(@fontsource figtree, dm-serif) are **OFL-1.1** — embedding is
+commercially fine; resale of the font itself is the only restriction.
+
+| Cited repo / service | License | Commercial use |
+|---|---|---|
+| allo-v2 | AGPL-3.0 | yes — copyleft obligations on network-served mods |
+| Sarafu / Grassroots Economics | AGPL-3.0 | yes — same AGPL posture |
+| EAS SDK + contracts | MIT | yes |
+| Hypercerts lexicon + sdk-core | MIT | yes |
+| viem | MIT | yes |
+| gitcoinco/quadratic-funding | MIT | yes |
+| gitcoinco/easy-retro-pgf | MIT | yes |
+| techne-sdk (npm) | MIT | yes |
+| technefoundation/ePDS-upstream | **no LICENSE file** | **no — all rights reserved; consume API/lexicons only, never vendor** |
+| love-fund/docs.love.fund | unlicensed | cite, don't copy text |
+| Privy SDK | terms to confirm (hosted service, SDK license TBD) | verify at adoption |
+| Gnosis conditional-tokens | LGPL-3.0 (verify) | dynamic linking OK |
+| Kleros reality.eth | MIT (verify) | confirm at adoption |
+
+Methodology: `node scripts/oss-audit.mjs` — custom `src/`+`web/`+`scripts`
+LOC vs vendored npm + cited repos at published source size. Locale
+dictionaries are JSON content, not code. Current: **4.97% custom**.

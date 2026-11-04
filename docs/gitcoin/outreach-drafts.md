@@ -4,11 +4,11 @@
 
 *Channel: email/DM. If a warm intro exists via the Sarafu-adjacent ops contact (Lin), use it first.*
 
-Subject: commitment pooling with yield rails — your model, on a ledger, in Kilifi
+Subject: commitment pooling with yield rails — your model, on a ledger, in the pilot cohort
 
 Hi Will —
 
-Owocki cited Grassroots Economics as best-in-slot for commitment pooling in the gitcoin × bread thread. I'm the person who took that literally: a chartered pilot opens mid-November with the Kilifi/Mida Creek coastal crews — commitment pooling as the base layer (boats, propagules, transport alongside money), Sarafu records as the evidence source, rules frozen to a public hash-chained ledger before open.
+Owocki cited Grassroots Economics as best-in-slot for commitment pooling in the gitcoin × bread thread. I'm the person who took that literally: a chartered pilot opens mid-November at Mars College (Bombay Beach) — a community that already pools commitments as work-trade — commitment pooling as the base layer (boats, propagules, transport alongside money), site records and resident attestations as the evidence source, rules frozen to a public hash-chained ledger before open.
 
 The charter negotiation is public: gov.gitcoin.co/t/25438 — 15 posts, an independent ops executor countersigned v0.2.2. The daily export is live and recomputable: springforth.widespread.workers.dev/export/ops.ndjson.
 
@@ -29,7 +29,7 @@ Terexitarius
 
 Djimo — formalizing something that already half-exists.
 
-The Kilifi pilot opens mid-November (charter: gov.gitcoin.co/t/25438). Your feeds are already a live integration in the stack — the attestation layer reads Silvi data as evidence pointers, and the daily export ships them as recomputable records.
+The Mars College pilot opens ~mid-November (charter: gov.gitcoin.co/t/25438). Your feeds are already a live integration in the stack — the attestation layer reads Silvi data as evidence pointers, and the daily export ships them as recomputable records.
 
 The ask: can I name Silvi as the verification-data layer for reforestation-type commitments in this round? Operationally nothing new — the integration exists. What changes is it's named in the charter params and the readout, so your verification work shows up as a credited surface in a Gitcoin-visible pilot.
 

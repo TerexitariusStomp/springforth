@@ -1,4 +1,4 @@
-# Matcher one-pager — love.fund × Kilifi commitment-pool pilot
+# Matcher one-pager — love.fund × Mars College commitment-pool pilot
 
 *For: Bread decision-makers · Techne pilot pool · SF Live sponsors*
 
@@ -8,7 +8,7 @@ Artizen collapsed owing match money it had promised but never held — thousands
 
 ## The mechanism
 
-Participants declare *possibilities*: I want to do X, I bring A, I need B, this activates when N people commit. Commitments can be capital or real-world resources — the Kilifi round involves boats, propagules, transport, labor. Coordination activates at quorum. Completion is attested on a public hash-chained ledger anchored to Bitcoin — `/ledger/verify`, anyone can recompute.
+Participants declare *possibilities*: I want to do X, I bring A, I need B, this activates when N people commit. Commitments can be capital or real-world resources — the Mars College round involves work-trade, builds, water, solar, and transport. Coordination activates at quorum. Completion is attested on a public hash-chained ledger anchored to Bitcoin — `/ledger/verify`, anyone can recompute.
 
 ## The guarantees (structural, not policy)
 

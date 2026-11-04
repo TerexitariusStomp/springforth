@@ -17,7 +17,7 @@ import type { OverlapRecord, PlanNode } from '../src/coordination';
 
 const possibility = {
   id: 'p1', title: 'Plant mangroves at Mida Creek', description: 'Community planting day',
-  declarerId: 'aisha', place: 'Mida Creek', deadline: '2026-11-01T00:00:00Z',
+  declarerId: 'aisha', place: 'Mida Creek', deadline: '2099-11-01T00:00:00Z',
   minParticipants: 3, status: 'active' as const, createdAt: '2026-10-20T00:00:00Z',
 };
 

@@ -57,7 +57,7 @@ All three milestones are public and checkable:
 
 ## Why A and why me
 
-$15k buys the quorum layer back — the treasury itself stays behind its multisig and security layers, but without delegation the governance above it can't act at all. Everything else in the reboot is a plan about a plan until that layer works. With it, the bread yield flywheel the other thread already sized ($1–2M at 4–6%) can actually be voted in — $40–120k/yr gross potential against a $15k one-time spend, conditional on governance approving it and the rails landing.
+$15k buys the quorum layer back — the treasury itself stays behind its multisig and security layers, but without delegation the governance above it can't act at all. Everything else in the reboot is a plan about a plan until that layer works. With it, the bread yield flywheel the other thread already sized ($1–2M at 4–6%) can actually be voted in — $40–120k/yr gross potential against a $15k one-time spend, conditional on governance approving it and the rails landing. And love.fund's own published docs price graduation directly: campaigns share revenue back to Gitcoin — one $500k-class city round at the published 10% covers this bid ~3×.
 
 I'm A-only because solo means honest scope. If you want B and C covered well, award them to someone whose full attention they get — my full attention goes to the 90 days that decide whether the rest has a quorum to serve.
 

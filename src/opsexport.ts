@@ -7,7 +7,7 @@ import {
 } from './entities.ts';
 import type { PlanNode } from './graph.ts';
 import { endowmentAccrual } from './gate.ts';
-import { get, list, listWhere, put } from './store.js';
+import { get, ledgerAppend, list, listWhere, put } from './store.js';
 
 // Ops export — the pilot charter §5 interface. A read-only materialized
 // view of the round as NDJSON, snapshotted so the ops leg polls stored
@@ -24,9 +24,21 @@ export const OPS_EXPORT_KIND = 'ops-export';
 const digest = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 
 // Pseudonymous, not anonymous — a stable courtesy layer over actor ids
-// that are already handles. Salt rotates via env.EXPORT_SALT.
+// that are already handles. env.EXPORT_SALT overrides; absent a secret,
+// refreshOpsExport resolves a random salt minted once and persisted
+// server-side. The spec string is never a production salt — a public
+// salt makes pseudonyms dictionary-reversible.
 export const pseudonym = (actor: string, salt = OPS_EXPORT_SPEC) =>
   `a_${digest(`${salt}:${actor}`).slice(0, 16)}`;
+
+// Opaque identifiers — record ids and id-shaped join fields get the same
+// salted-hash treatment as actors. Entity ids embed handles and text
+// ('app-a-b', 'part-…-offer-name', 'fp-…-post-title', claim-artifact
+// '${claim}:${uri}'), so shipping them raw defeats the actor pseudonyms.
+// Same input → same output, so every join the readout needs still holds;
+// the ':id:' namespace keeps x_ values disjoint from a_ actor hashes.
+const oid = (x: string, salt: string) =>
+  `x_${digest(`${salt}:id:${x}`).slice(0, 16)}`;
 
 export interface OpsExportInput {
   possibilities: Possibility[];
@@ -78,8 +90,8 @@ export function buildOpsExport(i: OpsExportInput): {
       at: p.createdAt, status: p.status,
       threshold: { min: p.minParticipants, max: p.maxParticipants ?? null },
       needs: nodes.filter((n) => n.kind === 'need')
-        .map((n) => ({ id: n.id, required: n.required ?? false, category: n.category ?? null })),
-      brings: nodes.filter((n) => n.kind === 'offer').map((n) => n.id),
+        .map((n) => ({ id: oid(n.id, salt), required: n.required ?? false, category: n.category ?? null })),
+      brings: nodes.filter((n) => n.kind === 'offer').map((n) => oid(n.id, salt)),
       deadline: p.deadline ?? null, place: p.place ?? null, h3: p.h3 ?? null,
     });
   }
@@ -87,9 +99,9 @@ export function buildOpsExport(i: OpsExportInput): {
   // commitments — the "I bring" half of the funnel.
   for (const c of [...i.participations].sort(byAt)) {
     lines.push({
-      type: 'commitment', id: c.id, possibilityId: c.possibilityId,
+      type: 'commitment', id: oid(c.id, salt), possibilityId: c.possibilityId,
       actor: ps(c.actor), at: c.at,
-      bringingNodeId: c.bringingNodeId ?? null, hours: c.hours ?? null,
+      bringingNodeId: c.bringingNodeId ? oid(c.bringingNodeId, salt) : null, hours: c.hours ?? null,
     });
   }
 
@@ -109,32 +121,45 @@ export function buildOpsExport(i: OpsExportInput): {
   // free-text refs ship only a hash.
   for (const c of [...i.checks].sort(byAt)) {
     lines.push({
-      type: 'evidence', id: c.id, via: 'oracle-check', source: c.source,
-      nodeId: c.nodeId ?? null, possibilityId: c.nodeId ? nodePoss.get(c.nodeId) ?? null : null,
+      type: 'evidence', id: oid(c.id, salt), via: 'oracle-check', source: c.source,
+      nodeId: c.nodeId ? oid(c.nodeId, salt) : null, possibilityId: c.nodeId ? nodePoss.get(c.nodeId) ?? null : null,
       result: c.result, score: c.score,
       refHash: digest(`${c.methodologyRef ?? ''}:${c.detail}`), at: c.at,
     });
   }
   for (const f of [...i.forumEvidence].sort(byAt)) {
     lines.push({
-      type: 'evidence', id: f.id, via: 'forum-post', possibilityId: f.possibilityId,
+      type: 'evidence', id: oid(f.id, salt), via: 'forum-post', possibilityId: f.possibilityId,
       actor: ps(f.actor), textHash: digest(f.text), at: f.at,
     });
   }
   for (const p of i.possibilities.filter((x) => x.report?.evidence)) {
     lines.push({
-      type: 'evidence', id: `report-${p.id}`, via: 'report', possibilityId: p.id,
+      type: 'evidence', id: oid(`report-${p.id}`, salt), via: 'report', possibilityId: p.id,
       textHash: digest(p.report!.evidence), at: p.report!.at,
     });
   }
   for (const c of i.claims) {
     for (const ref of c.artifactRefs) {
       lines.push({
-        type: 'evidence', id: `${c.id}:${ref}`, via: 'claim-artifact',
-        claimId: c.id, possibilityId: c.possibilityId ?? null,
+        type: 'evidence', id: oid(`${c.id}:${ref}`, salt), via: 'claim-artifact',
+        claimId: oid(c.id, salt), possibilityId: c.possibilityId ?? null,
         uriHash: digest(ref), at: c.createdAt,
       });
     }
+  }
+
+  // claims — every claim an edge can target gets a row, evidence or
+  // none: absent evidence is a state, not an omission. Without this an
+  // outside reviewer can't distinguish unsupported from out-of-scope.
+  for (const c of [...i.claims].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    lines.push({
+      type: 'claim', claimId: oid(c.id, salt), possibilityId: c.possibilityId ?? null,
+      state: c.state, contributors: c.contributors.map(ps),
+      nodeIds: c.nodeIds.map((n) => oid(n, salt)),
+      checks: c.oracleCheckIds.length, appreciations: c.appreciationIds.length,
+      artifacts: c.artifactRefs.length, scopeHash: digest(c.workScope), at: c.createdAt,
+    });
   }
 
   // attestation edges — attester→subject, once per pair (earliest wins).
@@ -144,7 +169,7 @@ export function buildOpsExport(i: OpsExportInput): {
     if (seenPairs.has(k)) continue;
     seenPairs.add(k);
     lines.push({
-      type: 'attestation_edge', via: 'appreciation', id: a.id,
+      type: 'attestation_edge', via: 'appreciation', id: oid(a.id, salt),
       from: ps(a.fromActor), to: ps(a.toActor),
       possibilityId: a.possibilityId ?? null, at: a.at,
     });
@@ -155,15 +180,17 @@ export function buildOpsExport(i: OpsExportInput): {
     if (seenPairs.has(k)) continue;
     seenPairs.add(k);
     lines.push({
-      type: 'attestation_edge', via: 'attestation', id: a.id,
-      from: ps(a.attester), to, schemaRef: a.schemaRef, uid: a.uid ?? null, at: a.at,
+      type: 'attestation_edge', via: 'attestation', id: oid(a.id, salt),
+      // Claim targets oid-join the claim rows above; node targets oid-join
+      // needs[].id / evidence.nodeId / needNodeId — same function, same salt.
+      from: ps(a.attester), to: to ? oid(to, salt) : '', schemaRef: a.schemaRef, uid: a.uid ?? null, at: a.at,
     });
   }
 
   // match flow amounts — every lane, one record each.
   for (const r of i.rounds) {
     lines.push({
-      type: 'match_flow', lane: 'matching_fund', id: r.id, roundId: r.id,
+      type: 'match_flow', lane: 'matching_fund', id: oid(r.id, salt), roundId: r.id,
       amount: r.matchingFund.amount, currency: r.matchingFund.currency,
       state: r.state, endowment: r.endowment ?? false,
       skimBps: r.skimBps ?? 0, upstreamSplitBps: r.upstreamSplitBps ?? 0,
@@ -188,30 +215,30 @@ export function buildOpsExport(i: OpsExportInput): {
   }
   for (const p of [...i.pledges].sort((a, b) => a.stateAt.localeCompare(b.stateAt))) {
     lines.push({
-      type: 'match_flow', lane: 'pledge', id: p.id, possibilityId: p.possibilityId,
-      needNodeId: p.needNodeId ?? null, actor: ps(p.pledger),
+      type: 'match_flow', lane: 'pledge', id: oid(p.id, salt), possibilityId: p.possibilityId,
+      needNodeId: p.needNodeId ? oid(p.needNodeId, salt) : null, actor: ps(p.pledger),
       amount: p.amount, currency: p.currency, state: p.state, at: p.stateAt,
     });
   }
   for (const d of [...i.donations].sort(byAt)) {
     lines.push({
-      type: 'match_flow', lane: 'donation', id: d.id, roundId: d.roundId,
-      needNodeId: d.needNodeId, actor: ps(d.donor),
+      type: 'match_flow', lane: 'donation', id: oid(d.id, salt), roundId: d.roundId,
+      needNodeId: d.needNodeId ? oid(d.needNodeId, salt) : null, actor: ps(d.donor),
       amount: d.amount, currency: d.currency, state: d.settlement,
       settlementRef: d.settlementRef ?? null, at: d.at,
     });
   }
   for (const s of i.streams) {
     lines.push({
-      type: 'match_flow', lane: 'stream', id: s.id, roundId: s.roundId,
-      needNodeId: s.needNodeId ?? null, actor: ps(s.supporter),
+      type: 'match_flow', lane: 'stream', id: oid(s.id, salt), roundId: s.roundId,
+      needNodeId: s.needNodeId ? oid(s.needNodeId, salt) : null, actor: ps(s.supporter),
       flowRate: s.flowRate, accruedUnits: s.accruedUnits, state: s.state,
       at: s.createdAt,
     });
   }
   for (const y of i.yields) {
     lines.push({
-      type: 'match_flow', lane: 'yield', id: y.id, roundId: y.roundId,
+      type: 'match_flow', lane: 'yield', id: oid(y.id, salt), roundId: y.roundId,
       actor: ps(y.sponsor), amount: y.yieldAccrued,
       state: y.state, at: y.updatedAt,
     });
@@ -245,6 +272,22 @@ interface EnvLike {
 // Refresh the snapshot only when the ledger head moved — steady-state
 // polls cost one head query + one entity read. `force` (POST rebuild)
 // rebuilds unconditionally for the pre-D0 sample run.
+// Salt resolution: env.EXPORT_SALT wins. With no secret configured, a
+// random salt is minted once and persisted under the same kind — server-
+// side only, stable across rebuilds. (The previous default, the spec
+// string, was documented and therefore dictionary-reversible; existing
+// a_/x_ values rotate once at first rebuild under the new salt, which
+// the readout should note rather than hide.)
+async function exportSalt(env: EnvLike): Promise<string> {
+  if (env.EXPORT_SALT) return env.EXPORT_SALT;
+  const existing = await get<{ salt: string }>(env.DB, OPS_EXPORT_KIND, 'salt');
+  if (existing?.salt) return existing.salt;
+  const salt = crypto.randomUUID();
+  await put(env.DB, OPS_EXPORT_KIND, 'salt',
+    { salt, at: new Date().toISOString() });
+  return salt;
+}
+
 export async function refreshOpsExport(
   env: EnvLike, opts: { force?: boolean } = {},
 ): Promise<OpsExportSnapshot> {
@@ -254,7 +297,8 @@ export async function refreshOpsExport(
   const seq = head?.seq ?? -1;
   const headHash = head?.hash ?? '0'.repeat(64);
   const latest = await get<OpsExportSnapshot>(env.DB, OPS_EXPORT_KIND, 'latest');
-  if (!opts.force && latest && latest.cut.seq === seq) return latest;
+  if (!opts.force && latest && latest.cut.seq === seq
+    && latest.cut.ledger_head === headHash) return latest;
 
   const generatedAt = new Date().toISOString();
   const [
@@ -283,7 +327,7 @@ export async function refreshOpsExport(
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
     head: { seq, hash: headHash }, generatedAt,
-    salt: env.EXPORT_SALT,
+    salt: await exportSalt(env),
   });
   const snap: OpsExportSnapshot = {
     day: generatedAt.slice(0, 10), generatedAt,
@@ -294,9 +338,15 @@ export async function refreshOpsExport(
   };
   await put(env.DB, OPS_EXPORT_KIND, 'latest', snap);
   // Dated file = last build of that UTC day; overwritten same-day is
-  // idempotent because the payload is a pure function of the cut.
+  // idempotent because the payload is a pure function of the cut. A
+  // failed dated write is recorded, not swallowed — a missing day is
+  // explainable from the ledger rather than a silent hole.
   await put(env.DB, OPS_EXPORT_KIND, `day-${snap.day}`, snap)
-    .catch(() => undefined);
+    .catch(async (e) => {
+      console.error('ops-export: dated snapshot write failed', snap.day, e);
+      await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_failed',
+        { day: snap.day, seq, error: String(e) }).catch(() => undefined);
+    });
   return snap;
 }
 

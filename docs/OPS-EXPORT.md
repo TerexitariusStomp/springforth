@@ -54,6 +54,8 @@ Two different checks: `file_sha256` proves the file arrived intact;
 | `evidence` | id, via (oracle-check / forum-post / report / claim-artifact), nodeId/possibilityId/claimId, uriHash/textHash/refHash, at | checks (demo excluded), forum evidence posts, report.evidence, claim artifactRefs |
 | `attestation_edge` | via (appreciation / attestation), id, from, to, possibilityId, at | `appreciation`, `attestation` — deduped to one edge per pair (earliest) |
 | `match_flow` | lane (matching_fund / pledge / donation / stream / yield / revshare), id, roundId/possibilityId/needNodeId, actor, amount, currency, state, at | `round`, `pledge`, `donation`, `recurring-support`, `yieldstream`, derived |
+| `trust_epoch` | epoch, program, cut{seq,ledger_head}, inputHash, paramsHash, outputRoot, totalValue, scoresHash, edgeCount, actorCount, at | `trust-epoch` journals — pointers, not score blobs |
+| `external_trust` | id, network, root, account, actor, value, totalValue, at | `external-score` — leaves verified against a trustgraphs network's accepted root. `account` stays raw (it's the public leaf key); `actor` pseudonymizes |
 
 `matching_fund` records carry `skimBps`/`upstreamSplitBps` — the round's
 frozen revenue params (love.fund criterion #20 / #6). `revshare` records
@@ -95,3 +97,21 @@ to `textHash`/`refHash`.
 - `/ledger/verify?seq=N` returns `{ ok, seq, head }` at exactly that cut
   (404 beyond the head). Same-cut replay: dated file + `?seq=` +
   `sed '$d' file.ndjson | sha256sum`.
+
+## v1.2
+
+- New `trust_epoch` record type: one row per accepted trust epoch,
+  carrying the journal fields — `epoch`, `program`, `cut{seq,ledger_head}`,
+  `inputHash`, `paramsHash`, `outputRoot`, `totalValue`, `scoresHash`,
+  `edgeCount`, `actorCount`, `at`. These are *pointers, not score blobs*:
+  a reviewer fetches `/trust/epochs/:n/inputs.json` and `/scores.json`
+  against the same cut, recomputes, and compares root/hashes — recipe
+  in `docs/TRUSTGRAPH.md`. `cut.ledger_head` replays against
+  `/ledger/verify?seq=` exactly like the manifest's own head.
+- `matching_fund` / retro records pin `trustEpoch` at open; the epoch
+  rows let a reviewer reproduce the trust inputs an allocation or
+  cohort decision was computed over.
+- New `external_trust` record type (emitted only when rows exist):
+  per-actor entries verified against an external trustgraphs network's
+  accepted Merkle root — `network`, `root`, `account` (raw public leaf
+  key), `actor` (pseudonymized), `value`, `totalValue`, `at`.

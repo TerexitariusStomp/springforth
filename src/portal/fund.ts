@@ -66,6 +66,7 @@ export function renderFundPage(o: FundPageInput): string {
 <p><span class="badge">${esc(t(lang, `status.${r.state}`))}</span>
 <span class="badge">${esc(r.matchingFund.currency)} ${MONEY.format(r.matchingFund.amount)}</span>
 <span class="badge">${r.eligibleNeedIds.length} ${esc(t(lang, 'col.needs').toLowerCase())}</span>
+${r.trustEpoch != null ? `<a class="badge" style="text-decoration:none" href="/trust/epochs/${r.trustEpoch}">${esc(t(lang, 'hub.community.trust.epoch'))} #${r.trustEpoch}</a>` : ''}
 ${gate}${skim}</p>
 ${r.description ? `<p>${esc(r.description)}</p>` : ''}
 <p class="muted">${esc(t(lang, 'col.closes'))} ${esc(r.closesAt.slice(0, 10))}</p>

@@ -1199,5 +1199,13 @@
   "hub.impact.ecocycle.lede": "where the portfolio sits — seed to compost, with both traps counted live.",
   "hub.impact.ecocycle.traps": "counts in parentheses are live: cards currently sitting in each trap.",
   "trail.brief": "brief updated",
-  "trail.test": "test card event"
+  "trail.test": "test card event",
+  "hub.community.trust.epoch": "Epoch",
+  "hub.community.trust.verify": "verify inputs →",
+  "gov.param.trust.epochMinSeqGap": "minimum ledger events between trust-epoch checkpoints",
+  "gov.param.trust.alpha": "EigenTrust damping factor for epoch scores",
+  "gov.param.trust.iters": "EigenTrust iterations per epoch",
+  "gov.param.trust.poolScale": "fixed score pool epochs quantize into",
+  "gov.param.trust.priorSource": "external trustgraph network feeding the restart prior",
+  "gov.param.trust.priorShare": "0–1 share of restart mass on the external prior"
 }

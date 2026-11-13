@@ -18,6 +18,9 @@ export interface ActorRow { id: string; created: number; joined: number; earned:
 export interface MutualEdge { from: string; to: string; weight: number; mutual: number }
 
 export interface CommunityPageInput {
+  // Latest committed trust epoch — the journal decisions pin
+  // (docs/TRUSTGRAPH.md). null before the first checkpoint.
+  epoch?: { n: number; seq: number; root: string } | null;
   lang: Lang;
   people: ActorRow[];
   mutual: MutualEdge[];
@@ -51,12 +54,15 @@ ${!o.peopleAll && o.people.length > PEOPLE_CAP
   ? `<p><a href="/community?people=all#people">${esc(t(lang, 'hub.community.people.all'))} (${o.people.length}) →</a></p>`
   : o.peopleAll ? `<p><a href="/community#people">${esc(t(lang, 'hub.community.people.fewer'))} →</a></p>` : ''}`;
 
-  /* #trust — mutual pairs, humanized. */
-  const mutualBody = o.mutual.length
+  /* #trust — mutual pairs, humanized, plus the latest committed epoch. */
+  const epochLine = o.epoch
+    ? `<p class="muted"><strong>${esc(t(lang, 'hub.community.trust.epoch'))} #${o.epoch.n}</strong> · seq ${o.epoch.seq} · <code>${esc(o.epoch.root.slice(0, 12))}…</code> — <a href="/trust/epochs/${o.epoch.n}/inputs.json">${esc(t(lang, 'hub.community.trust.verify'))}</a></p>`
+    : '';
+  const mutualBody = (o.mutual.length
     ? `<ul>${[...o.mutual].sort((a, b) => b.mutual - a.mutual).slice(0, 20).map((m) =>
         `<li><a href="/actors/${esc(m.from)}">${displayName(m.from)}</a> &harr; <a href="/actors/${esc(m.to)}">${displayName(m.to)}</a> — <strong>${m.mutual}</strong> × ${esc(t(lang, 'hub.community.trust.times'))}</li>`).join('')}</ul>
 ${howItWorks(lang, 'how.community.trust', 's3')}`
-    : emptyState(t(lang, 'hub.community.trust.none')) + howItWorks(lang, 'how.community.trust', 's3');
+    : emptyState(t(lang, 'hub.community.trust.none')) + howItWorks(lang, 'how.community.trust', 's3')) + epochLine;
 
   /* #decisions — open ballots, then parameters in plain terms. */
   const open = o.proposals.filter((p) => p.state === 'open');

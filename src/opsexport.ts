@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import type { D1Database } from '@cloudflare/workers-types';
 import {
-  Appreciation, Attestation, Donation, ForumPost, FundingRound,
+  Appreciation, Attestation, Donation, ExternalScore, ForumPost, FundingRound,
   ImpactClaim, OracleCheck, Participation, Pledge, Possibility,
-  RecurringSupport, YieldStream,
+  RecurringSupport, TrustEpoch, YieldStream,
 } from './entities.ts';
 import type { PlanNode } from './graph.ts';
 import { endowmentAccrual } from './gate.ts';
@@ -54,6 +54,8 @@ export interface OpsExportInput {
   streams: RecurringSupport[];
   yields: YieldStream[];
   rounds: FundingRound[];
+  epochs?: TrustEpoch[];
+  externalScores?: ExternalScore[];
   head: { seq: number; hash: string };
   generatedAt: string;
   salt?: string;
@@ -244,6 +246,32 @@ export function buildOpsExport(i: OpsExportInput): {
     });
   }
 
+  // trust epochs — journal pointers, not score blobs: a reviewer
+  // fetches /trust/epochs/:n/inputs.json + /scores.json against the
+  // same cut and recomputes (docs/TRUSTGRAPH.md).
+  for (const e of [...(i.epochs ?? [])].sort((a, b) => a.epoch - b.epoch)) {
+    lines.push({
+      type: 'trust_epoch', epoch: e.epoch,
+      program: `${e.program}/v${e.programVersion}`,
+      cut: { seq: e.cut.seq, ledger_head: e.cut.ledgerHead },
+      inputHash: e.inputHash, paramsHash: e.paramsHash,
+      outputRoot: e.outputRoot, totalValue: e.totalValue,
+      scoresHash: e.scoresHash, edgeCount: e.edgeCount, actorCount: e.actorCount,
+      at: e.createdAt,
+    });
+  }
+
+  // external trust — entries verified against a trustgraphs network's
+  // accepted root (phase 3). `account` stays raw: it's the public leaf
+  // key the proof checks against; `actor` pseudonymizes as usual.
+  for (const s of i.externalScores ?? []) {
+    lines.push({
+      type: 'external_trust', id: oid(s.id, salt), network: s.network,
+      root: s.root, account: s.account, actor: ps(s.actor),
+      value: s.value, totalValue: s.totalValue, at: s.verifiedAt,
+    });
+  }
+
   const payload = lines.map((l) => JSON.stringify(l)).join('\n') + '\n';
   const counts: Record<string, number> = {};
   for (const l of lines) counts[String(l.type)] = (counts[String(l.type)] ?? 0) + 1;
@@ -304,6 +332,7 @@ export async function refreshOpsExport(
   const [
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
+    epochs, externalScores,
   ] = await Promise.all([
     list<Possibility>(env.DB, 'possibility'),
     list<Participation>(env.DB, 'participation'),
@@ -321,11 +350,14 @@ export async function refreshOpsExport(
     list<RecurringSupport>(env.DB, 'recurring-support'),
     list<YieldStream>(env.DB, 'yieldstream'),
     list<FundingRound>(env.DB, 'round'),
+    list<TrustEpoch>(env.DB, 'trust-epoch'),
+    list<ExternalScore>(env.DB, 'external-score'),
   ]);
 
   const { body, manifest } = buildOpsExport({
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
+    epochs, externalScores,
     head: { seq, hash: headHash }, generatedAt,
     salt: await exportSalt(env),
   });

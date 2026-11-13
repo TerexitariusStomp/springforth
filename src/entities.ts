@@ -305,6 +305,10 @@ export const FundingRound = z.object({
   // Permanent endowment: matchingFund is locked principal; only accrued
   // skim is allocable. Endowment rounds never allocate match themselves.
   endowment: z.boolean().default(false),
+  // Trust epoch pinned at open — pairwise allocation computes
+  // discoordination over this epoch's committed edges, not the live
+  // graph, so the match is recomputable at close (docs/TRUSTGRAPH.md).
+  trustEpoch: z.number().int().min(1).optional(),
 });
 export type FundingRound = z.infer<typeof FundingRound>;
 
@@ -502,6 +506,9 @@ export const RetroRound = z.object({
   pointsPerBallot: z.number().int().min(1).default(100),
   ballotClose: z.string().datetime(),
   state: RetroRoundState.default('open'),
+  // Trust epoch pinned at open — badgeholders derive from its committed
+  // edges, not the live graph, so the cohort is checkable at tally.
+  trustEpoch: z.number().int().min(1).optional(),
 });
 export type RetroRound = z.infer<typeof RetroRound>;
 
@@ -529,6 +536,9 @@ export const GovernanceProposal = z.object({
   closesAt: z.string().datetime(),
   state: z.enum(['open', 'passed', 'rejected']).default('open'),
   createdAt: z.string().datetime(),
+  // Trust epoch pinned at proposal — the eligible-voter cohort comes
+  // from its committed edges, not the graph at tally time.
+  trustEpoch: z.number().int().min(1).optional(),
 });
 export type GovernanceProposal = z.infer<typeof GovernanceProposal>;
 
@@ -552,6 +562,77 @@ export const GovernanceParam = z.object({
   updatedAt: z.string().datetime(),
 });
 export type GovernanceParam = z.infer<typeof GovernanceParam>;
+
+// Trust epoch — a frozen, committed scoring round over the appreciation
+// graph (the trustgraphs.xyz epoch model applied natively): input edges
+// and params committed at a ledger cut, output published as a Merkle
+// root anyone can recompute. Acceptance is itself a ledger event
+// ('trust.epoch') — appended, never edited. Spec: docs/TRUSTGRAPH.md.
+export const TrustEpoch = z.object({
+  id: z.string().min(1),                     // 'te-000001' — zero-padded so id sort = epoch order
+  epoch: z.number().int().min(1),
+  program: z.literal('springforth-mutual-recognition'),
+  programVersion: z.literal(1),
+  cut: z.object({
+    seq: z.number().int(),                   // ledger seq the inputs froze at
+    ledgerHead: z.string().min(1),           // /ledger/verify?seq=N head at that cut
+    at: z.string().datetime(),
+  }),
+  inputHash: z.string().min(1),              // sha256 of the canonical edge set
+  edgeCount: z.number().int().min(0),
+  actorCount: z.number().int().min(0),
+  paramsHash: z.string().min(1),
+  params: z.record(z.string(), z.unknown()), // published in full — public anyway
+  outputRoot: z.string().min(1),             // 0x merkle root over (actor, value) leaves
+  totalValue: z.string().min(1),             // fixed-point pool total (string for int safety)
+  scoresHash: z.string().min(1),             // sha256 of the canonical scores blob
+  createdAt: z.string().datetime(),
+});
+export type TrustEpoch = z.infer<typeof TrustEpoch>;
+
+// The epoch's recompute package — canonical edges + scores, served by
+// /trust/epochs/:n/inputs.json and /scores.json. Separate row so listing
+// journals stays light; same id as the journal.
+export const TrustEpochData = z.object({
+  id: z.string().min(1),                     // 'te-000001'
+  epoch: z.number().int().min(1),
+  edges: z.array(z.object({
+    from: z.string().min(1), to: z.string().min(1),
+    weight: z.number(), mutual: z.number(),
+  })),
+  scores: z.array(z.object({ actor: z.string().min(1), value: z.number() })),
+});
+export type TrustEpochData = z.infer<typeof TrustEpochData>;
+
+// On-chain vouch mirror (phase 2) — maps a published EAS vouch back to
+// the appreciation + ledger event it mirrors, so the on-chain graph
+// stays auditable against the chain of record.
+export const VouchMirror = z.object({
+  id: z.string().min(1),
+  appreciationId: z.string().min(1),
+  uid: z.string().optional(),                // EAS attestation uid
+  txHash: z.string().optional(),
+  from: z.string().min(1),                   // actor ids
+  to: z.string().min(1),
+  weight: z.number().min(0).default(1),
+  state: z.enum(['pending', 'published', 'revoked']).default('pending'),
+  at: z.string().datetime(),
+});
+export type VouchMirror = z.infer<typeof VouchMirror>;
+
+// External proven score (phase 3) — an entry verified against a
+// trustgraphs network's accepted Merkle root, keyed by a bound wallet.
+export const ExternalScore = z.object({
+  id: z.string().min(1),                     // `${network}:${root}:${account}`
+  network: z.string().min(1),                // 'trustgraphs:<chain>:<snapshot>'
+  root: z.string().min(1),                   // the accepted root this leaf was verified against
+  account: z.string().min(1),                // 0x account the leaf scores
+  actor: z.string().min(1),                  // bound actor id
+  value: z.string().min(1),                  // leaf value (string for uint safety)
+  totalValue: z.string().min(1),
+  verifiedAt: z.string().datetime(),
+});
+export type ExternalScore = z.infer<typeof ExternalScore>;
 
 // Signed dataset release — a frozen graph slice (JSONL) with a sha256
 // manifest, OTS-anchored, optionally pinned to IPFS. CC-BY-SA licensed;

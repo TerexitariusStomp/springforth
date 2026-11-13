@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { allocateMatching, refreshPledge, badgeholders, tallyRound, buildClaim, toHypercertLexicon } from '../src/funding.ts';
 import type { Donation, Possibility, Pledge, RetroBallot, Appreciation, OracleCheck } from '../src/core';
-import type { PlanNode, OverlapRecord } from '../src/coordination';
+import { trustEdges, type PlanNode, type OverlapRecord } from '../src/coordination';
 
 const round = {
   matchingFund: { amount: 1000, currency: 'USD' },
@@ -88,7 +88,7 @@ const app = (fromActor: string, toActor: string): Appreciation => ({
 describe('retro rounds (RetroPGF)', () => {
   it('badgeholders derive from EigenTrust standing', () => {
     const apps = [app('a', 'b'), app('b', 'a'), app('a', 'c'), app('c', 'a'), app('b', 'c')];
-    const holders = badgeholders(apps, 2);
+    const holders = badgeholders(trustEdges(apps), 2);
     expect(holders).toHaveLength(2);
     expect(holders).toContain('a');
   });

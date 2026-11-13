@@ -23,6 +23,7 @@ import {
 import { ecocycleStage, ecocycleTraps } from './data/ecocycle.ts';
 import { enactmentStats } from './data/knowledge.ts';
 import { SOURCES, evidenceBoost } from './oracle';
+import { epochEdges, latestTrustEpoch } from './trustgraph.js';
 import { list, listWhere, ledgerEventsMentioning, ledgerTail, ledgerVerifyIncremental } from './store.js';
 import type { Env } from './index.js';
 
@@ -91,12 +92,16 @@ export async function allocFor(env: Env, round: FundingRound, donations: Donatio
     evidenceOn ? evidenceBoost(needNodeId, checks) : 1;
   if (round.matchingMode !== 'pairwise' && !round.conviction)
     return allocateMatching(round, donations, { weightMultiplier: boost });
-  const [apps, wallets] = await Promise.all([
-    list<Appreciation>(env.DB, 'appreciation'),
-    list<ActorWallet>(env.DB, 'actor-wallet'),
-  ]);
+  const wallets = await list<ActorWallet>(env.DB, 'actor-wallet');
+  // Pinned trust epoch → discoordination over the epoch's committed
+  // edges (frozen at open), not the live graph — recomputable at close.
+  // A pin whose data row is gone is corruption, not a fallback case.
+  const edges = round.trustEpoch != null
+    ? await epochEdges(env.DB, round.trustEpoch)
+        .then((e) => e ?? Promise.reject(new Error(`pinned trust epoch ${round.trustEpoch} missing`)))
+    : trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
   const walletToActor = new Map(wallets.map((w) => [w.address.toLowerCase(), w.actor]));
-  return pairwiseAllocate(round, donations, trustEdges(apps), {
+  return pairwiseAllocate(round, donations, edges, {
     alpha: Number(paramValue(govParams, 'pairwise.alpha')) || 4,
     beta: Number(paramValue(govParams, 'pairwise.beta')) || 2,
     gamma: round.conviction ? Number(paramValue(govParams, 'conviction.gamma')) || 0.5 : 0,
@@ -313,11 +318,12 @@ export async function loadResources(env: Env,
   return { resources };
 }
 
-// GET /trust — {rule, edges, mutual, actors}.
+// GET /trust — {rule, edges, mutual, actors, epoch}.
 export async function loadTrust(env: Env) {
-  const [apps, credits] = await Promise.all([
+  const [apps, credits, epoch] = await Promise.all([
     list<Appreciation>(env.DB, 'appreciation'),
     list<AssuranceCredit>(env.DB, 'assurance-credit'),
+    latestTrustEpoch(env.DB),
   ]);
   const edges = trustEdges(apps);
   const earned = earnedRecognition(edges, credits);
@@ -329,6 +335,19 @@ export async function loadTrust(env: Env) {
   const rule = 'mutual recognition = min(a→b, b→a); recognition ∝ √earned (Bloom √-norm); propagation: EigenTrust';
   return {
     rule,
+    // Latest committed epoch — the journal a decision can pin. Scores
+    // above are live-derived; the epoch's are frozen and recomputable
+    // (docs/TRUSTGRAPH.md).
+    epoch: epoch ? {
+      epoch: epoch.epoch, cut: epoch.cut,
+      inputHash: epoch.inputHash, paramsHash: epoch.paramsHash,
+      outputRoot: epoch.outputRoot, totalValue: epoch.totalValue,
+      scoresHash: epoch.scoresHash,
+      verify: {
+        inputs: `/trust/epochs/${epoch.epoch}/inputs.json`,
+        scores: `/trust/epochs/${epoch.epoch}/scores.json`,
+      },
+    } : null,
     edges, mutual: edges.filter((e) => e.mutual > 0),
     actors: [...actorIds].map((id) => ({
       id, earned: earned[id] ?? 0,
@@ -381,7 +400,7 @@ export async function loadRoundsView(env: Env) {
 export async function loadRetro(env: Env) {
   const rounds = await list<RetroRound>(env.DB, 'retroround');
   const apps = await list<Appreciation>(env.DB, 'appreciation');
-  const badgeholderList = badgeholders(apps, 8);
+  const badgeholderList = badgeholders(trustEdges(apps), 8);
   const rule = 'badgeholders = top EigenTrust on the appreciation graph; quadratic ballot on attested claims';
   return { rounds, badgeholders: badgeholderList, rule };
 }
@@ -396,7 +415,7 @@ export async function loadGovernance(env: Env) {
   ]);
   return {
     proposals, ballots, params,
-    governable: GOVERNABLE, eligibleVoters: eligibleVoters(govApps),
+    governable: GOVERNABLE, eligibleVoters: eligibleVoters(trustEdges(govApps)),
   };
 }
 

@@ -125,7 +125,10 @@ describe('ops export', () => {
     const lines = linesOf(buildOpsExport(fixture()).body);
     const app = lines.filter((l) => l.type === 'attestation_edge' && l.via === 'appreciation');
     expect(app).toHaveLength(2); // aisha→biko (earliest kept) + biko→aisha
-    expect(app[0]!.id).toBe('ap-1');
+    // ids ship pseudonymized (v1.1): x_ + sha256(spec:id:raw)[:16]
+    const oid = (x: string) =>
+      `x_${sha(`${OPS_EXPORT_SPEC}:id:${x}`).slice(0, 16)}`;
+    expect(app[0]!.id).toBe(oid('ap-1'));
   });
 
   it('counts in the manifest match emitted lines', () => {

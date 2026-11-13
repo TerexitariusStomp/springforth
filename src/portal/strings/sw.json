@@ -1199,5 +1199,13 @@
   "hub.impact.ecocycle.lede": "portfolio iko wapi — kutoka mbegu hadi mboji, na mitego yote miwili ikizungumziwa moja kwa moja.",
   "hub.impact.ecocycle.traps": "idadi ndani ya mabano ni moja kwa moja: kadi zilizo kwenye kila mtego sasa.",
   "trail.brief": "muhtasari umesasishwa",
-  "trail.test": "tukio la kadi ya jaribio"
+  "trail.test": "tukio la kadi ya jaribio",
+  "hub.community.trust.epoch": "Kipindi",
+  "hub.community.trust.verify": "thibitisha ingizo →",
+  "gov.param.trust.epochMinSeqGap": "idadi ndogo ya matukio ya daftari kati ya vipindi vya uaminifu",
+  "gov.param.trust.alpha": "kivuuzo cha EigenTrust kwa alama za kipindi",
+  "gov.param.trust.iters": "marudio ya EigenTrust kwa kipindi",
+  "gov.param.trust.poolScale": "jumla ya alama ambazo vipindi hugawanyia",
+  "gov.param.trust.priorSource": "mtandao wa nje wa trustgraph unaolisha awali ya kuanzisha upya",
+  "gov.param.trust.priorShare": "sehemu 0–1 ya uzani wa kuanzisha upya kwenye awali ya nje"
 }

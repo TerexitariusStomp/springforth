@@ -6,7 +6,7 @@ import {
   RetroRound, RetroBallot, ChainTx, YieldStream,
   ActorWallet, ActorPersonhood, ActorNonce, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
-  DatasetRelease, DataAccessGrant, Subscription,
+  DatasetRelease, DataAccessGrant, Subscription, TrustEpoch,
   valueCoordinated,
 } from './core';
 import {
@@ -113,6 +113,11 @@ import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
 import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
 import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
+import {
+  maybeTrustCheckpoint, ensureTrustEpoch, latestTrustEpoch,
+  getTrustEpoch, getTrustEpochData, epochEdges, scoreProof,
+  TRUST_INPUTS_SPEC, TRUST_SCORES_SPEC,
+} from './trustgraph.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -1372,6 +1377,9 @@ export default {
             return page(req, renderCommunityPage, {
               lang,
               people, mutual: trust.mutual,
+              epoch: trust.epoch
+                ? { n: trust.epoch.epoch, seq: trust.epoch.cut.seq, root: trust.epoch.outputRoot }
+                : null,
               proposals: gov.proposals, ballots: gov.ballots,
               params: gov.params, governable: gov.governable,
               voters: gov.eligibleVoters.length,
@@ -2436,7 +2444,7 @@ export default {
         const ballots = await list<GovernanceBallot>(env.DB, 'gov-ballot');
         const params = await list<GovernanceParam>(env.DB, 'gov-param');
         const govApps = await list<Appreciation>(env.DB, 'appreciation');
-        const voters = eligibleVoters(govApps);
+        const voters = eligibleVoters(trustEdges(govApps));
         if (req.method === 'GET' && seg.length === 1)
           return json({ proposals, ballots, params,
             governable: GOVERNABLE, eligibleVoters: voters });
@@ -2458,6 +2466,7 @@ export default {
             proposer,
             closesAt: String(b.closesAt ?? new Date(Date.now() + 7 * 86_400_000).toISOString()),
             state: 'open', createdAt: now,
+            trustEpoch: (await ensureTrustEpoch(env))?.epoch,
           });
           await put(env.DB, 'gov-proposal', prop.id, prop);
           await ledgerAppend(env.DB, proposer, 'governance.proposed', { id: prop.id, param });
@@ -2467,13 +2476,20 @@ export default {
         }
         const prop = await get<GovernanceProposal>(env.DB, 'gov-proposal', seg[1] ?? '');
         if (!prop) return err('proposal not found', 404);
+        // Pinned epoch → the eligible cohort comes from its committed
+        // edges (frozen at proposal), not the graph at vote/tally time.
+        const pinnedEdges = prop.trustEpoch != null
+          ? await epochEdges(env.DB, prop.trustEpoch) : null;
+        if (prop.trustEpoch != null && !pinnedEdges)
+          return err('pinned trust epoch data missing', 500);
+        const cohort = pinnedEdges ? eligibleVoters(pinnedEdges) : voters;
         if (req.method === 'POST' && seg[2] === 'vote') {
           const ct = req.headers.get('content-type') ?? '';
           const b = ct.includes('form')
             ? Object.fromEntries((await req.formData()).entries())
             : await req.json() as Record<string, unknown>;
           const voter = String(b.voter ?? '');
-          if (!voters.includes(voter)) return err('voter needs EigenTrust standing', 403);
+          if (!cohort.includes(voter)) return err('voter needs EigenTrust standing', 403);
           if (prop.state !== 'open' || Date.parse(prop.closesAt) < Date.now())
             return err('proposal closed', 409);
           const points = Number(b.points ?? 0);
@@ -2493,7 +2509,7 @@ export default {
         }
         if (req.method === 'POST' && seg[2] === 'tally') {
           if (!authed(req, env)) return err('unauthorized', 401);
-          const tally = tallyProposal(prop, ballots, voters);
+          const tally = tallyProposal(prop, ballots, cohort);
           const state = tally.passed ? 'passed' : 'rejected';
           await put(env.DB, 'gov-proposal', prop.id, { ...prop, state });
           if (tally.passed) {
@@ -3195,6 +3211,10 @@ export default {
           });
           await put(env.DB, 'appreciation', ap.id, ap);
           await ledgerAppend(env.DB, from, 'possibility.appreciated', { id: p.id, to });
+          // Trust-epoch checkpoint — mints only when inputs/params moved
+          // and the seq gap allows; failure never blocks the write.
+          await maybeTrustCheckpoint(env)
+            .catch((e) => console.error('trust checkpoint failed', e));
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
             ? new Response(null, { status: 303, headers: { location: '/possibilities' } })
@@ -3540,18 +3560,67 @@ export default {
       // propagation).
       // ?format=attestations emits EAS-shaped records — composable
       // reputation export.
-      if (req.method === 'GET' && seg[0] === 'trust') {
-        if (url.searchParams.get('format') === 'attestations') {
-          const edges = trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
-          return json({
-            attestations: edges.filter((e) => e.mutual > 0).map((e) => ({
-              schema: 'mutual-recognition', from: e.from, to: e.to,
-              weight: e.weight, mutual: e.mutual,
-              ledgerEvent: 'possibility.appreciated',
-            })),
+      if (seg[0] === 'trust') {
+        // Trust epochs — committed scoring rounds (docs/TRUSTGRAPH.md):
+        // journals, the canonical recompute package, and per-actor
+        // Merkle proofs. JSON only.
+        if (seg[1] === 'epochs') {
+          if (req.method === 'POST' && seg[2] === 'checkpoint' && seg.length === 3) {
+            if (!authed(req, env)) return err('unauthorized', 401);
+            const r = await maybeTrustCheckpoint(env, { force: true });
+            return json(r, r.created ? 201 : 200);
+          }
+          if (req.method !== 'GET') return err('method not allowed', 405);
+          if (seg.length === 2) {
+            const epochs = await listWhere<TrustEpoch>(env.DB, 'trust-epoch', "id LIKE 'te-%'");
+            return json({ spec: TRUST_SCORES_SPEC, epochs: [...epochs].reverse() });
+          }
+          const n = Number(seg[2]);
+          const epoch = Number.isInteger(n) && n >= 1 ? await getTrustEpoch(env.DB, n) : null;
+          if (!epoch) return err('no such trust epoch', 404);
+          if (seg.length === 3) return json(epoch);
+          const data = await getTrustEpochData(env.DB, epoch.epoch);
+          if (!data) return err('epoch data missing', 500);
+          if (seg[3] === 'inputs.json') return json({
+            spec: TRUST_INPUTS_SPEC, epoch: epoch.epoch, cut: epoch.cut,
+            program: epoch.program, programVersion: epoch.programVersion,
+            params: epoch.params, paramsHash: epoch.paramsHash,
+            inputHash: epoch.inputHash, edges: data.edges,
+            recompute: 'sha256(JSON.stringify({edges})) === inputHash — docs/TRUSTGRAPH.md',
           });
+          if (seg[3] === 'scores.json') return json({
+            spec: TRUST_SCORES_SPEC, epoch: epoch.epoch,
+            outputRoot: epoch.outputRoot, totalValue: epoch.totalValue,
+            scoresHash: epoch.scoresHash, scores: data.scores,
+            recompute: 'sha256(JSON.stringify({scores})) === scoresHash — docs/TRUSTGRAPH.md',
+          });
+          if (seg[3] === 'score' && seg[4]) {
+            const proof = scoreProof(data.scores, decodeURIComponent(seg[4]));
+            return proof
+              ? json({ epoch: epoch.epoch, outputRoot: epoch.outputRoot, ...proof })
+              : err('actor not scored in this epoch', 404);
+          }
+          return err('unknown epoch route', 404);
         }
-        return json(await loadTrust(env));
+        if (req.method === 'GET' && seg[1] === 'scores' && seg[2] === 'current' && seg.length === 3) {
+          const latest = await latestTrustEpoch(env.DB);
+          if (!latest) return err('no trust epochs yet', 404);
+          const data = await getTrustEpochData(env.DB, latest.epoch);
+          return json({ epoch: latest, scores: data?.scores ?? [] });
+        }
+        if (req.method === 'GET' && seg.length === 1) {
+          if (url.searchParams.get('format') === 'attestations') {
+            const edges = trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
+            return json({
+              attestations: edges.filter((e) => e.mutual > 0).map((e) => ({
+                schema: 'mutual-recognition', from: e.from, to: e.to,
+                weight: e.weight, mutual: e.mutual,
+                ledgerEvent: 'possibility.appreciated',
+              })),
+            });
+          }
+          return json(await loadTrust(env));
+        }
       }
       // Actor standing — the "Community Standing" profile: created/joined
       // counts, earned recognition, transitive trust score.
@@ -3721,6 +3790,9 @@ export default {
             minBackers: b.minBackers != null ? Number(b.minBackers) : undefined,
             skimBps: b.skimBps != null ? Number(b.skimBps) : undefined,
             endowment: b.endowment === true,
+            // Pin the trust epoch at open — pairwise allocation computes
+            // over its committed edges, recomputable at close.
+            trustEpoch: (await ensureTrustEpoch(env))?.epoch,
           });
           await put(env.DB, 'round', round.id, round);
           await ledgerAppend(env.DB, 'api', 'round.opened', { id: round.id });
@@ -4131,6 +4203,7 @@ export default {
             claimIds: b.claimIds ?? [], badgeholderCount: b.badgeholderCount,
             pointsPerBallot: b.pointsPerBallot,
             ballotClose: String(b.ballotClose), state: 'open',
+            trustEpoch: (await ensureTrustEpoch(env))?.epoch,
           });
           await put(env.DB, 'retroround', rr.id, rr);
           await ledgerAppend(env.DB, 'api', 'retro.opened', { id: rr.id });
@@ -4149,8 +4222,15 @@ export default {
           if (rr.state !== 'open') return err(`round is ${rr.state}`, 409);
           const b = await req.json() as Record<string, unknown>;
           const holder = String(b.badgeholder ?? '');
-          const apps = await list<Appreciation>(env.DB, 'appreciation');
-          if (!badgeholders(apps, rr.badgeholderCount).includes(holder))
+          // Pinned epoch → badgeholders derive from its committed edges,
+          // not the graph at vote time — the cohort is checkable.
+          const pinnedEdges = rr.trustEpoch != null
+            ? await epochEdges(env.DB, rr.trustEpoch) : null;
+          if (rr.trustEpoch != null && !pinnedEdges)
+            return err('pinned trust epoch data missing', 500);
+          const edges = pinnedEdges
+            ?? trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
+          if (!badgeholders(edges, rr.badgeholderCount).includes(holder))
             return err('not a badgeholder for this round', 403);
           const ballot = RetroBallot.parse({
             id: `ballot-${rr.id}-${holder.toLowerCase().replace(/\W+/g, '-')}`,
@@ -4689,6 +4769,13 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
     const chainConfirmed = await syncChain(env).catch(() => 0);
     const streamsAccrued = await accrueStreams(env).catch(() => 0);
     const yieldCredited = await syncYield(env).catch(() => 0);
+    // Trust-epoch checkpoint — hourly catch-up for edge changes the
+    // appreciate-time hook deferred on the seq gap.
+    await maybeTrustCheckpoint(env).catch(async (e) => {
+      console.error('trust checkpoint failed', e);
+      await ledgerAppend(env.DB, 'cron', 'trust.checkpoint_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
     // Ops export snapshot — rebuilds only when the ledger head moved.
     await refreshOpsExport(env).catch(async (e) => {
       console.error('ops-export: refresh failed', e);

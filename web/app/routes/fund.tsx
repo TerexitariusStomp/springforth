@@ -68,6 +68,11 @@ export default function Fund({ loaderData }: Route.ComponentProps) {
 											<Badge>{t(`status.${r.state}`)}</Badge>
 											<Badge>{r.matchingFund.currency} {MONEY.format(r.matchingFund.amount)}</Badge>
 											<Badge>{r.eligibleNeedIds.length} {t("col.needs").toLowerCase()}</Badge>
+											{r.trustEpoch != null && (
+												<a href={`/trust/epochs/${r.trustEpoch}`}>
+													<Badge>{t("hub.community.trust.epoch")} #{r.trustEpoch}</Badge>
+												</a>
+											)}
 											{g?.gated && (g.active ? (
 												<Badge variant="lime">
 													{t("hub.fund.rounds.demandMet")} — {g.backers.length} {t("hub.fund.rounds.backers")} · {MONEY.format(g.pledged)} {t("hub.fund.rounds.pledged")}

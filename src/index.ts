@@ -4393,7 +4393,10 @@ export default {
       // ── CLC admin lanes — ADMIN_TOKEN-gated; service-token writes ──
       if (seg[0] === 'admin' && seg[1] === 'clc' && seg[2] === 'sync' && req.method === 'POST') {
         if (!authed(req, env)) return err('unauthorized', 401);
-        return json(await syncClc(env));
+        // ?budget=N overrides the upstream-fetch cap — for verifying
+        // resume behavior and for invocations with known headroom.
+        const b = Number(new URL(req.url).searchParams.get('budget'));
+        return json(await syncClc(env, Number.isFinite(b) && b > 0 ? { budget: b } : undefined));
       }
       // Deploy a CLC SwapPool proxy via clc-core's deployment queue.
       // Body is the vendored PoolDeployPayload shape; returns the otx
@@ -4998,22 +5001,26 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
   // from every configured open source; deltas post as checks. The
   // possibility sweep rides the same cadence: expiry and quorum
   // transitions are time-driven too.
-  async scheduled(_ev: unknown, env: Env): Promise<void> {
+  async scheduled(ev: unknown, env: Env): Promise<void> {
     env = proxiedDb(env);
+    const cron = (ev as { cron?: string } | undefined)?.cron;
+    // Dedicated CLC lane — the evidence cycle's oracle loop alone burns
+    // the whole ~50-subrequest budget through the D1 proxy (2026-11-17:
+    // "Too many subrequests" at runOracleSources, ~8 nodes in; every
+    // proxied query bills one fetch). A second cron expression gives the
+    // sync its own budget; syncClc itself stays under it by metering
+    // upstream calls and persisting resume state between invocations.
+    if (cron && cron !== '0 * * * *') {
+      await syncClc(env).catch(async (e) => {
+        console.error('clc sync failed', e);
+        await ledgerAppend(env.DB, 'cron', 'clc.sync_failed',
+          { error: String(e) }).catch(() => undefined);
+      });
+      return;
+    }
     const nodes = (await list<PlanNode>(env.DB, 'plannode'))
       .filter((n) => n.kind === 'action' && n.h3);
     for (const n of nodes) await runOracleSources(env, n);
-    // CLC sync — mirror cosmolocal.credit pools/vouchers into
-    // source:'clc' projections (docs/CLC-INTEGRATION.md). Runs before the
-    // legacy write-heavy pipeline: an uncaught failure further down must
-    // never starve the mirror (2026-11-17: sweepPossibilities had been
-    // killing the cycle since 10-23 — oracle.cycle absent for a month,
-    // clc.* never reached). Failures are ledgered, never fatal.
-    await syncClc(env).catch(async (e) => {
-      console.error('clc sync failed', e);
-      await ledgerAppend(env.DB, 'cron', 'clc.sync_failed',
-        { error: String(e) }).catch(() => undefined);
-    });
     await sweepPossibilities(env, 'cron').catch(async (e) => {
       console.error('possibility sweep failed', e);
       await ledgerAppend(env.DB, 'cron', 'cron.sweep_failed',

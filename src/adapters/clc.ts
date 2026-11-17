@@ -18,7 +18,7 @@ import { createPoolDeployClient } from '@clc/api/features/pools/deploy-client';
 import { createAccountsClient } from '@clc/api/features/accounts/client';
 import type { PoolDeployPayload } from '@clc/core/features/pools/logic';
 import type { ActorWallet, CommitmentPool, Voucher, VoucherHolding } from '../entities';
-import { list, ledgerAppend, putManyIfChanged } from '../store';
+import { del, get, list, ledgerAppend, put, putMany } from '../store';
 import { GNOSIS, publicClientFor } from '../chain';
 import { UA } from './fetch';
 
@@ -151,8 +151,9 @@ type VoucherPage = { vouchers?: MarketVoucher[]; first?: number; last?: number }
 
 async function* pages<T extends { last?: number }>(
   fetch: (cursor?: number) => Promise<T>,
+  startCursor?: number,
 ) {
-  let cursor: number | undefined;
+  let cursor: number | undefined = startCursor;
   for (;;) {
     const page = await fetch(cursor);
     yield page;
@@ -163,33 +164,78 @@ async function* pages<T extends { last?: number }>(
   }
 }
 
+// ── Resumable sync state ─────────────────────────────────────────────
+// The Worker invocation runs under a ~50-subrequest budget (free plan —
+// every D1-proxy call AND every upstream fetch bills one). A full
+// first-time catalog sync needs ~150; the state row lets one logical
+// cycle span multiple invocations: each resumes exactly where the last
+// budget check tripped. Steady-state cycles finish in one invocation.
+type SyncState = {
+  detailsRemaining?: `0x${string}`[]; // pool addrs still needing curation reads
+  voucherCursor?: number;             // market-voucher keyset resume point
+  walletIdx?: number;                 // actor-wallet resume index
+};
+const SYNC_STATE_ID = 'clc-sync-state';
+// Upstream fetch cap per invocation — ~34 upstream + ~12 proxy calls
+// stays under the free-plan 50-subrequest ceiling.
+const UPSTREAM_BUDGET = 34;
+
 // One sync cycle: pull pools + market vouchers + bound-wallet holdings,
 // write projections in batches, ledger one digest event.
 //
-// Cost discipline (the hourly cron shares a wall-clock/CPU budget with
-// the whole evidence cycle, and every D1 call may cross the HTTPS
-// proxy): preload existing projections once per kind, diff in memory,
-// and batch writes via putManyIfChanged — a full catalog sync is ~10
-// DB calls, not ~2,700. Per-entity `seen` ledger events are dropped
-// for the same reason; the single `clc.synced` event carries the new-id
-// lists and a digest of everything observed — same provenance, one write.
-export async function syncClc(env: ClcEnv): Promise<{
+// Cost discipline: preload existing projections once per kind, diff in
+// memory (minus observedAt), putMany only the dirty rows — a steady-state
+// cycle is ~6 reads + 1 ledger append and ~15 upstream fetches. The
+// single `clc.synced` event carries new-id lists plus a digest of
+// everything observed — provenance without an event per row.
+export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<{
   pools: number; vouchers: number; newPools: number; newVouchers: number;
-  holdings: number; detailReads: number; partial: boolean;
+  holdings: number; detailReads: number; partial: boolean; resumed: boolean;
+  upstreamCalls: number;
 }> {
-  const { http, pools, accounts } = clcClient(env);
+  const budget = opts?.budget ?? UPSTREAM_BUDGET;
+  // Every upstream call (clc-core API + chain RPC) bills one subrequest;
+  // meter them all through the client fetch wrapper.
+  const meter = { n: 0 };
+  const meteredFetch: typeof fetch = (input, init) => {
+    meter.n++;
+    return clcFetchWith(env.CLC_SERVICE_TOKEN)(input, init);
+  };
+  const http = createHttpClient({
+    baseUrl: env.CLC_API ?? CLC_API_DEFAULT, fetch: meteredFetch,
+  });
+  const pools = createPoolsClient(http);
+  const accounts = createAccountsClient(http);
+  const overBudget = () => meter.n >= budget;
+
   const observedAt = new Date().toISOString();
-  let detailReads = 0, partial = false;
+  let detailReads = 0, partial = false, resumed = false;
   const seenHash: string[] = [];
 
-  const [existingPools, existingVouchers] = await Promise.all([
+  const [existingPools, existingVouchers, prior] = await Promise.all([
     list<CommitmentPool>(env.DB, 'commitment-pool'),
     list<Voucher>(env.DB, 'voucher'),
+    get<SyncState>(env.DB, 'clc-sync', SYNC_STATE_ID),
   ]);
   const poolById = new Map(existingPools.map((p) => [p.id, p]));
   const voucherById = new Map(existingVouchers.map((v) => [v.id, v]));
+  const state: SyncState = prior ?? {};
 
-  // ── Pass 1: catalog pool list → projection inputs ────────────────
+  // Steady-state writes: observedAt refreshes every cycle, so compare
+  // content minus observedAt — an unchanged upstream row keeps its
+  // existing row (observedAt then reads "when this projection last
+  // changed", which is the provenance a verifier wants anyway). Only
+  // dirty rows reach putMany — zero wasted writes.
+  const stripObs = (o: unknown) =>
+    JSON.stringify({ ...(o as object), observedAt: undefined });
+  const dirty = <T extends { id: string }>(rows: { id: string; obj: T }[],
+    byId: Map<string, T>) =>
+    rows.filter((r) => {
+      const ex = byId.get(r.id);
+      return !ex || stripObs(ex) !== stripObs(r.obj);
+    });
+
+  // ── Phase: pool catalog (needed by details — always refetched) ────
   type PoolInput = { row: CommitmentPool; addr: `0x${string}`; updatedAt?: string };
   const poolInputs: PoolInput[] = [];
   try {
@@ -227,37 +273,51 @@ export async function syncClc(env: ClcEnv): Promise<{
           },
         });
       }
+      if (overBudget()) break;
     }
   } catch (e) {
     if (isRateLimited(e)) partial = true; else throw e;
   }
 
-  // ── Pass 2: on-chain pool config (one multicall batch) ───────────
-  try {
-    const states = await poolStateOnChain(env, poolInputs.map((x) => x.addr));
-    for (const x of poolInputs) {
-      const s = states.get(x.addr.toLowerCase());
-      if (!s) continue;
-      if (s.sealState !== undefined) x.row.sealState = s.sealState;
-      if (s.feeAddress) x.row.feeAddress = s.feeAddress;
+  // ── Phase: on-chain pool config (one multicall ≈ 1 RPC fetch) ─────
+  if (poolInputs.length && !overBudget()) {
+    try {
+      meter.n++; // the multicall is ~1 RPC request
+      const states = await poolStateOnChain(env, poolInputs.map((x) => x.addr));
+      for (const x of poolInputs) {
+        const s = states.get(x.addr.toLowerCase());
+        if (!s) continue;
+        if (s.sealState !== undefined) x.row.sealState = s.sealState;
+        if (s.feeAddress) x.row.feeAddress = s.feeAddress;
+      }
+    } catch (e) {
+      console.error('clc sync: pool state multicall failed', e);
     }
-  } catch (e) {
-    console.error('clc sync: pool state multicall failed', e);
   }
 
-  // ── Pass 3: curation detail reads — conditional, capped, paced ───
-  for (const x of poolInputs) {
+  // ── Phase: curation detail reads — resumable, capped, paced ───────
+  const detailsTodo = state.detailsRemaining ?? poolInputs.filter((x) => {
     const existing = poolById.get(x.row.id);
-    const stale = !existing
+    return !existing
       || !existing.accepted?.length
       || (!!x.updatedAt && x.updatedAt > (existing.observedAt ?? ''));
-    if (!stale || detailReads >= DETAIL_READ_CAP) continue;
+  }).map((x) => x.addr);
+  const byAddr = new Map(poolInputs.map((x) => [x.addr, x]));
+  const remaining: `0x${string}`[] = [];
+  let skipped = false;
+  for (const addr of detailsTodo.slice(0, DETAIL_READ_CAP)) {
+    if (skipped || overBudget() || detailReads >= DETAIL_READ_CAP) {
+      remaining.push(addr);
+      continue;
+    }
+    const x = byAddr.get(addr.toLowerCase() as `0x${string}`);
+    if (!x) continue;                    // pool left the catalog — drop it
     detailReads++;
     await sleep(DETAIL_PACE_MS);
     try {
       const accepted: CommitmentPool['accepted'] = [];
       for await (const vpage of pages((cursor) =>
-        pools.getPoolVouchers(x.addr, cursor === undefined
+        pools.getPoolVouchers(addr, cursor === undefined
           ? { perPage: PER_PAGE }
           : { perPage: PER_PAGE, cursor, next: true }))) {
         for (const v of vpage.vouchers) {
@@ -274,104 +334,129 @@ export async function syncClc(env: ClcEnv): Promise<{
             state: v.active === false ? 'suspended' : 'accepted',
           });
         }
+        if (overBudget()) break;
       }
       if (accepted.length) x.row.accepted = accepted;
     } catch (e) {
-      if (isRateLimited(e)) { partial = true; break; }
+      if (isRateLimited(e)) { partial = true; skipped = true; continue; }
       /* a failed voucher page leaves prior accepted[] intact */
     }
+    if (overBudget()) skipped = true;
+  }
+  const detailsDone = remaining.length === 0 && !skipped;
+
+  // ── Phase: market vouchers — resumable keyset pagination ─────────
+  const voucherRows: { id: string; obj: Voucher }[] = [];
+  let vouchersDone = detailsDone;
+  if (vouchersDone) {
+    try {
+      for await (const page of pages((cursor) =>
+        http.request<VoucherPage>(
+          `/api/v2/vouchers?perPage=${PER_PAGE}${cursor !== undefined ? `&cursor=${cursor}&next=true` : ''}`),
+        state.voucherCursor)) {
+        delete state.voucherCursor;      // consumed — recompute per page
+        for (const v of page.vouchers ?? []) {
+          const addr = (v.address ?? '').toLowerCase();
+          if (!addr.startsWith('0x')) continue;
+          const id = clcVoucherId(addr);
+          const existing = voucherById.get(id);
+          voucherRows.push({
+            id,
+            obj: {
+              ...(existing ?? {}),
+              id,
+              issuer: 'clc',             // issuer identity is issuer-side;
+                                         // contract address is the projection key
+              title: v.name ?? v.symbol ?? addr,
+              unit: v.symbol ?? 'unit',
+              description: v.locationName
+                ? `CLC voucher — ${v.locationName}` : 'CLC voucher',
+              terms: '',
+              supply: existing?.supply ?? 1, // market read doesn't expose
+                                             // supply; chain is authoritative
+              expiresAt: existing?.expiresAt,
+              state: 'issued',
+              createdAt: existing?.createdAt ?? observedAt,
+              source: 'clc', chainAddress: addr,
+              chainId: v.chainId ?? CLC_CHAIN_ID, observedAt,
+            },
+          });
+        }
+        if (overBudget() && page.last !== undefined) {
+          state.voucherCursor = page.last;
+          vouchersDone = false;
+          break;
+        }
+      }
+    } catch (e) {
+      if (isRateLimited(e)) partial = true; else throw e;
+    }
   }
 
-  // Steady-state writes: observedAt refreshes every cycle, so compare
-  // content minus observedAt — an unchanged upstream pool keeps its
-  // existing row (observedAt then reads "when this projection last
-  // changed", which is the provenance a verifier wants anyway).
-  const stripObs = (o: unknown) => JSON.stringify({ ...(o as object), observedAt: undefined });
-  const poolRows = poolInputs.map((x) => {
-    const existing = poolById.get(x.row.id);
-    return { id: x.row.id, obj: existing && stripObs(existing) === stripObs(x.row) ? existing : x.row };
-  });
-  const poolsWritten = await putManyIfChanged(env.DB, 'commitment-pool', poolRows);
+  // ── Phase: actor holdings — bound wallets → CLC balances ──────────
+  const holdingRows: { id: string; obj: VoucherHolding }[] = [];
+  let holdingsDone = vouchersDone;
+  if (holdingsDone) {
+    try {
+      const wallets = await list<ActorWallet>(env.DB, 'actor-wallet');
+      let i = state.walletIdx ?? 0;
+      delete state.walletIdx;
+      for (; i < wallets.length; i++) {
+        if (overBudget()) { state.walletIdx = i; holdingsDone = false; break; }
+        const { tokens } = await accounts.getLatestAccountTokens(wallets[i].address)
+          .catch(() => ({ tokens: [] }));
+        for (const t of tokens ?? []) {
+          const h = projectHolding(wallets[i].actor, t, observedAt);
+          if (!h) continue;
+          holdingRows.push({ id: h.id, obj: h });
+          seenHash.push(h.id);
+        }
+      }
+    } catch (e) {
+      console.error('clc sync: holdings sync failed', e);
+    }
+  }
+
+  // ── Writes: dirty rows only, batched — then state + ledger ────────
+  const poolRows = poolInputs.map((x) => ({ id: x.row.id, obj: x.row }));
+  const dirtyPools = dirty(poolRows, poolById);
+  const dirtyVouchers = dirty(voucherRows, voucherById);
+  await Promise.all([
+    dirtyPools.length ? putMany(env.DB, 'commitment-pool', dirtyPools) : null,
+    dirtyVouchers.length ? putMany(env.DB, 'voucher', dirtyVouchers) : null,
+    holdingRows.length ? putMany(env.DB, 'voucher-holding', holdingRows) : null,
+  ]);
   for (const x of poolInputs) seenHash.push(
     `${x.row.id}:${x.row.accepted.length}:${x.row.state}`);
+  for (const r of voucherRows) seenHash.push(r.id);
   const newPoolIds = poolInputs.filter((x) => !poolById.has(x.row.id))
     .map((x) => x.row.id);
-
-  // ── Market vouchers — the full catalog, not only pool members ────
-  const voucherRows: { id: string; obj: Voucher }[] = [];
-  try {
-    for await (const page of pages((cursor) =>
-      http.request<VoucherPage>(
-        `/api/v2/vouchers?perPage=${PER_PAGE}${cursor !== undefined ? `&cursor=${cursor}&next=true` : ''}`))) {
-      for (const v of page.vouchers ?? []) {
-        const addr = (v.address ?? '').toLowerCase();
-        if (!addr.startsWith('0x')) continue;
-        const id = clcVoucherId(addr);
-        const existing = voucherById.get(id);
-        const row: Voucher = {
-          ...(existing ?? {}),
-          id,
-          issuer: 'clc',               // issuer identity is issuer-side;
-                                       // contract address is the projection key
-          title: v.name ?? v.symbol ?? addr,
-          unit: v.symbol ?? 'unit',
-          description: v.locationName
-            ? `CLC voucher — ${v.locationName}` : 'CLC voucher',
-          terms: '',
-          supply: existing?.supply ?? 1, // market read doesn't expose
-                                         // supply; chain is authoritative
-          expiresAt: existing?.expiresAt,
-          state: 'issued',
-          createdAt: existing?.createdAt ?? observedAt,
-          source: 'clc', chainAddress: addr,
-          chainId: v.chainId ?? CLC_CHAIN_ID, observedAt,
-        };
-        voucherRows.push({
-          id,
-          obj: existing && stripObs(existing) === stripObs(row) ? existing : row,
-        });
-      }
-    }
-  } catch (e) {
-    if (isRateLimited(e)) partial = true; else throw e;
-  }
-  const vouchersWritten = await putManyIfChanged(env.DB, 'voucher', voucherRows);
-  for (const r of voucherRows) seenHash.push(r.id);
   const newVoucherIds = voucherRows.filter((r) => !voucherById.has(r.id))
     .map((r) => r.id);
 
-  // ── Actor holdings — bound wallets → CLC balances ────────────────
-  const holdingRows: { id: string; obj: VoucherHolding }[] = [];
-  try {
-    const wallets = await list<ActorWallet>(env.DB, 'actor-wallet');
-    for (const w of wallets) {
-      const { tokens } = await accounts.getLatestAccountTokens(w.address)
-        .catch(() => ({ tokens: [] }));
-      for (const t of tokens ?? []) {
-        const h = projectHolding(w.actor, t, observedAt);
-        if (!h) continue;
-        holdingRows.push({ id: h.id, obj: h });
-        seenHash.push(h.id);
-      }
-    }
-  } catch (e) {
-    console.error('clc sync: holdings sync failed', e);
+  const done = detailsDone && vouchersDone && holdingsDone && !partial;
+  if (done) {
+    delete state.detailsRemaining;
+    if (prior) await del(env.DB, 'clc-sync', SYNC_STATE_ID)
+      .catch(() => undefined);
+    await ledgerAppend(env.DB, 'clc', 'clc.synced', {
+      pools: poolRows.length, vouchers: voucherRows.length,
+      holdings: holdingRows.length,
+      newPoolIds: newPoolIds.slice(0, 200),
+      newVouchers: newVoucherIds.length,
+      written: { pools: dirtyPools.length, vouchers: dirtyVouchers.length,
+        holdings: holdingRows.length },
+      detailReads, partial, upstreamCalls: meter.n,
+      hash: digest(seenHash.sort().join('\n')),
+    });
+  } else {
+    state.detailsRemaining = remaining;
+    await put(env.DB, 'clc-sync', SYNC_STATE_ID, state);
   }
-  const holdingsWritten = await putManyIfChanged(env.DB, 'voucher-holding', holdingRows);
-
-  await ledgerAppend(env.DB, 'clc', 'clc.synced', {
-    pools: poolRows.length, vouchers: voucherRows.length,
-    holdings: holdingRows.length,
-    newPoolIds: newPoolIds.slice(0, 200),
-    newVouchers: newVoucherIds.length,
-    written: { pools: poolsWritten.written, vouchers: vouchersWritten.written,
-      holdings: holdingsWritten.written },
-    detailReads, partial,
-    hash: digest(seenHash.sort().join('\n')),
-  });
   return {
     pools: poolRows.length, vouchers: voucherRows.length,
     newPools: newPoolIds.length, newVouchers: newVoucherIds.length,
     holdings: holdingRows.length, detailReads, partial,
+    resumed: !done, upstreamCalls: meter.n,
   };
 }

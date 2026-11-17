@@ -35,8 +35,12 @@ Gaps we shimmed locally that belong upstream:
    `feeAddress`, `quoterType`, `limiterAddress` (all projected), but not
    `sealState` — we read it on-chain via multicall instead. A PR adding
    `sealState` to the pool response would drop one RPC call per cycle.
-2. **`GET /api/v2/vouchers` pagination docs** — cursor+next works; the
-   API.md section is thin.
+2. **~~`GET /api/v2/vouchers` pagination docs~~ → shipped** —
+   [clc-core#52](https://github.com/cosmo-local-credit/clc-core/pull/52):
+   a cursorless `next` (the first-page shape every naive pager sends)
+   silently returned an empty page (`id < 0`); now normalizes to the
+   canonical first-page request. Unit + route→store PostgreSQL tests,
+   docs line added.
 3. **`otx/track` for non-contract txs** — attribution lane tracks swap
    txHashes; a public query surface for arbitrary tx status would let us
    drop the gnosisscan dependency for confirmations.

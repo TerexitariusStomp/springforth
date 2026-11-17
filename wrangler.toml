@@ -69,7 +69,7 @@ binding = "AI"
 
 # Real-time MRV: hourly oracle cycle over live open-data sources.
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 * * * *", "*/2 * * * *"]
 
 # R2 media bucket — requires one manual step: enable R2 in the Cloudflare
 # dashboard (r2 → get started) then uncomment + deploy. Route 503s until then.

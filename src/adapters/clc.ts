@@ -18,7 +18,7 @@ import { createPoolDeployClient } from '@clc/api/features/pools/deploy-client';
 import { createAccountsClient } from '@clc/api/features/accounts/client';
 import type { PoolDeployPayload } from '@clc/core/features/pools/logic';
 import type { ActorWallet, CommitmentPool, Voucher, VoucherHolding } from '../entities';
-import { del, get, list, ledgerAppend, put, putMany } from '../store';
+import { get, list, ledgerAppend, put, putMany } from '../store';
 import { GNOSIS, publicClientFor } from '../chain';
 import { UA } from './fetch';
 
@@ -179,6 +179,24 @@ const SYNC_STATE_ID = 'clc-sync-state';
 // Upstream fetch cap per invocation — ~34 upstream + ~12 proxy calls
 // stays under the free-plan 50-subrequest ceiling.
 const UPSTREAM_BUDGET = 34;
+// Ambient piggyback cadence — a request advances the mirror when the last
+// completed cycle is older than this, or a cycle is mid-resume.
+export const CLC_SYNC_INTERVAL_MS = 15 * 60_000;
+
+// Called from fetch() via ctx.waitUntil — a cheap state-row read decides
+// whether this invocation should spend its spare subrequests advancing
+// the projection. Resumable cycles always continue; a fresh one starts
+// only when the mirror is stale.
+export async function maybeAdvanceClcSync(env: ClcEnv) {
+  const state = await get<SyncState & { lastDone?: string }>(
+    env.DB, 'clc-sync', SYNC_STATE_ID).catch(() => null);
+  const inProgress = !!(state?.detailsRemaining?.length
+    || state?.voucherCursor !== undefined || state?.walletIdx !== undefined);
+  const fresh = !inProgress && state?.lastDone
+    && Date.now() - Date.parse(state.lastDone) < CLC_SYNC_INTERVAL_MS;
+  if (fresh) return;
+  await syncClc(env);
+}
 
 // One sync cycle: pull pools + market vouchers + bound-wallet holdings,
 // write projections in batches, ledger one digest event.
@@ -436,8 +454,9 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
 
   const done = detailsDone && vouchersDone && holdingsDone && !partial;
   if (done) {
-    delete state.detailsRemaining;
-    if (prior) await del(env.DB, 'clc-sync', SYNC_STATE_ID)
+    // Keep a lastDone marker — the ambient lane reads it to decide
+    // freshness; resume keys are cleared so a new cycle starts clean.
+    await put(env.DB, 'clc-sync', SYNC_STATE_ID, { lastDone: observedAt })
       .catch(() => undefined);
     await ledgerAppend(env.DB, 'clc', 'clc.synced', {
       pools: poolRows.length, vouchers: voucherRows.length,

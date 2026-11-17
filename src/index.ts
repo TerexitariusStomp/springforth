@@ -116,7 +116,7 @@ import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyI
 import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
 import { holdingId, poolHolder, protocolHolder } from './pool.js';
 import {
-  clcAuthedClient, clcAppUrl, syncClc, CLC_CHAIN_ID,
+  clcAuthedClient, clcAppUrl, syncClc, maybeAdvanceClcSync, CLC_CHAIN_ID,
 } from './adapters/clc.js';
 import type { PoolDeployPayload } from '@clc/core/features/pools/logic';
 import { swapPoolGetAmountOutAbi } from '@clc/core/features/pool-swaps/logic';
@@ -1101,6 +1101,16 @@ export default {
           .catch((err) => console.error('epoch bump failed', err));
         ctx ? ctx.waitUntil(p) : await p;
       }
+    }
+    // Ambient CLC sync lane — the account is on the free plan (5 cron
+    // triggers, ~50 subrequests/invocation), so the mirror advances on
+    // traffic too: every request kicks a bounded syncClc after the
+    // response when a cycle is mid-resume or the last one went stale.
+    // One state-row read per request; the sync itself is metered.
+    {
+      const p = maybeAdvanceClcSync(env)
+        .catch((e) => console.error('clc piggyback failed', e));
+      ctx ? ctx.waitUntil(p) : await p;
     }
     // HTML pages embed live state (footer timestamp, ticker, counts) — never
     // let the browser heuristically cache them; assets carry their own TTLs.
@@ -5003,21 +5013,17 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
   // transitions are time-driven too.
   async scheduled(ev: unknown, env: Env): Promise<void> {
     env = proxiedDb(env);
-    const cron = (ev as { cron?: string } | undefined)?.cron;
-    // Dedicated CLC lane — the evidence cycle's oracle loop alone burns
-    // the whole ~50-subrequest budget through the D1 proxy (2026-11-17:
-    // "Too many subrequests" at runOracleSources, ~8 nodes in; every
-    // proxied query bills one fetch). A second cron expression gives the
-    // sync its own budget; syncClc itself stays under it by metering
-    // upstream calls and persisting resume state between invocations.
-    if (cron && cron !== '0 * * * *') {
-      await syncClc(env).catch(async (e) => {
-        console.error('clc sync failed', e);
-        await ledgerAppend(env.DB, 'cron', 'clc.sync_failed',
-          { error: String(e) }).catch(() => undefined);
-      });
-      return;
-    }
+    // CLC sync FIRST — the evidence cycle's oracle loop burns the whole
+    // ~50-subrequest budget through the D1 proxy (2026-11-17 tail: "Too
+    // many subrequests" at runOracleSources, ~8 nodes in; every proxied
+    // query bills one fetch). The account's 5-trigger cap rules out a
+    // second cron, so the resumable sync takes the head of this budget
+    // and ambient traffic advances it further via ctx.waitUntil.
+    await maybeAdvanceClcSync(env).catch(async (e) => {
+      console.error('clc sync failed', e);
+      await ledgerAppend(env.DB, 'cron', 'clc.sync_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
     const nodes = (await list<PlanNode>(env.DB, 'plannode'))
       .filter((n) => n.kind === 'action' && n.h3);
     for (const n of nodes) await runOracleSources(env, n);

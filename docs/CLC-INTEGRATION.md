@@ -51,6 +51,11 @@ Projected rows are **observations, never authority**:
   cron (first in `scheduled()`) **and** on ambient traffic —
   `maybeAdvanceClcSync` in `ctx.waitUntil` re-checks freshness
   (`lastDone`, 15 min) and continues mid-resume cycles on every request.
+  Ambient invocations can race across isolates — concurrent requests
+  each see a stale `lastDone` and run parallel cycles; writes are
+  idempotent (dirty-only) so the cost is duplicate `clc.synced` events,
+  not corruption. There is no cross-isolate mutex on the free plan.
+  Phase breadcrumbs (`clc ambient: …`) land in `wrangler tail`.
 
 ## Environment
 

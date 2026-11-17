@@ -41,7 +41,12 @@ Gaps we shimmed locally that belong upstream:
    silently returned an empty page (`id < 0`); now normalizes to the
    canonical first-page request. Unit + route→store PostgreSQL tests,
    docs line added.
-3. **`otx/track` public read for non-contract txs** — confirmed during
+3. **~~external-consumability for `@clc/api`/`@clc/core`~~ → filed** —
+   [clc-app#461](https://github.com/cosmo-local-credit/clc-app/issues/461):
+   export maps already complete; only `private:true` + `workspace:*`
+   block install. Publishing cadence is a maintainer decision → issue,
+   not a PR.
+4. **`otx/track` public read for non-contract txs** — confirmed during
    attribution work: `/api/v2/otx/track/:id` exists but is **owner-scoped**
    (`clc-app` auth client comments: it "answers only for rows the caller
    owns"), so trackingId resolution needs `CLC_SERVICE_TOKEN`. Our

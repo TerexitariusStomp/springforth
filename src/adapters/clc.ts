@@ -266,7 +266,12 @@ export async function maybeAdvanceClcSync(env: ClcEnv) {
   const fresh = !inProgress && state?.lastDone
     && Date.now() - Date.parse(state.lastDone) < CLC_SYNC_INTERVAL_MS;
   if (fresh) return;
-  await syncClc(env);
+  console.log('clc ambient: advancing (inProgress=%s lastDone=%s)',
+    inProgress, state?.lastDone ?? 'none');
+  await syncClc(env).then((r) =>
+    console.log('clc ambient: done=%s upstream=%s pools=%s vouchers=%s',
+      !r.resumed, r.upstreamCalls, r.pools, r.vouchers))
+    .catch((e) => console.error('clc ambient failed', e));
 }
 
 // One sync cycle: pull pools + market vouchers + bound-wallet holdings,

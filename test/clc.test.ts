@@ -174,6 +174,7 @@ describe('clc-exchange projection', () => {
     expect(ex!.give).toEqual({ voucherId: `clc-${TOK_IN}`, amount: 1 });
     expect(ex!.receive).toEqual({ voucherId: `clc-${TOK_OUT}`, amount: 0.9998 });
     expect(ex!.fees.pool).toBeCloseTo(0.0002);       // 200 raw @ 6 dec
+    expect(ex!.fees.voucherId).toBe(`clc-${TOK_OUT}`); // fees settle in tokenOut
     expect(ex!.rates.receive).toBeCloseTo(0.9998);   // realized price
     expect(ex!.source).toBe('clc');
     expect(ex!.chainRef).toBe(TX);
@@ -198,5 +199,29 @@ describe('seal bits', () => {
     expect(SEAL_BITS[1]).toBe('fee');
     expect(SEAL_BITS[8]).toBe('registry');   // curation freeze bit
     expect(Object.keys(SEAL_BITS)).toHaveLength(5);
+  });
+});
+
+describe('swap-leg dedupe', () => {
+  const EV = (li: number, settlement: boolean) => ({
+    settlement,
+    ev: { poolAddress: '0xAAA', tokenIn: '0xBBB', tokenOut: '0xCCC',
+      amountIn: 100n, amountOut: 99n, poolFee: 0n, protocolFee: 0n,
+      initiator: '0xDDD' },
+    li,
+  });
+  it('collapses the Swap+SwapSettlement pair to one leg', async () => {
+    const { dedupeSwapLegs } = await import('../src/adapters/clc.ts');
+    const out = dedupeSwapLegs([EV(6, false), EV(7, true)]);
+    expect(out).toHaveLength(1);
+    expect(out[0].settlement).toBe(true);        // fee-split variant wins
+    expect(out[0].li).toBe(7);                   // settlement log index kept
+  });
+  it('keeps distinct legs (multi-hop router tx)', async () => {
+    const { dedupeSwapLegs } = await import('../src/adapters/clc.ts');
+    const a = EV(6, false), aS = EV(7, true);
+    const b = { ...EV(14, false), ev: { ...EV(14, false).ev,
+      poolAddress: '0xEEE' } };
+    expect(dedupeSwapLegs([a, aS, b])).toHaveLength(2);
   });
 });

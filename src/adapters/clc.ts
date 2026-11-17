@@ -158,6 +158,10 @@ export const SEAL_BITS: Record<number, string> = {
 
 // Decoded Swap/SwapSettlement log → pool_exchange projection. Pure —
 // the receipt-decode path feeds it; unit tests exercise the mapping.
+// SwapPool.sol: totalFee + protocolFee are both carved out of the
+// user's OUTPUT — fees are tokenOut-denominated (fees[_outToken],
+// IERC20(_outToken).transfer), so the fees record keys to the receive
+// voucher, not the give voucher.
 export const projectExchange = (
   ev: { poolAddress: string; initiator: string; tokenIn: string;
     tokenOut: string; amountIn: bigint; amountOut: bigint;
@@ -178,9 +182,9 @@ export const projectExchange = (
     give: { voucherId: clcVoucherId(inAddr), amount: give },
     receive: { voucherId: clcVoucherId(outAddr), amount: receive },
     fees: {
-      voucherId: clcVoucherId(inAddr),
-      pool: Number(ev.poolFee) / 10 ** decimalsFor(inAddr),
-      protocol: Number(ev.protocolFee) / 10 ** decimalsFor(inAddr),
+      voucherId: clcVoucherId(outAddr),
+      pool: Number(ev.poolFee) / 10 ** decimalsFor(outAddr),
+      protocol: Number(ev.protocolFee) / 10 ** decimalsFor(outAddr),
     },
     // Realized price at execution: 1 give → receive/give receive units.
     // Curation rates are caps, not prices — this is what actually cleared.
@@ -214,6 +218,22 @@ async function* pages<T extends { last?: number }>(
     cursor = page.last;
   }
 }
+
+// SwapPool emits Swap AND SwapSettlement as a pair per swap leg
+// (SwapPool.sol ~L420). Dedupe to one row per leg — prefer the
+// settlement variant: it carries the real pool/protocol fee split.
+export const dedupeSwapLegs = <D extends { settlement: boolean;
+  ev: { poolAddress: string; tokenIn: string; tokenOut: string;
+    amountIn: bigint } }>(decoded: D[]): D[] => {
+  const legs = new Map<string, D>();
+  for (const d of decoded) {
+    const key = [d.ev.poolAddress, d.ev.tokenIn, d.ev.tokenOut,
+      d.ev.amountIn.toString()].join('|').toLowerCase();
+    const cur = legs.get(key);
+    if (!cur || d.settlement) legs.set(key, d);
+  }
+  return [...legs.values()];
+};
 
 // ── Resumable sync state ─────────────────────────────────────────────
 // The Worker invocation runs under a ~50-subrequest budget (free plan —
@@ -507,7 +527,7 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
       // GiftableToken decimals are per-instance, so they can't be
       // assumed from the voucher projection.
       const decoded: { t: ClcTrack; li: number; txHash: string;
-        ev: Parameters<typeof projectExchange>[0] }[] = [];
+        settlement: boolean; ev: Parameters<typeof projectExchange>[0] }[] = [];
       for (const t of open.slice(0, 20)) {
         if (overBudget()) { tracksDone = false; break; }
         let txHash = t.txHash;
@@ -530,8 +550,9 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
           continue;
         }
         for (const [li, log] of rc.logs.entries()) {
-          for (const abi of
-            [swapPoolSwapSettlementEventAbi, swapPoolSwapEventAbi] as const) {
+          for (const [si, abi] of
+            [swapPoolSwapSettlementEventAbi, swapPoolSwapEventAbi]
+              .entries() as unknown as [number, typeof swapPoolSwapEventAbi][]) {
             let a: { initiator: string; tokenIn: string; tokenOut: string;
               amountIn: bigint; amountOut: bigint;
               fee?: bigint; poolFee?: bigint; protocolFee?: bigint };
@@ -539,7 +560,7 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
               a = decodeEventLog(
                 { abi, data: log.data, topics: log.topics }).args as typeof a;
             } catch { continue; }               // not this event
-            decoded.push({ t, li, txHash, ev: {
+            decoded.push({ t, li, txHash, settlement: si === 0, ev: {
               poolAddress: log.address, initiator: a.initiator,
               tokenIn: a.tokenIn, tokenOut: a.tokenOut,
               amountIn: a.amountIn, amountOut: a.amountOut,
@@ -555,6 +576,7 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
         confirmedTracks.push(t);
       }
       if (open.length > 20) tracksDone = false; // backlog resumes next cycle
+      decoded.splice(0, decoded.length, ...dedupeSwapLegs(decoded));
       // Pass 2: decimals for every token appearing in decoded swaps.
       if (decoded.length && !overBudget()) {
         const addrs = [...new Set(decoded.flatMap((d) =>

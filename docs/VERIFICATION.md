@@ -73,3 +73,14 @@ curl 'https://springforth.widespread.workers.dev/pools/clc-<addr>/quote?give=<vo
   (docs/CLC-UPSTREAM.md).
 - Sync is hourly; `observedAt` tells you how stale a projection is.
   The chain is never stale.
+- **Production sync history (2026-11-17):** the hourly cron had not
+  completed a cycle since 2026-10-23 — an uncaught `sweepPossibilities`
+  failure killed `scheduled()` after the oracle-check phase, before
+  `syncClc` and the `oracle.cycle` summary (ledger evidence:
+  `oracle.check` events at 06:00:16–21Z, then nothing). Diagnosed from
+  the ledger, fixed by failure-isolating the sweep (`cron.sweep_failed`
+  is now ledgered instead of fatal), moving `syncClc` ahead of the
+  legacy pipeline, and making the sync batch-first (~6 reads + 1 ledger
+  append steady-state instead of ~2,700 sequential writes). If
+  `clc.synced` / `cron.sweep_failed` events stop appearing again, that
+  is itself the evidence — check `/ledger` for them.

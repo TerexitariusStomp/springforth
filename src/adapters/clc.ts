@@ -5,9 +5,9 @@
 // every record carries the chainAddress it was seen at so consumers can
 // verify against Gnosis instead of trusting the mirror.
 //
-// Only newly-seen pools/vouchers get their own ledger event; each cycle
-// ends with one `clc.synced` summary event so the ledger records
-// observation provenance without an event per row.
+// Each cycle ends with one `clc.synced` summary event carrying the new-id
+// lists plus a digest of everything observed — provenance without an
+// event per row.
 
 import { createHash } from 'node:crypto';
 import { parseAbi } from 'viem';
@@ -18,7 +18,7 @@ import { createPoolDeployClient } from '@clc/api/features/pools/deploy-client';
 import { createAccountsClient } from '@clc/api/features/accounts/client';
 import type { PoolDeployPayload } from '@clc/core/features/pools/logic';
 import type { ActorWallet, CommitmentPool, Voucher, VoucherHolding } from '../entities';
-import { get, list, put, ledgerAppend } from '../store';
+import { list, ledgerAppend, putManyIfChanged } from '../store';
 import { GNOSIS, publicClientFor } from '../chain';
 import { UA } from './fetch';
 
@@ -163,158 +163,185 @@ async function* pages<T extends { last?: number }>(
   }
 }
 
-// One sync cycle: pull pools + market vouchers, upsert projections,
-// ledger the newly-seen. Returns counts for the cron summary event.
+// One sync cycle: pull pools + market vouchers + bound-wallet holdings,
+// write projections in batches, ledger one digest event.
+//
+// Cost discipline (the hourly cron shares a wall-clock/CPU budget with
+// the whole evidence cycle, and every D1 call may cross the HTTPS
+// proxy): preload existing projections once per kind, diff in memory,
+// and batch writes via putManyIfChanged — a full catalog sync is ~10
+// DB calls, not ~2,700. Per-entity `seen` ledger events are dropped
+// for the same reason; the single `clc.synced` event carries the new-id
+// lists and a digest of everything observed — same provenance, one write.
 export async function syncClc(env: ClcEnv): Promise<{
   pools: number; vouchers: number; newPools: number; newVouchers: number;
   holdings: number; detailReads: number; partial: boolean;
 }> {
   const { http, pools, accounts } = clcClient(env);
   const observedAt = new Date().toISOString();
-  let nPools = 0, nVouchers = 0, newPools = 0, newVouchers = 0, nHoldings = 0;
   let detailReads = 0, partial = false;
   const seenHash: string[] = [];
 
-  // Pools — each becomes a CommitmentPool projection; its member
-  // vouchers become the accepted[] curation list. Contract config
-  // (sealState, feeAddress) is read on-chain, not from the catalog.
-  const poolAddrs: `0x${string}`[] = [];
-  outer:
-  for await (const page of pages((cursor) =>
-    // `next` only travels with a cursor — a bare next:true reads as
-    // "page after cursor 0" and returns an empty page.
-    pools.getPools(cursor === undefined
-      ? { perPage: PER_PAGE }
-      : { perPage: PER_PAGE, cursor, next: true }))) {
-    for (const p of page.pools) {
-      const addr = (p.address ?? '').toLowerCase();
-      if (!addr.startsWith('0x')) continue;
-      nPools++;
-      poolAddrs.push(addr as `0x${string}`);
-      const id = clcPoolId(addr);
-      const existing = await get<CommitmentPool>(env.DB, 'commitment-pool', id);
-      // Curation detail reads are conditional — new pools, pools the
-      // catalog updated since our last observation, or projections whose
-      // accepted[] never landed — and capped + paced per cycle.
-      const stale = !existing
-        || !existing.accepted?.length
-        || (p.updatedAt && p.updatedAt > (existing.observedAt ?? ''));
-      const accepted: CommitmentPool['accepted'] = [];
-      if (stale && detailReads < DETAIL_READ_CAP) {
-        detailReads++;
-        await sleep(DETAIL_PACE_MS);
-        try {
-          for await (const vpage of pages((cursor) =>
-            pools.getPoolVouchers(addr, cursor === undefined
-              ? { perPage: PER_PAGE }
-              : { perPage: PER_PAGE, cursor, next: true }))) {
-            for (const v of vpage.vouchers) {
-              const va = (v.tokenAddress ?? '').toLowerCase();
-              if (!va.startsWith('0x')) continue;
-              accepted.push({
-                voucherId: clcVoucherId(va),
-                // Rate/valuation lives in the pool's quoter on-chain —
-                // getAmountOut is authoritative; this entry records
-                // curation + the limitation cap, not a price.
-                rate: 1,
-                limit: v.tokenLimit ? Number(v.tokenLimit) || Number.MAX_SAFE_INTEGER
-                  : Number.MAX_SAFE_INTEGER,
-                state: v.active === false ? 'suspended' : 'accepted',
-              });
-            }
-          }
-        } catch (e) {
-          if (isRateLimited(e)) { partial = true; break outer; }
-          /* a failed voucher page leaves prior accepted[] intact */
-        }
-      }
-      const pool: CommitmentPool = {
-        ...(existing ?? {}),
-        id,
-        name: p.name ?? addr,
-        description: p.description ?? '',
-        operator: p.ownerAddress ?? 'clc',
-        indexUnit: p.unitOfAccount ?? 'index',
-        accepted: accepted.length ? accepted : (existing?.accepted ?? []),
-        poolFeeBps: p.feePpm != null ? Math.round(p.feePpm / 100)
-          : (existing?.poolFeeBps ?? 0),
-        protocolFeeBps: existing?.protocolFeeBps ?? 0,
-        protocolFeeSink: existing?.protocolFeeSink ?? 'protocol',
-        feeAddress: p.feeAddress ?? existing?.feeAddress,
-        quoterType: p.quoterType ?? existing?.quoterType,
-        state: p.active === false ? 'paused' : 'open',
-        createdAt: existing?.createdAt ?? observedAt,
-        source: 'clc', chainAddress: addr, chainId: CLC_CHAIN_ID,
-        observedAt,
-      };
-      await put(env.DB, 'commitment-pool', id, pool);
-      seenHash.push(JSON.stringify([id, accepted.length, pool.state]));
-      if (!existing) {
-        newPools++;
-        await ledgerAppend(env.DB, 'clc', 'clc.pool.seen',
-          { id, chainAddress: addr, name: pool.name });
-      }
-    }
-  }
+  const [existingPools, existingVouchers] = await Promise.all([
+    list<CommitmentPool>(env.DB, 'commitment-pool'),
+    list<Voucher>(env.DB, 'voucher'),
+  ]);
+  const poolById = new Map(existingPools.map((p) => [p.id, p]));
+  const voucherById = new Map(existingVouchers.map((v) => [v.id, v]));
 
-  // Market vouchers — the full catalog, not only pool members.
-  for await (const page of pages((cursor) =>
-    http.request<VoucherPage>(
-      `/api/v2/vouchers?perPage=${PER_PAGE}${cursor !== undefined ? `&cursor=${cursor}&next=true` : ''}`))) {
-    for (const v of page.vouchers ?? []) {
-      const addr = (v.address ?? '').toLowerCase();
-      if (!addr.startsWith('0x')) continue;
-      nVouchers++;
-      const id = clcVoucherId(addr);
-      const existing = await get<Voucher>(env.DB, 'voucher', id);
-      const voucher: Voucher = {
-        ...(existing ?? {}),
-        id,
-        issuer: 'clc',                 // issuer identity is issuer-side;
-                                       // contract address is the projection key
-        title: v.name ?? v.symbol ?? addr,
-        unit: v.symbol ?? 'unit',
-        description: v.locationName ? `CLC voucher — ${v.locationName}` : 'CLC voucher',
-        terms: '',
-        supply: existing?.supply ?? 1, // market read doesn't expose supply;
-                                       // chain totalSupply is authoritative
-        expiresAt: existing?.expiresAt,
-        state: 'issued',
-        createdAt: existing?.createdAt ?? observedAt,
-        source: 'clc', chainAddress: addr,
-        chainId: v.chainId ?? CLC_CHAIN_ID, observedAt,
-      };
-      await put(env.DB, 'voucher', id, voucher);
-      seenHash.push(id);
-      if (!existing) {
-        newVouchers++;
-        await ledgerAppend(env.DB, 'clc', 'clc.voucher.seen',
-          { id, chainAddress: addr, title: voucher.title });
-      }
-    }
-  }
-
-  // On-chain pool config — sealState + feeAddress straight from the
-  // SwapPool contracts, applied onto the projections just written.
+  // ── Pass 1: catalog pool list → projection inputs ────────────────
+  type PoolInput = { row: CommitmentPool; addr: `0x${string}`; updatedAt?: string };
+  const poolInputs: PoolInput[] = [];
   try {
-    const states = await poolStateOnChain(env, poolAddrs);
-    for (const [addr, s] of states) {
-      if (s.sealState === undefined && !s.feeAddress) continue;
-      const id = clcPoolId(addr);
-      const pool = await get<CommitmentPool>(env.DB, 'commitment-pool', id);
-      if (!pool) continue;
-      await put(env.DB, 'commitment-pool', id, {
-        ...pool, sealState: s.sealState ?? pool.sealState,
-        feeAddress: s.feeAddress ?? pool.feeAddress, observedAt,
-      });
+    for await (const page of pages((cursor) =>
+      // `next` only travels with a cursor — a bare next:true reads as
+      // "page after cursor 0" and returns an empty page.
+      pools.getPools(cursor === undefined
+        ? { perPage: PER_PAGE }
+        : { perPage: PER_PAGE, cursor, next: true }))) {
+      for (const p of page.pools) {
+        const addr = (p.address ?? '').toLowerCase();
+        if (!addr.startsWith('0x')) continue;
+        const id = clcPoolId(addr);
+        const existing = poolById.get(id);
+        poolInputs.push({
+          addr: addr as `0x${string}`, updatedAt: p.updatedAt,
+          row: {
+            ...(existing ?? {}),
+            id,
+            name: p.name ?? addr,
+            description: p.description ?? '',
+            operator: p.ownerAddress ?? 'clc',
+            indexUnit: p.unitOfAccount ?? 'index',
+            accepted: existing?.accepted ?? [],
+            poolFeeBps: p.feePpm != null ? Math.round(p.feePpm / 100)
+              : (existing?.poolFeeBps ?? 0),
+            protocolFeeBps: existing?.protocolFeeBps ?? 0,
+            protocolFeeSink: existing?.protocolFeeSink ?? 'protocol',
+            feeAddress: p.feeAddress ?? existing?.feeAddress,
+            quoterType: p.quoterType ?? existing?.quoterType,
+            state: p.active === false ? 'paused' : 'open',
+            createdAt: existing?.createdAt ?? observedAt,
+            source: 'clc', chainAddress: addr, chainId: CLC_CHAIN_ID,
+            observedAt,
+          },
+        });
+      }
+    }
+  } catch (e) {
+    if (isRateLimited(e)) partial = true; else throw e;
+  }
+
+  // ── Pass 2: on-chain pool config (one multicall batch) ───────────
+  try {
+    const states = await poolStateOnChain(env, poolInputs.map((x) => x.addr));
+    for (const x of poolInputs) {
+      const s = states.get(x.addr.toLowerCase());
+      if (!s) continue;
+      if (s.sealState !== undefined) x.row.sealState = s.sealState;
+      if (s.feeAddress) x.row.feeAddress = s.feeAddress;
     }
   } catch (e) {
     console.error('clc sync: pool state multicall failed', e);
   }
 
-  // Actor holdings — for each wallet bound to an actor (bind-wallet),
-  // project the CLC token balances as source:'clc' holdings. Balances
-  // are observations of on-chain state; the chain is authoritative.
+  // ── Pass 3: curation detail reads — conditional, capped, paced ───
+  for (const x of poolInputs) {
+    const existing = poolById.get(x.row.id);
+    const stale = !existing
+      || !existing.accepted?.length
+      || (!!x.updatedAt && x.updatedAt > (existing.observedAt ?? ''));
+    if (!stale || detailReads >= DETAIL_READ_CAP) continue;
+    detailReads++;
+    await sleep(DETAIL_PACE_MS);
+    try {
+      const accepted: CommitmentPool['accepted'] = [];
+      for await (const vpage of pages((cursor) =>
+        pools.getPoolVouchers(x.addr, cursor === undefined
+          ? { perPage: PER_PAGE }
+          : { perPage: PER_PAGE, cursor, next: true }))) {
+        for (const v of vpage.vouchers) {
+          const va = (v.tokenAddress ?? '').toLowerCase();
+          if (!va.startsWith('0x')) continue;
+          accepted.push({
+            voucherId: clcVoucherId(va),
+            // Rate/valuation lives in the pool's quoter on-chain —
+            // getAmountOut is authoritative; this entry records
+            // curation + the limitation cap, not a price.
+            rate: 1,
+            limit: v.tokenLimit ? Number(v.tokenLimit) || Number.MAX_SAFE_INTEGER
+              : Number.MAX_SAFE_INTEGER,
+            state: v.active === false ? 'suspended' : 'accepted',
+          });
+        }
+      }
+      if (accepted.length) x.row.accepted = accepted;
+    } catch (e) {
+      if (isRateLimited(e)) { partial = true; break; }
+      /* a failed voucher page leaves prior accepted[] intact */
+    }
+  }
+
+  // Steady-state writes: observedAt refreshes every cycle, so compare
+  // content minus observedAt — an unchanged upstream pool keeps its
+  // existing row (observedAt then reads "when this projection last
+  // changed", which is the provenance a verifier wants anyway).
+  const stripObs = (o: unknown) => JSON.stringify({ ...(o as object), observedAt: undefined });
+  const poolRows = poolInputs.map((x) => {
+    const existing = poolById.get(x.row.id);
+    return { id: x.row.id, obj: existing && stripObs(existing) === stripObs(x.row) ? existing : x.row };
+  });
+  const poolsWritten = await putManyIfChanged(env.DB, 'commitment-pool', poolRows);
+  for (const x of poolInputs) seenHash.push(
+    `${x.row.id}:${x.row.accepted.length}:${x.row.state}`);
+  const newPoolIds = poolInputs.filter((x) => !poolById.has(x.row.id))
+    .map((x) => x.row.id);
+
+  // ── Market vouchers — the full catalog, not only pool members ────
+  const voucherRows: { id: string; obj: Voucher }[] = [];
+  try {
+    for await (const page of pages((cursor) =>
+      http.request<VoucherPage>(
+        `/api/v2/vouchers?perPage=${PER_PAGE}${cursor !== undefined ? `&cursor=${cursor}&next=true` : ''}`))) {
+      for (const v of page.vouchers ?? []) {
+        const addr = (v.address ?? '').toLowerCase();
+        if (!addr.startsWith('0x')) continue;
+        const id = clcVoucherId(addr);
+        const existing = voucherById.get(id);
+        const row: Voucher = {
+          ...(existing ?? {}),
+          id,
+          issuer: 'clc',               // issuer identity is issuer-side;
+                                       // contract address is the projection key
+          title: v.name ?? v.symbol ?? addr,
+          unit: v.symbol ?? 'unit',
+          description: v.locationName
+            ? `CLC voucher — ${v.locationName}` : 'CLC voucher',
+          terms: '',
+          supply: existing?.supply ?? 1, // market read doesn't expose
+                                         // supply; chain is authoritative
+          expiresAt: existing?.expiresAt,
+          state: 'issued',
+          createdAt: existing?.createdAt ?? observedAt,
+          source: 'clc', chainAddress: addr,
+          chainId: v.chainId ?? CLC_CHAIN_ID, observedAt,
+        };
+        voucherRows.push({
+          id,
+          obj: existing && stripObs(existing) === stripObs(row) ? existing : row,
+        });
+      }
+    }
+  } catch (e) {
+    if (isRateLimited(e)) partial = true; else throw e;
+  }
+  const vouchersWritten = await putManyIfChanged(env.DB, 'voucher', voucherRows);
+  for (const r of voucherRows) seenHash.push(r.id);
+  const newVoucherIds = voucherRows.filter((r) => !voucherById.has(r.id))
+    .map((r) => r.id);
+
+  // ── Actor holdings — bound wallets → CLC balances ────────────────
+  const holdingRows: { id: string; obj: VoucherHolding }[] = [];
   try {
     const wallets = await list<ActorWallet>(env.DB, 'actor-wallet');
     for (const w of wallets) {
@@ -323,20 +350,28 @@ export async function syncClc(env: ClcEnv): Promise<{
       for (const t of tokens ?? []) {
         const h = projectHolding(w.actor, t, observedAt);
         if (!h) continue;
-        await put(env.DB, 'voucher-holding', h.id, h);
-        nHoldings++;
+        holdingRows.push({ id: h.id, obj: h });
         seenHash.push(h.id);
       }
     }
   } catch (e) {
     console.error('clc sync: holdings sync failed', e);
   }
+  const holdingsWritten = await putManyIfChanged(env.DB, 'voucher-holding', holdingRows);
 
   await ledgerAppend(env.DB, 'clc', 'clc.synced', {
-    pools: nPools, vouchers: nVouchers, newPools, newVouchers,
-    holdings: nHoldings, detailReads, partial,
+    pools: poolRows.length, vouchers: voucherRows.length,
+    holdings: holdingRows.length,
+    newPoolIds: newPoolIds.slice(0, 200),
+    newVouchers: newVoucherIds.length,
+    written: { pools: poolsWritten.written, vouchers: vouchersWritten.written,
+      holdings: holdingsWritten.written },
+    detailReads, partial,
     hash: digest(seenHash.sort().join('\n')),
   });
-  return { pools: nPools, vouchers: nVouchers, newPools, newVouchers,
-    holdings: nHoldings, detailReads, partial };
+  return {
+    pools: poolRows.length, vouchers: voucherRows.length,
+    newPools: newPoolIds.length, newVouchers: newVoucherIds.length,
+    holdings: holdingRows.length, detailReads, partial,
+  };
 }

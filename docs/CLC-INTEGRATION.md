@@ -31,9 +31,15 @@ Projected rows are **observations, never authority**:
 - The ops export (v1.4) emits these fields **raw** — public on-chain data
   deliberately exempt from actor pseudonymization so reviewers can verify
   every record on gnosisscan.io.
-- Ledger events: `clc.pool.seen` / `clc.voucher.seen` only on first
-  observation, one `clc.synced` summary per cycle (payload hash covers the
-  observed set) — the ledger attests what we saw, not what we did.
+- Ledger events: one `clc.synced` summary per cycle carrying the new-id
+  lists plus a digest hash of everything observed — the ledger attests
+  what we saw, not what we did. (Per-entity `seen` events were dropped:
+  1,300 sequential ledger writes per cycle does not fit the cron's
+  wall-clock budget — one digest event carries the same provenance.)
+- Write cost: existing projections are preloaded once per kind, rows are
+  compared excluding `observedAt` (which therefore reads "when this
+  projection last changed"), and only changed rows are written, batched
+  500/`putMany` — a steady-state cycle is ~6 reads + 1 ledger append.
 
 ## Environment
 

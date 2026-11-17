@@ -5003,18 +5003,25 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
     const nodes = (await list<PlanNode>(env.DB, 'plannode'))
       .filter((n) => n.kind === 'action' && n.h3);
     for (const n of nodes) await runOracleSources(env, n);
-    await sweepPossibilities(env, 'cron');
-    const chainConfirmed = await syncChain(env).catch(() => 0);
-    const streamsAccrued = await accrueStreams(env).catch(() => 0);
-    const yieldCredited = await syncYield(env).catch(() => 0);
     // CLC sync — mirror cosmolocal.credit pools/vouchers into
-    // source:'clc' projections (docs/CLC-INTEGRATION.md). Reads are HTTP,
-    // zero D1 quota cost; failures are ledgered, never fatal to the cycle.
+    // source:'clc' projections (docs/CLC-INTEGRATION.md). Runs before the
+    // legacy write-heavy pipeline: an uncaught failure further down must
+    // never starve the mirror (2026-11-17: sweepPossibilities had been
+    // killing the cycle since 10-23 — oracle.cycle absent for a month,
+    // clc.* never reached). Failures are ledgered, never fatal.
     await syncClc(env).catch(async (e) => {
       console.error('clc sync failed', e);
       await ledgerAppend(env.DB, 'cron', 'clc.sync_failed',
         { error: String(e) }).catch(() => undefined);
     });
+    await sweepPossibilities(env, 'cron').catch(async (e) => {
+      console.error('possibility sweep failed', e);
+      await ledgerAppend(env.DB, 'cron', 'cron.sweep_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
+    const chainConfirmed = await syncChain(env).catch(() => 0);
+    const streamsAccrued = await accrueStreams(env).catch(() => 0);
+    const yieldCredited = await syncYield(env).catch(() => 0);
     // Trust-epoch checkpoint — hourly catch-up for edge changes the
     // appreciate-time hook deferred on the seq gap.
     await maybeTrustCheckpoint(env).catch(async (e) => {

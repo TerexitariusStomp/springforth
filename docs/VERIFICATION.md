@@ -73,14 +73,16 @@ curl 'https://springforth.widespread.workers.dev/pools/clc-<addr>/quote?give=<vo
   (docs/CLC-UPSTREAM.md).
 - Sync is hourly; `observedAt` tells you how stale a projection is.
   The chain is never stale.
-- **Production sync history (2026-11-17):** the hourly cron had not
-  completed a cycle since 2026-10-23 — an uncaught `sweepPossibilities`
-  failure killed `scheduled()` after the oracle-check phase, before
-  `syncClc` and the `oracle.cycle` summary (ledger evidence:
-  `oracle.check` events at 06:00:16–21Z, then nothing). Diagnosed from
-  the ledger, fixed by failure-isolating the sweep (`cron.sweep_failed`
-  is now ledgered instead of fatal), moving `syncClc` ahead of the
-  legacy pipeline, and making the sync batch-first (~6 reads + 1 ledger
-  append steady-state instead of ~2,700 sequential writes). If
-  `clc.synced` / `cron.sweep_failed` events stop appearing again, that
-  is itself the evidence — check `/ledger` for them.
+- **Production sync history (2026-11-17):** the account is on the
+  Workers **free plan** — ~50 subrequests per invocation and 5 cron
+  triggers account-wide (both confirmed by wrangler). Because the D1
+  proxy bills every query as a `fetch()` subrequest, the cron's oracle
+  loop alone exhausts the budget ~8 nodes in (tail: "Too many
+  subrequests" at `runOracleSources`); no `oracle.cycle` summary has
+  been written since 2026-10-23. The CLC mirror is designed around the
+  cap: `syncClc` runs first in the hourly cron and meters upstream
+  calls (≤34/invocation), persists resume state in a `clc-sync` row,
+  and advances on ambient traffic via `ctx.waitUntil`
+  (`maybeAdvanceClcSync`). First prod sync completed 2026-11-17
+  (104 pools, 1,187 vouchers; `clc.synced` in `/ledger`). If `clc.*`
+  events stop appearing again, that is itself the evidence.

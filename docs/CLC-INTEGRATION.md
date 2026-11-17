@@ -38,8 +38,15 @@ Projected rows are **observations, never authority**:
   wall-clock budget — one digest event carries the same provenance.)
 - Write cost: existing projections are preloaded once per kind, rows are
   compared excluding `observedAt` (which therefore reads "when this
-  projection last changed"), and only changed rows are written, batched
+  projection last changed"), and only dirty rows are written, batched
   500/`putMany` — a steady-state cycle is ~6 reads + 1 ledger append.
+- Subrequest budget (free plan ≈ 50/invocation): upstream fetches are
+  metered at 34/invocation; progress persists in a `clc-sync` row
+  (`detailsRemaining` / `voucherCursor` / `walletIdx`) so one logical
+  cycle can span multiple invocations. The sync advances on the hourly
+  cron (first in `scheduled()`) **and** on ambient traffic —
+  `maybeAdvanceClcSync` in `ctx.waitUntil` re-checks freshness
+  (`lastDone`, 15 min) and continues mid-resume cycles on every request.
 
 ## Environment
 

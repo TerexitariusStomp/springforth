@@ -79,6 +79,7 @@ export interface ClcTrack {
   id: string; trackingId?: string; txHash?: string;
   possibilityId?: string; actor: string; status: string;
   chainId?: number; at: string;
+  confirmedAt?: string; blockNumber?: number; exchanges?: string[];
 }
 
 type Line = Record<string, unknown>;
@@ -355,6 +356,8 @@ export function buildOpsExport(i: OpsExportInput): {
       possibilityId: t.possibilityId ? oid(t.possibilityId, salt) : null,
       actor: ps(t.actor), status: t.status,
       chainId: t.chainId ?? null, at: t.at,
+      confirmedAt: t.confirmedAt ?? null, blockNumber: t.blockNumber ?? null,
+      exchanges: t.exchanges ?? null,
     });
   }
 

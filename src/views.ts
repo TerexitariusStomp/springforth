@@ -8,7 +8,7 @@ import {
   RetroRound, ActorWallet, RecurringSupport, YieldStream,
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
   CouncilSeat, ForumPost, Question, CouncilDecision, Referral, TestCard,
-  CommitmentPool, Voucher,
+  CommitmentPool, PoolExchange, Voucher,
   valueCoordinated, roundDemand, endowmentAccrual,
 } from './core';
 import {
@@ -132,7 +132,7 @@ export async function loadMetrics(env: Env) {
   const first = Math.min(...statuses.map((x) => Date.parse(x.p.createdAt)), now);
   const weeks = Math.max(1, (now - first) / (7 * 86_400_000));
   const [passes, questions, decisions, referrals, interests, tests, seats,
-    clcPools, clcVouchers, clcTracks] = await Promise.all([
+    clcPools, clcVouchers, clcTracks, clcExchanges] = await Promise.all([
     list<Pass>(env.DB, 'pass'), list<Question>(env.DB, 'question'),
     list<CouncilDecision>(env.DB, 'decision'), list<Referral>(env.DB, 'referral'),
     list<Interest>(env.DB, 'interest'), list<TestCard>(env.DB, 'test'),
@@ -142,6 +142,8 @@ export async function loadMetrics(env: Env) {
       "json_extract(json,'$.source')='clc'"),
     listWhere<Voucher>(env.DB, 'voucher', "json_extract(json,'$.source')='clc'"),
     list<{ id: string; status: string }>(env.DB, 'clc-track'),
+    listWhere<PoolExchange>(env.DB, 'pool-exchange',
+      "json_extract(json,'$.source')='clc'"),
   ]);
   const expiringSoon = statuses.filter((x) =>
     (x.s === 'active' || x.s === 'draft') && x.p.deadline
@@ -230,6 +232,27 @@ export async function loadMetrics(env: Env) {
       activePools: clcPools.filter((p) => p.state === 'open').length,
       vouchers: clcVouchers.length,
       trackedTx: clcTracks.length,
+      confirmedTx: clcTracks.filter((t) => t.status === 'confirmed').length,
+      exchanges: clcExchanges.length,
+      // Seal bits (SwapPool.sol): registry sealed = curation frozen —
+      // the charter's "frozen parameters" made legible.
+      sealedPools: clcPools.filter((p) => (p.sealState ?? 0) !== 0).length,
+      registrySealed: clcPools.filter((p) => ((p.sealState ?? 0) & 8) !== 0)
+        .length,
+      // Routing fabric — vouchers accepted by ≥2 pools are the paths a
+      // multi-hop route could take; today's swaps are same-pool, but
+      // this is the network's latent netting capacity.
+      vouchersCurated: new Set(clcPools.flatMap((p) =>
+        (p.accepted ?? []).map((a) => a.voucherId))).size,
+      vouchersMultiPool: (() => {
+        const n = new Map<string, number>();
+        for (const p of clcPools) {
+          for (const a of p.accepted ?? []) {
+            n.set(a.voucherId, (n.get(a.voucherId) ?? 0) + 1);
+          }
+        }
+        return [...n.values()].filter((c) => c > 1).length;
+      })(),
       possibilitiesLinked: poss.filter((p) => p.clcPool).length,
     },
     // Monetary value, per currency (never converted) — committed and

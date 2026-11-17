@@ -71,7 +71,7 @@ Two different checks: `file_sha256` proves the file arrived intact;
 | `pool` | id, operator, indexUnit, accepted[{voucherId,rate,limit,state}], poolFeeBps, protocolFeeBps, state, at, **source, chainAddress, chainId, observedAt, sealState, feeAddress, quoterType** | `commitment-pool` — CLC SwapPool projections: curation + limits mirrored, `sealState` = contract freeze bitmask |
 | `pool_exchange` | id, poolId, actor, give{voucherId,amount}, receive{voucherId,amount}, fees{voucherId,pool,protocol}, rates, at, **source, chainRef** | `pool-exchange` — `chainRef` carries the settlement txHash |
 | `redemption` | id, voucherId, holder, amount, state, at, resolvedAt, **chainRef** | `redemption` — discharge records; `chainRef` = return-transfer txHash |
-| `clc_track` | id, trackingId, txHash, possibilityId, actor, status, chainId, at | `clc-track` — CLC transactions attributed to coordinated activity (`POST /clc/track`) |
+| `clc_track` | id, trackingId, txHash, possibilityId, actor, status, chainId, at, confirmedAt, blockNumber, exchanges | `clc-track` — CLC transactions attributed to coordinated activity (`POST /clc/track`); `status` moves `submitted`→`confirmed`/`failed` as receipts resolve; `exchanges` links decoded `pool_exchange` ids |
 
 Provenance fields (`source`, `chainAddress`, `chainId`, `chainRef`,
 `observedAt`) are emitted **raw** — public on-chain data, deliberately

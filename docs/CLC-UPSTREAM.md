@@ -41,9 +41,12 @@ Gaps we shimmed locally that belong upstream:
    silently returned an empty page (`id < 0`); now normalizes to the
    canonical first-page request. Unit + route→store PostgreSQL tests,
    docs line added.
-3. **`otx/track` for non-contract txs** — attribution lane tracks swap
-   txHashes; a public query surface for arbitrary tx status would let us
-   drop the gnosisscan dependency for confirmations.
+3. **`otx/track` public read for non-contract txs** — confirmed during
+   attribution work: `/api/v2/otx/track/:id` exists but is **owner-scoped**
+   (`clc-app` auth client comments: it "answers only for rows the caller
+   owns"), so trackingId resolution needs `CLC_SERVICE_TOKEN`. Our
+   fallback reads receipts on Gnosis directly; a public (or
+   integrator-scoped) status surface would close the loop API-side.
 
 Rules for upstream PRs: AGPL headers preserved, changes offered under
 upstream's license, no Springforth secrets in examples, test with their

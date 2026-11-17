@@ -58,7 +58,7 @@ curl 'https://springforth.widespread.workers.dev/pools/clc-<addr>/quote?give=<vo
 |---|---|---|
 | `pool`/`voucher` (source:clc) | this contract was observed in the CLC catalog at `observedAt` | current state — re-check on-chain |
 | `pool.accepted[]` | curation + limiter caps at observation | price — `rate:1` is a marker; `getAmountOut` is the quote |
-| `clc_track` | a CLC tx was attributed to a possibility/actor | fulfillment — that needs a `redemption` record |
+| `clc_track` (`confirmed`) | the tx mined successfully; `exchanges[]` links decoded `pool_exchange` rows with amounts straight from the `Swap`/`SwapSettlement` logs | that the swap was *intended* by the attributed actor — the initiator↔actor join needs a wallet binding |
 | `redemption` | an outstanding→fulfilled/rejected discharge, issuer-resolved | that goods were good — the issuer attests, evidence is upstream |
 | `pool_exchange` (source:clc) | a swap with a `chainRef` txHash | — verify the tx directly |
 | actor pseudonyms `a_*`/`x_*` | stable joins within the file | identity — sha256(salt, actor), salt is server-side |
@@ -68,6 +68,10 @@ curl 'https://springforth.widespread.workers.dev/pools/clc-<addr>/quote?give=<vo
 - `holding` rows for CLC vouchers project only wallets bound via
   `POST /actors/:id/bind-wallet`, and require `CLC_SERVICE_TOKEN`
   (clc-core account reads are auth-gated — E06 verified).
+- `clc_track` rows with only a `trackingId` stay `submitted` until
+  `CLC_SERVICE_TOKEN` lands — clc-core's `/otx/track` is owner-scoped.
+  `txHash` rows resolve on-chain with no token. `submitted` therefore
+  means "not yet resolved" (pending, unmined, or gated), not "failed."
 - `pool.sealState` comes from the contract (multicall), not the API —
   clc-core doesn't expose it; upstream PR queued
   (docs/CLC-UPSTREAM.md).

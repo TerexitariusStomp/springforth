@@ -148,3 +148,55 @@ describe('clc-holdings projection', () => {
     expect(projectHolding('a', {}, T)).toBeNull();
   });
 });
+
+describe('clc-exchange projection', () => {
+  const T = '2026-11-17T06:00:00.000Z';
+  const POOL_A = '0x1111111111111111111111111111111111111111';
+  const TOK_IN = '0x2222222222222222222222222222222222222222';
+  const TOK_OUT = '0x3333333333333333333333333333333333333333';
+  const INITIATOR = '0x4444444444444444444444444444444444444444';
+  const TX = '0x' + 'ab'.repeat(32);
+  const EV = {
+    poolAddress: POOL_A, initiator: INITIATOR, tokenIn: TOK_IN,
+    tokenOut: TOK_OUT, amountIn: 1_000_000n, amountOut: 999_800n,
+    poolFee: 200n, protocolFee: 0n,
+  };
+  const six = () => 6;
+  const anon = (a: string) => `addr:${a.toLowerCase()}`;
+
+  it('projects a decoded SwapSettlement into a clc pool_exchange', async () => {
+    const { projectExchange } = await import('../src/adapters/clc.ts');
+    const ex = projectExchange(EV, 3, TX, six, anon, T);
+    expect(ex).not.toBeNull();
+    expect(ex!.id).toBe(`clcex-${TX}-3`);
+    expect(ex!.poolId).toBe(`clc-${POOL_A}`);
+    expect(ex!.actor).toBe(`addr:${INITIATOR}`);
+    expect(ex!.give).toEqual({ voucherId: `clc-${TOK_IN}`, amount: 1 });
+    expect(ex!.receive).toEqual({ voucherId: `clc-${TOK_OUT}`, amount: 0.9998 });
+    expect(ex!.fees.pool).toBeCloseTo(0.0002);       // 200 raw @ 6 dec
+    expect(ex!.rates.receive).toBeCloseTo(0.9998);   // realized price
+    expect(ex!.source).toBe('clc');
+    expect(ex!.chainRef).toBe(TX);
+    expect(ex!.chainId).toBe(100);
+  });
+  it('maps a bound wallet initiator to the actor id', async () => {
+    const { projectExchange } = await import('../src/adapters/clc.ts');
+    const ex = projectExchange(EV, 0, TX, six,
+      () => 'actor-aisha', T);
+    expect(ex!.actor).toBe('actor-aisha');
+  });
+  it('drops zero-amount events instead of writing junk rows', async () => {
+    const { projectExchange } = await import('../src/adapters/clc.ts');
+    expect(projectExchange({ ...EV, amountOut: 0n }, 0, TX, six, anon, T))
+      .toBeNull();
+  });
+});
+
+describe('seal bits', () => {
+  it('names the SwapPool.sol parameter bits', async () => {
+    const { SEAL_BITS } = await import('../src/adapters/clc.ts');
+    expect(SEAL_BITS[1]).toBe('fee');
+    expect(SEAL_BITS[8]).toBe('registry');   // curation freeze bit
+    expect(Object.keys(SEAL_BITS)).toHaveLength(5);
+  });
+});

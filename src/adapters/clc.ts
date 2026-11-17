@@ -10,14 +10,19 @@
 // event per row.
 
 import { createHash } from 'node:crypto';
-import { parseAbi } from 'viem';
+import { decodeEventLog, parseAbi } from 'viem';
 import { createHttpClient } from '@clc/api/client/http-client';
 import { BackendApiError } from '@clc/api/client/errors';
 import { createPoolsClient } from '@clc/api/features/pools/client';
 import { createPoolDeployClient } from '@clc/api/features/pools/deploy-client';
 import { createAccountsClient } from '@clc/api/features/accounts/client';
+import type { OtxTrackResult } from '@clc/api/features/auth/client';
 import type { PoolDeployPayload } from '@clc/core/features/pools/logic';
-import type { ActorWallet, CommitmentPool, Voucher, VoucherHolding } from '../entities';
+import { swapPoolSwapEventAbi, swapPoolSwapSettlementEventAbi }
+  from '@clc/core/features/pool-swaps/logic';
+import type { ActorWallet, CommitmentPool, PoolExchange, Voucher, VoucherHolding }
+  from '../entities';
+import type { ClcTrack } from '../opsexport';
 import { get, list, ledgerAppend, put, putMany } from '../store';
 import { GNOSIS, publicClientFor } from '../chain';
 import { UA } from './fetch';
@@ -141,6 +146,52 @@ export const projectHolding = (
   };
 };
 
+// SwapPool.sol seal bits (protocol repo): seal() freezes parameters one
+// bit at a time; registry bit sealed = curation is frozen — the charter's
+// "frozen parameters" invariant. 31 = fully sealed.
+export const SEAL_BITS: Record<number, string> = {
+  1: 'fee', 2: 'feeAddress', 4: 'quoter', 8: 'registry', 16: 'limiter',
+};
+
+// Attribution record (POST /clc/track) — submitted until a chain receipt
+// or the owner-scoped /otx/track endpoint resolves it.
+
+// Decoded Swap/SwapSettlement log → pool_exchange projection. Pure —
+// the receipt-decode path feeds it; unit tests exercise the mapping.
+export const projectExchange = (
+  ev: { poolAddress: string; initiator: string; tokenIn: string;
+    tokenOut: string; amountIn: bigint; amountOut: bigint;
+    poolFee: bigint; protocolFee: bigint },
+  logIndex: number, txHash: string,
+  decimalsFor: (addr: string) => number,
+  actorFor: (initiator: string) => string,
+  observedAt: string,
+): PoolExchange | null => {
+  const inAddr = ev.tokenIn.toLowerCase(), outAddr = ev.tokenOut.toLowerCase();
+  const give = Number(ev.amountIn) / 10 ** decimalsFor(inAddr);
+  const receive = Number(ev.amountOut) / 10 ** decimalsFor(outAddr);
+  if (!(give > 0 && receive > 0)) return null;
+  return {
+    id: `clcex-${txHash}-${logIndex}`,
+    poolId: clcPoolId(ev.poolAddress),
+    actor: actorFor(ev.initiator),
+    give: { voucherId: clcVoucherId(inAddr), amount: give },
+    receive: { voucherId: clcVoucherId(outAddr), amount: receive },
+    fees: {
+      voucherId: clcVoucherId(inAddr),
+      pool: Number(ev.poolFee) / 10 ** decimalsFor(inAddr),
+      protocol: Number(ev.protocolFee) / 10 ** decimalsFor(inAddr),
+    },
+    // Realized price at execution: 1 give → receive/give receive units.
+    // Curation rates are caps, not prices — this is what actually cleared.
+    rates: { give: 1, receive: receive / give },
+    at: observedAt,
+    source: 'clc', chainRef: txHash,
+    chainAddress: ev.poolAddress.toLowerCase(), chainId: CLC_CHAIN_ID,
+    observedAt,
+  };
+};
+
 type MarketVoucher = {
   address?: string; name?: string; symbol?: string;
   locationName?: string; kind?: string; chainId?: number;
@@ -209,7 +260,7 @@ export async function maybeAdvanceClcSync(env: ClcEnv) {
 export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<{
   pools: number; vouchers: number; newPools: number; newVouchers: number;
   holdings: number; detailReads: number; partial: boolean; resumed: boolean;
-  upstreamCalls: number;
+  upstreamCalls: number; confirmedTracks: number; exchanges: number;
 }> {
   const budget = opts?.budget ?? UPSTREAM_BUDGET;
   // Every upstream call (clc-core API + chain RPC) bills one subrequest;
@@ -298,6 +349,9 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
   }
 
   // ── Phase: on-chain pool config (one multicall ≈ 1 RPC fetch) ─────
+  // Seal transitions ledger as `clc.pool.seal` — the moment a pool's
+  // parameters freeze is itself evidence (charter "frozen parameters").
+  const sealEvents: { poolId: string; sealState: number; newlySealed: string[] }[] = [];
   if (poolInputs.length && !overBudget()) {
     try {
       meter.n++; // the multicall is ~1 RPC request
@@ -305,7 +359,17 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
       for (const x of poolInputs) {
         const s = states.get(x.addr.toLowerCase());
         if (!s) continue;
-        if (s.sealState !== undefined) x.row.sealState = s.sealState;
+        if (s.sealState !== undefined) {
+          const prev = poolById.get(x.row.id)?.sealState ?? 0;
+          if (s.sealState !== prev) {
+            x.row.sealState = s.sealState;
+            const newly = Object.entries(SEAL_BITS)
+              .filter(([b]) => (s.sealState! & Number(b)) !== 0 && (prev & Number(b)) === 0)
+              .map(([, n]) => n);
+            if (newly.length) sealEvents.push(
+              { poolId: x.row.id, sealState: s.sealState, newlySealed: newly });
+          }
+        }
         if (s.feeAddress) x.row.feeAddress = s.feeAddress;
       }
     } catch (e) {
@@ -411,20 +475,132 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
     }
   }
 
+  // Bound wallets are read once — the tracks phase maps swap initiators
+  // to actors and the holdings phase mirrors balances.
+  let wallets: ActorWallet[] | undefined;
+  const boundWallets = async () =>
+    (wallets ??= await list<ActorWallet>(env.DB, 'actor-wallet').catch(() => []));
+
+  // ── Phase: track confirmation — receipts → pool_exchange rows ─────
+  // A submitted clc-track resolves on Gnosis: txHash rows read the
+  // public receipt (free); trackingId-only rows go through /otx/track,
+  // which clc-core scopes to the token owner — they stay submitted
+  // until CLC_SERVICE_TOKEN lands. Swap/SwapSettlement logs decode to
+  // real pool_exchange observations (chainRef=txHash); anything without
+  // a receipt stays submitted — 'submitted' IS the resume queue, so no
+  // state key is needed.
+  const trackWrites: { id: string; obj: ClcTrack }[] = [];
+  const exchangeWrites: { id: string; obj: PoolExchange }[] = [];
+  const confirmedTracks: ClcTrack[] = [];
+  let tracksDone = vouchersDone;
+  if (tracksDone) {
+    const open = (await list<ClcTrack>(env.DB, 'clc-track').catch(() => []))
+      .filter((t) => t.status === 'submitted');
+    if (open.length) {
+      const walletActor = new Map(
+        (await boundWallets()).map((w) => [w.address.toLowerCase(), w.actor]));
+      const actorFor = (initiator: string) =>
+        walletActor.get(initiator.toLowerCase()) ?? `addr:${initiator.toLowerCase()}`;
+      const chain = publicClientFor(GNOSIS, env.GNOSIS_RPC);
+      // Pass 1: receipts → decoded swap events (raw uint256 amounts).
+      // Pass 2: one decimals() multicall covers every touched token —
+      // GiftableToken decimals are per-instance, so they can't be
+      // assumed from the voucher projection.
+      const decoded: { t: ClcTrack; li: number; txHash: string;
+        ev: Parameters<typeof projectExchange>[0] }[] = [];
+      for (const t of open.slice(0, 20)) {
+        if (overBudget()) { tracksDone = false; break; }
+        let txHash = t.txHash;
+        if (!txHash && t.trackingId && env.CLC_SERVICE_TOKEN) {
+          try {
+            const r = await http.request<OtxTrackResult>(
+              `/api/v2/otx/track/${encodeURIComponent(t.trackingId)}`);
+            txHash = r.otx?.find((o) => o.txHash)?.txHash;
+          } catch { /* permissioned or unknown — stays submitted */ }
+        }
+        if (!txHash) continue;
+        meter.n++;                              // each receipt is a chain RPC fetch
+        const rc = await chain.getTransactionReceipt({ hash: txHash as `0x${string}` })
+          .catch(() => null);
+        if (!rc) continue;                      // not mined yet — try next cycle
+        if (rc.status !== 'success') {
+          t.status = 'failed'; t.confirmedAt = observedAt; t.txHash = txHash;
+          t.blockNumber = Number(rc.blockNumber);
+          trackWrites.push({ id: t.id, obj: t });
+          continue;
+        }
+        for (const [li, log] of rc.logs.entries()) {
+          for (const abi of
+            [swapPoolSwapSettlementEventAbi, swapPoolSwapEventAbi] as const) {
+            let a: { initiator: string; tokenIn: string; tokenOut: string;
+              amountIn: bigint; amountOut: bigint;
+              fee?: bigint; poolFee?: bigint; protocolFee?: bigint };
+            try {
+              a = decodeEventLog(
+                { abi, data: log.data, topics: log.topics }).args as typeof a;
+            } catch { continue; }               // not this event
+            decoded.push({ t, li, txHash, ev: {
+              poolAddress: log.address, initiator: a.initiator,
+              tokenIn: a.tokenIn, tokenOut: a.tokenOut,
+              amountIn: a.amountIn, amountOut: a.amountOut,
+              poolFee: a.poolFee ?? a.fee ?? 0n,
+              protocolFee: a.protocolFee ?? 0n,
+            } });
+            break;
+          }
+        }
+        t.status = 'confirmed'; t.confirmedAt = observedAt; t.txHash = txHash;
+        t.blockNumber = Number(rc.blockNumber);
+        trackWrites.push({ id: t.id, obj: t });
+        confirmedTracks.push(t);
+      }
+      if (open.length > 20) tracksDone = false; // backlog resumes next cycle
+      // Pass 2: decimals for every token appearing in decoded swaps.
+      if (decoded.length && !overBudget()) {
+        const addrs = [...new Set(decoded.flatMap((d) =>
+          [d.ev.tokenIn.toLowerCase(), d.ev.tokenOut.toLowerCase()]))]
+          .map((a) => a as `0x${string}`);
+        const DEC_ABI = parseAbi(['function decimals() view returns (uint8)']);
+        meter.n++;
+        const ds = await chain.multicall({
+          contracts: addrs.map((address) =>
+            ({ address, abi: DEC_ABI, functionName: 'decimals' as const })),
+          allowFailure: true }).catch(() => []);
+        const decOf = new Map(addrs.map((a, i) =>
+          [a, ds?.[i]?.status === 'success' ? Number(ds[i].result) : 6]));
+        for (const d of decoded) {
+          const ex = projectExchange(d.ev, d.li, d.txHash,
+            (a) => decOf.get(a.toLowerCase() as `0x${string}`) ?? 6,
+            actorFor, observedAt);
+          if (ex) exchangeWrites.push({ id: ex.id, obj: ex });
+        }
+        // Link the written exchange ids back onto their track rows.
+        for (const d of decoded) {
+          const w = trackWrites.find((x) => x.id === d.t.id);
+          if (!w) continue;
+          const id = `clcex-${d.txHash}-${d.li}`;
+          if (exchangeWrites.some((x) => x.id === id)) {
+            w.obj.exchanges = [...(w.obj.exchanges ?? []), id];
+          }
+        }
+      }
+    }
+  }
+
   // ── Phase: actor holdings — bound wallets → CLC balances ──────────
   const holdingRows: { id: string; obj: VoucherHolding }[] = [];
-  let holdingsDone = vouchersDone;
+  let holdingsDone = tracksDone;
   if (holdingsDone) {
     try {
-      const wallets = await list<ActorWallet>(env.DB, 'actor-wallet');
+      const ws = await boundWallets();
       let i = state.walletIdx ?? 0;
       delete state.walletIdx;
-      for (; i < wallets.length; i++) {
+      for (; i < ws.length; i++) {
         if (overBudget()) { state.walletIdx = i; holdingsDone = false; break; }
-        const { tokens } = await accounts.getLatestAccountTokens(wallets[i].address)
+        const { tokens } = await accounts.getLatestAccountTokens(ws[i].address)
           .catch(() => ({ tokens: [] }));
         for (const t of tokens ?? []) {
-          const h = projectHolding(wallets[i].actor, t, observedAt);
+          const h = projectHolding(ws[i].actor, t, observedAt);
           if (!h) continue;
           holdingRows.push({ id: h.id, obj: h });
           seenHash.push(h.id);
@@ -443,7 +619,22 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
     dirtyPools.length ? putMany(env.DB, 'commitment-pool', dirtyPools) : null,
     dirtyVouchers.length ? putMany(env.DB, 'voucher', dirtyVouchers) : null,
     holdingRows.length ? putMany(env.DB, 'voucher-holding', holdingRows) : null,
+    trackWrites.length ? putMany(env.DB, 'clc-track', trackWrites) : null,
+    exchangeWrites.length ? putMany(env.DB, 'pool-exchange', exchangeWrites)
+      : null,
   ]);
+  // Seal + confirmation events are real observations — ledgered even on
+  // a partial cycle (each append is one subrequest; both are rare).
+  for (const s of sealEvents) {
+    await ledgerAppend(env.DB, 'clc', 'clc.pool.seal', s).catch(() => undefined);
+  }
+  for (const t of confirmedTracks) {
+    await ledgerAppend(env.DB, 'clc', 'clc.swap.confirmed', {
+      trackId: t.id, txHash: t.txHash, blockNumber: t.blockNumber,
+      possibilityId: t.possibilityId, actor: t.actor,
+      exchanges: t.exchanges ?? [],
+    }).catch(() => undefined);
+  }
   for (const x of poolInputs) seenHash.push(
     `${x.row.id}:${x.row.accepted.length}:${x.row.state}`);
   for (const r of voucherRows) seenHash.push(r.id);
@@ -452,7 +643,8 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
   const newVoucherIds = voucherRows.filter((r) => !voucherById.has(r.id))
     .map((r) => r.id);
 
-  const done = detailsDone && vouchersDone && holdingsDone && !partial;
+  const done = detailsDone && vouchersDone && tracksDone && holdingsDone
+    && !partial;
   if (done) {
     // Keep a lastDone marker — the ambient lane reads it to decide
     // freshness; resume keys are cleared so a new cycle starts clean.
@@ -461,6 +653,7 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
     await ledgerAppend(env.DB, 'clc', 'clc.synced', {
       pools: poolRows.length, vouchers: voucherRows.length,
       holdings: holdingRows.length,
+      confirmedTracks: confirmedTracks.length,
       newPoolIds: newPoolIds.slice(0, 200),
       newVouchers: newVoucherIds.length,
       written: { pools: dirtyPools.length, vouchers: dirtyVouchers.length,
@@ -477,5 +670,6 @@ export async function syncClc(env: ClcEnv, opts?: { budget?: number }): Promise<
     newPools: newPoolIds.length, newVouchers: newVoucherIds.length,
     holdings: holdingRows.length, detailReads, partial,
     resumed: !done, upstreamCalls: meter.n,
+    confirmedTracks: confirmedTracks.length, exchanges: exchangeWrites.length,
   };
 }

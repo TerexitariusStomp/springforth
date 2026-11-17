@@ -4,6 +4,7 @@ import {
   Question, CouncilDecision, DecisionMode, Referral, TestCard,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
   RetroRound, RetroBallot, ChainTx, YieldStream,
+  Voucher, VoucherHolding, CommitmentPool, PoolExchange, VoucherRedemption,
   ActorWallet, ActorPersonhood, ActorNonce, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
   DatasetRelease, DataAccessGrant, Subscription, TrustEpoch,
@@ -111,8 +112,15 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
-import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerAppendWith, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
 import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
+import { holdingId, poolHolder, protocolHolder } from './pool.js';
+import {
+  clcAuthedClient, clcAppUrl, syncClc, CLC_CHAIN_ID,
+} from './adapters/clc.js';
+import type { PoolDeployPayload } from '@clc/core/features/pools/logic';
+import { swapPoolGetAmountOutAbi } from '@clc/core/features/pool-swaps/logic';
+import { GNOSIS } from './chain.js';
 import {
   maybeTrustCheckpoint, ensureTrustEpoch, latestTrustEpoch,
   getTrustEpoch, getTrustEpochData, epochEdges, scoreProof,
@@ -142,7 +150,11 @@ export interface Env {
   ONEPLANET_URL?: string;    // defaults to https://mcp.oneplanet.com/mcp
   TELEGRAM_BOT_TOKEN?: string;    // @springforth_bot — /tg webhook + quorum notify
   TELEGRAM_WEBHOOK_SECRET?: string; // X-Telegram-Bot-Api-Secret-Token check
-  CHAIN_MODE?: string;            // 'off' (default) | 'celo-sepolia' | 'sepolia' | 'celo'
+  CHAIN_MODE?: string;            // 'off' (default) | 'celo-sepolia' | 'sepolia' | 'celo' | 'gnosis'
+  CLC_API?: string;               // clc-core API base — defaults to api.cosmolocal.credit
+  CLC_APP?: string;               // CLC PWA deep-link base — defaults to cosmolocal.credit
+  CLC_SERVICE_TOKEN?: string;     // clc-core service JWT — admin writes (pool deploy)
+  GNOSIS_RPC?: string;            // paid-RPC override for Gnosis reads
   CHAIN_RPC?: string;             // optional paid-RPC override
   TELEGRAM_CHAT_ID?: string;      // default group for quorum announcements
   SILVI_API_KEY?: string;         // silvi.earth public API key (silvi_…)
@@ -177,6 +189,7 @@ export interface Env {
   D1_PROXY_URL?: string;      // sf-d1proxy worker URL — routes env.DB cross-account
   D1_PROXY_KEY?: string;      // bearer secret for the proxy (wrangler secret)
   EXPORT_SALT?: string;       // rotates the ops-export actor pseudonym salt
+  BUILD_ID?: string;          // deployed revision stamped into export manifests
 }
 
 // When D1_PROXY_URL is set, env.DB is replaced by an HTTP facade pointed at
@@ -525,8 +538,8 @@ async function sweepPossibilities(env: Env, actor = 'system',
 // grounds; alfajores is decommissioned post-L2.
 const chainCfg = (env: Env): ChainConfig | null =>
   env.CHAIN_MODE === 'celo-sepolia' || env.CHAIN_MODE === 'sepolia'
-    || env.CHAIN_MODE === 'celo'
-    ? chainFor(env.CHAIN_MODE as 'celo-sepolia' | 'sepolia' | 'celo') : null;
+    || env.CHAIN_MODE === 'celo' || env.CHAIN_MODE === 'gnosis'
+    ? chainFor(env.CHAIN_MODE as 'celo-sepolia' | 'sepolia' | 'celo' | 'gnosis') : null;
 
 // Hourly cron: confirm submitted txs, apply side effects. Reads only.
 
@@ -4086,8 +4099,10 @@ export default {
             appreciations: apps.filter((a) => a.possibilityId === p.id),
             id: b.id ? String(b.id) : undefined,
           });
-          await put(env.DB, 'claim', claim.id, claim);
-          await ledgerAppend(env.DB, 'api', 'claim.built', { id: claim.id, possibilityId: p.id });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'claim', id: claim.id, obj: claim }],
+            { actor: 'api', kind: 'claim.built',
+              payload: { id: claim.id, possibilityId: p.id } });
           return json({ ...claim, lexicon: toHypercertLexicon(claim) }, 201);
         }
         if (req.method === 'GET' && seg.length === 1) {
@@ -4124,9 +4139,11 @@ export default {
             })),
             at: new Date().toISOString(),
           });
-          await put(env.DB, 'attestation', att.id, att);
-          await put(env.DB, 'claim', claim.id, { ...claim, state: 'attested' as const });
-          await ledgerAppend(env.DB, attester, 'claim.attested', { id: claim.id, attestationId: att.id });
+          await ledgerAppendWith(env.DB, [
+            { kind: 'attestation', id: att.id, obj: att },
+            { kind: 'claim', id: claim.id, obj: { ...claim, state: 'attested' as const } },
+          ], { actor: attester, kind: 'claim.attested',
+            payload: { id: claim.id, attestationId: att.id } });
           return json(att, 201);
         }
         // Hypercert metadata document — the URI mintClaim points at.
@@ -4162,16 +4179,237 @@ export default {
           });
         }
         // Artizen artifact links — external work evidence on the claim.
+        // The ledger payload carries uriHash, not the raw URI: the event
+        // commits to the exact URL (recomputable given it) without pinning
+        // a potentially-sensitive string into the append-only record —
+        // the export's evidence rows hash the same way.
         if (req.method === 'POST' && seg[2] === 'artifacts') {
           const b = await req.json() as Record<string, unknown>;
           const ref = String(b.uri ?? b.ref ?? '');
           if (!/^https?:\/\//.test(ref)) return err('uri=https://… required', 422);
           const next = { ...claim, artifactRefs: [...claim.artifactRefs, ref] };
-          await put(env.DB, 'claim', claim.id, next);
-          await ledgerAppend(env.DB, String(b.actor ?? 'api'), 'claim.artifact',
-            { id: claim.id, uri: ref });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'claim', id: claim.id, obj: next }],
+            { actor: String(b.actor ?? 'api'), kind: 'claim.artifact',
+              payload: { id: claim.id, uriHash: await sha256Hex(enc(ref)) } });
           return json(next, 201);
         }
+      }
+      // ── Commitment pools — CLC projection lane (docs/CLC-INTEGRATION.md) ─
+      // Pools and vouchers settle on CLC's Gnosis contracts; the rows
+      // served here are source-tagged projections written by syncClc.
+      // Native writes are retired (410 + deep link): issuance, curation,
+      // and exchange belong to the CLC stack — Springforth keeps the
+      // evidence, attribution, and discharge records.
+      const deprecateNative = (env: Env, note: string) =>
+        json({ error: `${note} — the D1-native write lane is retired; use the CLC app`,
+          clcUrl: clcAppUrl(env, '/'), docs: '/docs/CLC-INTEGRATION.md' }, 410);
+      if (seg[0] === 'vouchers') {
+        if (req.method === 'GET' && seg.length === 1) {
+          const issuer = url.searchParams.get('issuer');
+          const vs = (await list<Voucher>(env.DB, 'voucher'))
+            .filter((v) => !issuer || v.issuer === issuer);
+          return json({ vouchers: vs });
+        }
+        // Issue — retired: CLC GiftableToken deployment handles issuance.
+        if (req.method === 'POST' && seg.length === 1) {
+          return deprecateNative(env, 'voucher issuance');
+        }
+        const voucher = await get<Voucher>(env.DB, 'voucher', seg[1] ?? '');
+        if (!voucher) return err('voucher not found', 404);
+        if (req.method === 'GET' && seg.length === 2) {
+          const [holdings, redemptions] = await Promise.all([
+            listWhere<VoucherHolding>(env.DB, 'voucher-holding',
+              'json_extract(json,\'$.voucherId\')=?', voucher.id),
+            listWhere<VoucherRedemption>(env.DB, 'redemption',
+              'json_extract(json,\'$.voucherId\')=?', voucher.id),
+          ]);
+          return json({ ...voucher, holdings, redemptions });
+        }
+        // Transfer — retired: circulation happens on-chain via CLC.
+        if (req.method === 'POST' && seg[2] === 'transfer') {
+          return deprecateNative(env, 'voucher transfer');
+        }
+        // Issuer lifecycle — retired: issuer-side, on-chain.
+        if (req.method === 'POST' && seg[2] === 'state') {
+          return deprecateNative(env, 'voucher state change');
+        }
+        // Redeem — the redemption *record* stays ours (the discharge
+        // receipt CLC's model calls for). For CLC-projected vouchers the
+        // record is a redemption request; the token return-transfer is
+        // on-chain (chainRef may carry its txHash) and mirrored balances
+        // are not authoritative, so no holding debit is enforced.
+        if (req.method === 'POST' && seg[2] === 'redeem') {
+          const b = await req.json() as Record<string, unknown>;
+          const holder = String(b.holder ?? '');
+          const amount = Number(b.amount);
+          if (!holder || !(amount > 0)) return err('holder + positive amount required', 422);
+          const now = new Date().toISOString();
+          const writes: { kind: string; id: string; obj: unknown }[] = [];
+          if (voucher.source !== 'clc') {
+            if (holder.startsWith('pool:')) {
+              const pool = await get<CommitmentPool>(env.DB, 'commitment-pool', holder.slice(5));
+              if (!pool || pool.operator !== String(b.actor ?? ''))
+                return err('pool redemptions need actor = pool operator', 403);
+            }
+            const hId = holdingId(holder, voucher.id);
+            const h = await get<VoucherHolding>(env.DB, 'voucher-holding', hId);
+            if (!h || h.amount < amount)
+              return err(`insufficient ${voucher.id} balance`, 409);
+            writes.push({ kind: 'voucher-holding', id: hId,
+              obj: { ...h, amount: h.amount - amount, updatedAt: now } });
+          }
+          const red = VoucherRedemption.parse({
+            id: `red-${voucher.id}-${Date.now().toString(36)}`,
+            voucherId: voucher.id, holder, amount,
+            note: String(b.note ?? ''), at: now,
+            chainRef: b.chainRef ? String(b.chainRef) : undefined,
+          });
+          writes.push({ kind: 'redemption', id: red.id, obj: red });
+          await ledgerAppendWith(env.DB, writes,
+            { actor: holder, kind: 'voucher.redeemed',
+              payload: { id: red.id, voucherId: voucher.id, holder, amount,
+                chainRef: red.chainRef } });
+          return json({ ...red,
+            clcUrl: voucher.source === 'clc' ? clcAppUrl(env, '/') : undefined }, 201);
+        }
+      }
+      if (seg[0] === 'redemptions') {
+        if (req.method === 'GET' && seg.length === 1) {
+          const state = url.searchParams.get('state');
+          const rs = (await list<VoucherRedemption>(env.DB, 'redemption'))
+            .filter((r) => !state || r.state === state);
+          return json({ redemptions: rs });
+        }
+        const red = await get<VoucherRedemption>(env.DB, 'redemption', seg[1] ?? '');
+        if (!red) return err('redemption not found', 404);
+        // Issuer resolves — fulfillment attested by the party who owed.
+        if (req.method === 'POST' && seg[2] === 'resolve') {
+          const b = await req.json() as Record<string, unknown>;
+          const voucher = await get<Voucher>(env.DB, 'voucher', red.voucherId);
+          if (!voucher || voucher.issuer !== String(b.resolver ?? ''))
+            return err('issuer only', 403);
+          const state = String(b.state ?? '');
+          if (red.state !== 'outstanding') return err(`redemption is ${red.state}`, 409);
+          if (!['fulfilled', 'rejected'].includes(state))
+            return err('state = fulfilled|rejected', 422);
+          const next = { ...red, state: state as VoucherRedemption['state'],
+            resolvedAt: new Date().toISOString(), resolvedBy: voucher.issuer };
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'redemption', id: red.id, obj: next }],
+            { actor: voucher.issuer, kind: 'voucher.redemption_resolved',
+              payload: { id: red.id, voucherId: red.voucherId, state } });
+          return json(next);
+        }
+      }
+      if (seg[0] === 'pools') {
+        if (req.method === 'GET' && seg.length === 1) {
+          const pools = await list<CommitmentPool>(env.DB, 'commitment-pool');
+          return json({ pools });
+        }
+        // Pool create — retired: pools deploy as CLC SwapPool contracts
+        // (admin deployment lane: POST /admin/clc/pool).
+        if (req.method === 'POST' && seg.length === 1) {
+          return deprecateNative(env, 'pool creation');
+        }
+        const pool = await get<CommitmentPool>(env.DB, 'commitment-pool', seg[1] ?? '');
+        if (!pool) return err('pool not found', 404);
+        if (req.method === 'GET' && seg.length === 2) {
+          const [inventory, exchanges] = await Promise.all([
+            listWhere<VoucherHolding>(env.DB, 'voucher-holding',
+              'json_extract(json,\'$.holder\')=?', poolHolder(pool.id)),
+            listWhere<PoolExchange>(env.DB, 'pool-exchange',
+              'json_extract(json,\'$.poolId\')=?', pool.id),
+          ]);
+          const protocolFees = await listWhere<VoucherHolding>(env.DB, 'voucher-holding',
+            'json_extract(json,\'$.holder\')=?', protocolHolder(pool.protocolFeeSink));
+          return json({ ...pool, inventory, protocolFees,
+            exchanges: exchanges.length });
+        }
+        // Quote — the chain's getAmountOut is authoritative. For
+        // CLC-projected pools we read it live on Gnosis; `amount` is the
+        // raw integer amount of the give-voucher's smallest unit.
+        if (req.method === 'GET' && seg[2] === 'quote') {
+          const give = url.searchParams.get('give') ?? '';
+          const receive = url.searchParams.get('receive') ?? '';
+          const amountRaw = url.searchParams.get('amount') ?? '';
+          const clcUrl = clcAppUrl(env, '/');
+          if (pool.source !== 'clc' || !pool.chainAddress)
+            return json({ clcUrl, note:
+              'native quote retired — this pool is a local/legacy record; CLC quotes are authoritative' }, 422);
+          const giveAddr = give.replace(/^clc-/, ''), recvAddr = receive.replace(/^clc-/, '');
+          if (!/^0x[0-9a-fA-F]{40}$/.test(giveAddr) || !/^0x[0-9a-fA-F]{40}$/.test(recvAddr)
+            || !/^\d+$/.test(amountRaw))
+            return err('give/receive = voucher id or 0x address, amount = raw integer', 422);
+          try {
+            const client = publicClientFor(GNOSIS, env.GNOSIS_RPC);
+            const out = await client.readContract({
+              address: pool.chainAddress as `0x${string}`,
+              abi: swapPoolGetAmountOutAbi,
+              functionName: 'getAmountOut',
+              args: [recvAddr as `0x${string}`, giveAddr as `0x${string}`, BigInt(amountRaw)],
+            });
+            return json({ poolId: pool.id, give, receive, amount: amountRaw,
+              amountOut: (out as bigint).toString(), chainId: GNOSIS.chainId,
+              clcUrl, source: 'getAmountOut' });
+          } catch (e) {
+            return err(`getAmountOut failed: ${String(e).slice(0, 200)}`, 502);
+          }
+        }
+        // Curation/state/exchange writes — retired: CLC's SwapPool
+        // contracts own them (tokenRegistry, seal(), withdraw).
+        if (req.method === 'POST' && ['curate', 'state', 'exchange'].includes(seg[2] ?? '')) {
+          return deprecateNative(env, `pool ${seg[2]}`);
+        }
+      }
+      // ── CLC transaction attribution (docs/CLC-INTEGRATION.md) ──────
+      // A relayed/submitted CLC tx is recorded so activity can be
+      // attributed to the possibility/actor that coordinated it. The
+      // record is queryable; the ledger event is the observation evidence.
+      if (seg[0] === 'clc' && seg[1] === 'track' && req.method === 'POST') {
+        const b = await req.json() as Record<string, unknown>;
+        const trackingId = String(b.trackingId ?? '');
+        const txHash = String(b.txHash ?? '');
+        if (!trackingId && !txHash) return err('trackingId or txHash required', 422);
+        const id = `track-${(txHash || trackingId).toLowerCase()}`;
+        const rec = {
+          id, trackingId: trackingId || undefined, txHash: txHash || undefined,
+          possibilityId: b.possibilityId ? String(b.possibilityId) : undefined,
+          actor: String(b.actor ?? 'anonymous'),
+          status: 'submitted' as const,
+          chainId: CLC_CHAIN_ID,
+          at: new Date().toISOString(),
+        };
+        await ledgerAppendWith(env.DB,
+          [{ kind: 'clc-track', id, obj: rec }],
+          { actor: rec.actor, kind: 'clc.tx.tracked',
+            payload: { id, trackingId: trackingId || undefined, txHash: txHash || undefined,
+              possibilityId: rec.possibilityId } });
+        return json(rec, 201);
+      }
+      if (seg[0] === 'clc' && seg[1] === 'tracks' && req.method === 'GET') {
+        return json({ tracks: await list(env.DB, 'clc-track') });
+      }
+      // ── CLC admin lanes — ADMIN_TOKEN-gated; service-token writes ──
+      if (seg[0] === 'admin' && seg[1] === 'clc' && seg[2] === 'sync' && req.method === 'POST') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        return json(await syncClc(env));
+      }
+      // Deploy a CLC SwapPool proxy via clc-core's deployment queue.
+      // Body is the vendored PoolDeployPayload shape; returns the otx
+      // trackingId — POST /clc/track attributes the deployment.
+      if (seg[0] === 'admin' && seg[1] === 'clc' && seg[2] === 'pool' && req.method === 'POST') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const clc = clcAuthedClient(env);
+        if (!clc) return err('CLC_SERVICE_TOKEN not configured', 503);
+        const b = await req.json() as Record<string, unknown>;
+        for (const f of ['name', 'symbol', 'owner', 'quoterType', 'unitOfAccount', 'description'])
+          if (!b[f]) return err(`${f} required`, 422);
+        const { trackingId } = await clc.deploy.deployPool(b as unknown as PoolDeployPayload);
+        await ledgerAppend(env.DB, 'admin', 'clc.pool.deploy_requested',
+          { trackingId, name: String(b.name), owner: String(b.owner) });
+        return json({ trackingId, track: `/clc/track`,
+          statusUrl: `${env.CLC_API ?? 'https://api.cosmolocal.credit'}/api/v2/otx/track/${trackingId}` }, 201);
       }
       // ── Attestation on-chain publish ────────────────────────────────
       if (seg[0] === 'attestations' && req.method === 'GET' && seg[2] === 'tx') {
@@ -4769,6 +5007,14 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
     const chainConfirmed = await syncChain(env).catch(() => 0);
     const streamsAccrued = await accrueStreams(env).catch(() => 0);
     const yieldCredited = await syncYield(env).catch(() => 0);
+    // CLC sync — mirror cosmolocal.credit pools/vouchers into
+    // source:'clc' projections (docs/CLC-INTEGRATION.md). Reads are HTTP,
+    // zero D1 quota cost; failures are ledgered, never fatal to the cycle.
+    await syncClc(env).catch(async (e) => {
+      console.error('clc sync failed', e);
+      await ledgerAppend(env.DB, 'cron', 'clc.sync_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
     // Trust-epoch checkpoint — hourly catch-up for edge changes the
     // appreciate-time hook deferred on the seq gap.
     await maybeTrustCheckpoint(env).catch(async (e) => {

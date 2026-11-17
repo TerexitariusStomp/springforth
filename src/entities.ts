@@ -86,6 +86,9 @@ export const Possibility = z.object({
     boundaries: BriefField.optional(),  // scope — what's in / out
     resources: BriefField.optional(),   // what's already available
   }).optional(),
+  // The CLC SwapPool this possibility's delivery flows through, when one
+  // is linked — the allocation/quorum layer pointing at the pooling layer.
+  clcPool: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
   createdAt: z.string().datetime(),
 });
 export type Possibility = z.infer<typeof Possibility>;
@@ -747,3 +750,129 @@ export const YieldStream = z.object({
   updatedAt: z.string().datetime(),
 });
 export type YieldStream = z.infer<typeof YieldStream>;
+
+// ── Commitment pools — CPP lane (Grassroots Economics' Commitment
+// Pooling Protocol shape, docs.cosmolocal.credit) ──────────────────────
+// A different economic layer from the funding/attestation mechanisms
+// above: allocation decides where resources go; a commitment pool is a
+// governed marketplace of redeemable commitments that keeps economic
+// exchange going after any funding campaign ends. Issuers publish
+// vouchers — commitments to deliver goods or services on stated terms;
+// pools curate which vouchers they accept, value them against a common
+// index unit, cap exposure per voucher, and let commitments circulate
+// between participants via exchanges. Pool fees + protocol fees are the
+// sustainability lane. Balances are ledger records — the voucher is the
+// commitment, settlement with the issuer happens on redemption.
+
+// A redeemable commitment issued by one actor — essentially a tokenized
+// promise of goods/services ("$5 of produce", "1 hour carpentry"),
+// redeemable with the issuer under published terms.
+// Projection fields — rows mirrored from an external system carry the
+// observation provenance alongside the domain fields. source:'clc' rows
+// are written by the CLC sync (src/adapters/clc.ts); source:'local' rows
+// are legacy/sample data. chainRef is the on-chain pointer (txHash or
+// address) the row was observed at — the dual-verification join.
+const Projection = {
+  source: z.enum(['local', 'clc']).default('local'),
+  chainAddress: z.string().optional(),
+  chainId: z.number().int().optional(),
+  observedAt: z.string().datetime().optional(),
+  chainRef: z.string().optional(),
+};
+
+export const Voucher = z.object({
+  id: z.string().min(1),
+  issuer: z.string().min(1),               // actor standing behind redemption
+  title: z.string().min(1),
+  unit: z.string().min(1),                 // denomination label: 'USD', 'hour', 'kg'…
+  description: z.string().default(''),
+  terms: z.string().default(''),           // published redemption terms
+  supply: z.number().positive(),           // total units issued to the issuer
+  possibilityId: z.string().optional(),    // born from a card's offer node, when it is
+  expiresAt: z.string().datetime().optional(),
+  state: z.enum(['issued', 'suspended', 'retired']).default('issued'),
+  createdAt: z.string().datetime(),
+  ...Projection,
+});
+export type Voucher = z.infer<typeof Voucher>;
+
+// Who holds how much of a voucher. `holder` is an actor id, `pool:<id>`
+// for pool inventory, or `protocol:<sink>` for accrued protocol fees.
+export const VoucherHolding = z.object({
+  id: z.string().min(1),                   // hold-<holder>-<voucherId>
+  holder: z.string().min(1),
+  voucherId: z.string().min(1),
+  amount: z.number().min(0),
+  updatedAt: z.string().datetime(),
+  ...Projection,
+});
+export type VoucherHolding = z.infer<typeof VoucherHolding>;
+
+// The governed marketplace: curation (which vouchers/issuers are
+// accepted), valuation (rate = index units per voucher unit), and
+// limitation (limit = max pool inventory of the voucher) are all
+// operator-set and written to the ledger on change.
+export const CommitmentPool = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().default(''),
+  operator: z.string().min(1),             // pool steward — curates, sets params
+  indexUnit: z.string().min(1).default('index'),  // common unit of account label
+  accepted: z.array(z.object({
+    voucherId: z.string().min(1),
+    rate: z.number().positive(),           // index units per 1 voucher unit
+    limit: z.number().positive(),          // exposure cap: max pool inventory
+    state: z.enum(['accepted', 'suspended']).default('accepted'),
+  })).default([]),
+  poolFeeBps: z.number().int().min(0).max(10000).default(0),    // accrues in pool inventory
+  protocolFeeBps: z.number().int().min(0).max(10000).default(0), // accrues to protocolFeeSink
+  protocolFeeSink: z.string().min(1).default('protocol'),
+  state: z.enum(['open', 'paused', 'closed']).default('open'),
+  createdAt: z.string().datetime(),
+  ...Projection,
+  // CLC SwapPool projection — contract configuration mirrored from the
+  // chain/API so the governed parameters are legible without a node.
+  sealState: z.number().int().min(0).optional(),  // SwapPool seal bitmask
+  feeAddress: z.string().optional(),              // pool-fee recipient
+  quoterType: z.string().optional(),              // decimal|oracle|relative
+});
+export type CommitmentPool = z.infer<typeof CommitmentPool>;
+
+// One exchange: actor deposits `give` units, receives `receive` units
+// priced through the pool's index unit. Fees are recorded in give-voucher
+// units — the pool fee is the spread retained in pool inventory, the
+// protocol fee moves to the `protocol:<sink>` holding.
+export const PoolExchange = z.object({
+  id: z.string().min(1),
+  poolId: z.string().min(1),
+  actor: z.string().min(1),
+  give: z.object({ voucherId: z.string().min(1), amount: z.number().positive() }),
+  receive: z.object({ voucherId: z.string().min(1), amount: z.number().positive() }),
+  fees: z.object({
+    voucherId: z.string().min(1),          // always the give voucher
+    pool: z.number().min(0),
+    protocol: z.number().min(0),
+  }),
+  rates: z.object({ give: z.number().positive(), receive: z.number().positive() }),
+  at: z.string().datetime(),
+  ...Projection,
+});
+export type PoolExchange = z.infer<typeof PoolExchange>;
+
+// Redemption — the commitment loop closing: a holder returns units to
+// the issuer for the underlying goods/services. Units burn at redeem
+// (obligation discharged); the record tracks outstanding → fulfilled so
+// fulfillment is measurable, not assumed.
+export const VoucherRedemption = z.object({
+  id: z.string().min(1),
+  voucherId: z.string().min(1),
+  holder: z.string().min(1),
+  amount: z.number().positive(),
+  note: z.string().default(''),
+  state: z.enum(['outstanding', 'fulfilled', 'rejected']).default('outstanding'),
+  at: z.string().datetime(),
+  resolvedAt: z.string().datetime().optional(),
+  resolvedBy: z.string().optional(),
+  chainRef: z.string().optional(),        // return-transfer txHash, when on-chain
+});
+export type VoucherRedemption = z.infer<typeof VoucherRedemption>;

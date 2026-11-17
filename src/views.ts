@@ -8,6 +8,7 @@ import {
   RetroRound, ActorWallet, RecurringSupport, YieldStream,
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
   CouncilSeat, ForumPost, Question, CouncilDecision, Referral, TestCard,
+  CommitmentPool, Voucher,
   valueCoordinated, roundDemand, endowmentAccrual,
 } from './core';
 import {
@@ -130,11 +131,17 @@ export async function loadMetrics(env: Env) {
   const completedApps = apps.filter((a) => a.possibilityId && completedIds.has(a.possibilityId)).length;
   const first = Math.min(...statuses.map((x) => Date.parse(x.p.createdAt)), now);
   const weeks = Math.max(1, (now - first) / (7 * 86_400_000));
-  const [passes, questions, decisions, referrals, interests, tests, seats] = await Promise.all([
+  const [passes, questions, decisions, referrals, interests, tests, seats,
+    clcPools, clcVouchers, clcTracks] = await Promise.all([
     list<Pass>(env.DB, 'pass'), list<Question>(env.DB, 'question'),
     list<CouncilDecision>(env.DB, 'decision'), list<Referral>(env.DB, 'referral'),
     list<Interest>(env.DB, 'interest'), list<TestCard>(env.DB, 'test'),
     list<CouncilSeat>(env.DB, 'council-seat'),
+    // CLC lane — filtered reads, projections only (source:'clc').
+    listWhere<CommitmentPool>(env.DB, 'commitment-pool',
+      "json_extract(json,'$.source')='clc'"),
+    listWhere<Voucher>(env.DB, 'voucher', "json_extract(json,'$.source')='clc'"),
+    list<{ id: string; status: string }>(env.DB, 'clc-track'),
   ]);
   const expiringSoon = statuses.filter((x) =>
     (x.s === 'active' || x.s === 'draft') && x.p.deadline
@@ -215,6 +222,16 @@ export async function loadMetrics(env: Env) {
         parts, seats, tests,
       });
     })(),
+    // CLC integration — projected pool/voucher counts, attribution
+    // tracks, and possibilities linked to a pool. Observations only;
+    // on-chain state is authoritative (docs/CLC-INTEGRATION.md).
+    clc: {
+      pools: clcPools.length,
+      activePools: clcPools.filter((p) => p.state === 'open').length,
+      vouchers: clcVouchers.length,
+      trackedTx: clcTracks.length,
+      possibilitiesLinked: poss.filter((p) => p.clcPool).length,
+    },
     // Monetary value, per currency (never converted) — committed and
     // matched are ledger-derived; volunteer time is declared hours ×
     // the cited ONS rate where the card places in GB. Aggregated per

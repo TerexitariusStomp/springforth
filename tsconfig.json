@@ -12,7 +12,12 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["@cloudflare/workers-types", "node"]
+    "types": ["@cloudflare/workers-types", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@clc/api/*": ["vendor/clc/api/*"],
+      "@clc/core/*": ["vendor/clc/core/*"]
+    }
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "vendor/clc"]
 }

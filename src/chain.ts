@@ -1,5 +1,5 @@
 import { createPublicClient, http, keccak256, toBytes, verifyMessage, isAddress, type Chain, type PublicClient, type TransactionReceipt, encodeFunctionData, type Address, encodeAbiParameters, parseAbiParameters, decodeEventLog, parseAbiItem } from 'viem';
-import { celo, celoSepolia, sepolia } from 'viem/chains';
+import { celo, celoSepolia, gnosis, sepolia } from 'viem/chains';
 
 // ── index.ts ──────────────────────────────────────────
 
@@ -70,6 +70,15 @@ export const CELO_SEPOLIA: ChainConfig = {
   },
 };
 
+// Gnosis — CLC's settlement chain (SwapPool, GiftableToken, router).
+// CHAIN_MODE 'gnosis' points the existing chain-read/tx-record lane at it.
+export const GNOSIS: ChainConfig = {
+  chainId: 100, name: 'gnosis',
+  rpcUrl: 'https://rpc.gnosischain.com',
+  explorer: 'https://gnosisscan.io',
+  contracts: {},
+};
+
 export const SEPOLIA: ChainConfig = {
   chainId: 11155111, name: 'sepolia',
   rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
@@ -82,9 +91,10 @@ export const SEPOLIA: ChainConfig = {
   },
 };
 
-export type ChainMode = 'celo-sepolia' | 'sepolia' | 'celo';
+export type ChainMode = 'celo-sepolia' | 'sepolia' | 'celo' | 'gnosis';
 export function chainFor(mode: ChainMode): ChainConfig {
-  return mode === 'celo' ? CELO : mode === 'sepolia' ? SEPOLIA : CELO_SEPOLIA;
+  return mode === 'gnosis' ? GNOSIS
+    : mode === 'celo' ? CELO : mode === 'sepolia' ? SEPOLIA : CELO_SEPOLIA;
 }
 
 // ── client.ts ─────────────────────────────────────────
@@ -94,6 +104,7 @@ export function chainFor(mode: ChainMode): ChainConfig {
 
 const VIEM_CHAINS: Record<number, Chain> = {
   [celo.id]: celo, [celoSepolia.id]: celoSepolia, [sepolia.id]: sepolia,
+  [gnosis.id]: gnosis,
 };
 
 export function publicClientFor(cfg: ChainConfig, rpcOverride?: string): PublicClient {

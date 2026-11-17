@@ -154,6 +154,41 @@ describe('ops export', () => {
     expect(mf.upstreamSplitBps).toBe(0);
   });
 
+  it('manifest carries revision and build stamp', () => {
+    const { manifest } = buildOpsExport({ ...fixture(), build: 'd0f6bf3' });
+    expect(manifest.revision).toBe('v1.4');
+    expect(manifest.build).toBe('d0f6bf3');
+    expect(buildOpsExport(fixture()).manifest.build).toBeNull();
+  });
+
+  it('emits cpp-lane records — vouchers, holdings, pools, exchanges, redemptions', () => {
+    const i = fixture();
+    i.vouchers = [{ id: 'vch-1', issuer: 'aisha', title: 'meals', unit: 'USD',
+      description: '', terms: 'redeem at counter', supply: 100,
+      state: 'issued', createdAt: T, source: 'local' }];
+    i.holdings = [{ id: 'hold-aisha-vch-1', holder: 'aisha', voucherId: 'vch-1',
+      amount: 60, updatedAt: T, source: 'local' }];
+    i.pools = [{ id: 'pool-1', name: 'local', description: '', operator: 'biko',
+      indexUnit: 'USD',
+      accepted: [{ voucherId: 'vch-1', rate: 4, limit: 1000, state: 'accepted' }],
+      poolFeeBps: 250, protocolFeeBps: 50, protocolFeeSink: 'protocol',
+      state: 'open', createdAt: T, source: 'local' }];
+    i.exchanges = [{ id: 'ex-1', poolId: 'pool-1', actor: 'chi',
+      give: { voucherId: 'vch-1', amount: 10 },
+      receive: { voucherId: 'vch-1', amount: 0 } as never,
+      fees: { voucherId: 'vch-1', pool: 0.25, protocol: 0.05 },
+      rates: { give: 4, receive: 4 }, at: T, source: 'local' }];
+    i.redemptions = [{ id: 'red-1', voucherId: 'vch-1', holder: 'chi',
+      amount: 5, note: '', state: 'outstanding', at: T }];
+    const lines = linesOf(buildOpsExport(i).body);
+    for (const t of ['voucher', 'holding', 'pool', 'pool_exchange', 'redemption'])
+      expect(lines.some((l) => l.type === t), `record type ${t}`).toBe(true);
+    const pool = lines.find((l) => l.type === 'pool')!;
+    expect((pool.accepted as { voucherId: string }[])[0]!.voucherId).toMatch(/^x_/);
+    const ex = lines.find((l) => l.type === 'pool_exchange')!;
+    expect(ex.rates).toEqual({ give: 4, receive: 4 });
+  });
+
   it('is deterministic — same cut, same file_sha256', () => {
     const a = buildOpsExport(fixture());
     const b = buildOpsExport(fixture());

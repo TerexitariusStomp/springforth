@@ -67,6 +67,19 @@ export async function listPacked<T>(
   return pages.flatMap((p) => p.records ?? []);
 }
 
+// Insert only when absent, then re-read — concurrent first-writers
+// converge on the single persisted row instead of racing two minted
+// values where only one survives (the ops-export salt race, 2026-11
+// review: atomic get-or-create returning the same value to all callers).
+export async function putIfAbsent<T>(
+  db: D1Database, kind: string, id: string, obj: unknown,
+): Promise<T | null> {
+  await db.prepare(
+    'INSERT INTO entities(kind,id,json,updated_at) VALUES(?,?,?,?) ON CONFLICT(kind,id) DO NOTHING',
+  ).bind(kind, id, JSON.stringify(obj), new Date().toISOString()).run();
+  return get<T>(db, kind, id);
+}
+
 export async function get<T>(db: D1Database, kind: string, id: string): Promise<T | null> {
   const r = await db.prepare('SELECT json FROM entities WHERE kind=? AND id=?')
     .bind(kind, id).first<{ json: string }>();
@@ -109,6 +122,42 @@ export async function ledgerAppend(
   await db.prepare('INSERT INTO ledger(seq,at,actor,kind,payload,prev_hash,hash) VALUES(?,?,?,?,?,?,?)')
     .bind(seq, at, actor, kind, JSON.stringify(payload), prev_hash, hash).run();
   return { ...base, hash };
+}
+
+// Atomic entity writes + ledger event in one db.batch. The head read
+// supplies seq/prev_hash; a concurrent append between the read and the
+// batch collides on the seq primary key, the whole batch rolls back,
+// and we retry on a fresh head — so entity state and its provenance
+// event can never tear across a ledger cut (the claim-writer race the
+// 2026-11 export review demonstrated).
+export async function ledgerAppendWith(
+  db: D1Database,
+  writes: { kind: string; id: string; obj: unknown }[],
+  event: { actor: string; kind: string; payload: unknown; at?: string },
+  attempts = 3,
+): Promise<{ seq: number; hash: string }> {
+  const at = event.at ?? new Date().toISOString();
+  for (let i = 0; ; i++) {
+    const head = await db.prepare('SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1')
+      .first<{ seq: number; hash: string }>();
+    const seq = (head?.seq ?? -1) + 1;
+    const prev_hash = head?.hash ?? '0'.repeat(64);
+    const base = { seq, at, actor: event.actor, kind: event.kind, payload: event.payload, prev_hash };
+    const hash = eventHash(base);
+    try {
+      await db.batch([
+        db.prepare(
+          'INSERT INTO ledger(seq,at,actor,kind,payload,prev_hash,hash) VALUES(?,?,?,?,?,?,?)',
+        ).bind(seq, at, event.actor, event.kind, JSON.stringify(event.payload), prev_hash, hash),
+        ...writes.map((w) => db.prepare(
+          'INSERT INTO entities(kind,id,json,updated_at) VALUES(?,?,?,?) ON CONFLICT(kind,id) DO UPDATE SET json=excluded.json, updated_at=excluded.updated_at',
+        ).bind(w.kind, w.id, JSON.stringify(w.obj), at)),
+      ]);
+      return { seq, hash };
+    } catch (e) {
+      if (i >= attempts - 1 || !/unique|constraint/i.test(String(e))) throw e;
+    }
+  }
 }
 
 type LedgerRow = {

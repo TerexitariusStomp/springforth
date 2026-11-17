@@ -1,0 +1,61 @@
+# CLC integration — Springforth on Cosmo-Local Credit rails
+
+Springforth's pooling lane runs on **CLC's deployed infrastructure**, not a
+parallel implementation. CLC (api.cosmolocal.credit + the Gnosis `SwapPool`
+contracts) owns issuance, curation, valuation, exchange, custody UX, and
+routing. Springforth owns allocation (quorum/matching/attestation),
+evidence (hash-chained ledger + recomputable export), attribution, and the
+redemption-discharge record.
+
+## Layers
+
+| Layer | What | Where |
+|---|---|---|
+| Observe | `syncClc` projects CLC pools/vouchers into `CommitmentPool`/`Voucher` as `source:'clc'` rows keyed `clc-<address>`; pool curation detail reads are capped (60) + paced (120ms) per cycle; `sealState`/`feeAddress` read on-chain via multicall; bound-wallet balances project as `source:'clc'` holdings. Hourly cron + `POST /admin/clc/sync` | `src/adapters/clc.ts` |
+| Correlate | `Possibility.clcPool` links a card to a pool; `ActorWallet` (`POST /actors/:id/bind-wallet`) links actors to addresses; `gnosis` is a `CHAIN_MODE` | `src/entities.ts`, `src/chain.ts` |
+| Act | `GET /pools/:id/quote` reads `getAmountOut` on-chain; exchanges/curation/issuance deep-link to the CLC app (`clcUrl` on every retired route); `POST /admin/clc/pool` deploys via clc-core's queue | `src/index.ts` |
+| Attribute | `POST /clc/track {trackingId\|txHash, possibilityId?, actor?}` → `clc-track` records + `clc.tx.tracked` events → `clc_track` export records | `src/index.ts`, `src/opsexport.ts` |
+| Discharge | `VoucherRedemption` stays ours — the fulfillment receipt the CLC model names but doesn't store; `chainRef` can carry the return-transfer txHash | `src/entities.ts` |
+
+## Provenance contract
+
+Projected rows are **observations, never authority**:
+
+- `source: 'clc' | 'local'` distinguishes projections from legacy records.
+- `chainAddress` + `chainId` (100 = Gnosis) identify the contract row.
+- `observedAt` is the sync time; `chainRef` is the on-chain pointer
+  (txHash / address) where a record exists.
+- `sealState`, `feeAddress`, `quoterType` carry the SwapPool's own
+  configuration — `sealState` is the bytecode param-freeze bitmask,
+  read directly from the contract, not the catalog.
+- The ops export (v1.4) emits these fields **raw** — public on-chain data
+  deliberately exempt from actor pseudonymization so reviewers can verify
+  every record on gnosisscan.io.
+- Ledger events: `clc.pool.seen` / `clc.voucher.seen` only on first
+  observation, one `clc.synced` summary per cycle (payload hash covers the
+  observed set) — the ledger attests what we saw, not what we did.
+
+## Environment
+
+| Var | Purpose |
+|---|---|
+| `CLC_API` | clc-core base — default `https://api.cosmolocal.credit` |
+| `CLC_APP` | deep-link base — default `https://cosmolocal.credit` |
+| `CLC_SERVICE_TOKEN` | service JWT (secret) — `/admin/clc/pool` |
+| `GNOSIS_RPC` | paid-RPC override for `getAmountOut` reads |
+
+## Retired native write lane
+
+The D1-native pool implementation (`quoteExchange`/`applyExchange`, write
+routes) is **removed** — it was allocation mechanics, not a real pool, and
+CLC's contracts implement the functions for real. `src/pool.ts` retains
+only holder-id conventions; GETs still serve projections, and the
+redemption lane stays (see Discharge above). A pool's `accepted[].rate`
+is `1` in projections — a curation marker, not a price; `getAmountOut` is
+the only authoritative quote. The CLC `sim` repo (GPL-3.0) is the right
+place for pre-deployment rehearsal, not our D1.
+
+## Upstream register
+
+Vendored client code, pinned commit, license, and the PR-back queue:
+`docs/CLC-UPSTREAM.md`.

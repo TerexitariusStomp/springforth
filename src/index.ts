@@ -111,7 +111,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
-import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
 import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
@@ -4602,15 +4602,25 @@ export default {
       }
       if (req.method === 'GET' && seg[0] === 'ledger') {
         if (seg[1] === 'verify') {
-          // ?seq=N returns the head at exactly that cut — the same-cut
-          // reference for replaying a dated ops export. JSON only.
+          // ?seq=N&verify=1 recomputes the hash chain through that cut —
+          // real prefix verification for dated-export replay. ?seq=N
+          // alone returns the STORED head at that cut (cheap lookup,
+          // not a recompute) — the same-cut reference, marked as such.
           const seqQ = url.searchParams.get('seq');
           if (seqQ !== null) {
             const s = Number(seqQ);
-            const h = Number.isInteger(s) && s >= 0
-              ? await ledgerHeadAt(env.DB, s) : null;
+            if (!Number.isInteger(s) || s < 0) return err('bad seq', 422);
+            if (url.searchParams.get('verify') === '1') {
+              const v = await ledgerVerifyPrefix(env.DB, s);
+              return json(v.ok
+                ? { ok: true, verifiedThrough: v.verified, head: v.head }
+                : { ok: false, brokenAt: v.brokenAt });
+            }
+            const h = await ledgerHeadAt(env.DB, s);
             return h
-              ? json({ ok: true, seq: h.seq, head: h.hash })
+              ? json({ ok: true, seq: h.seq, head: h.hash,
+                  verified: false,
+                  note: 'stored head lookup — add &verify=1 to recompute the chain through this cut' })
               : err('no event at that seq', 404);
           }
           const v = await ledgerVerify(env.DB);

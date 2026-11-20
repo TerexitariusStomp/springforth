@@ -7,7 +7,7 @@ import {
 } from './entities.ts';
 import type { PlanNode } from './graph.ts';
 import { endowmentAccrual } from './gate.ts';
-import { get, ledgerAppend, list, listWhere, put } from './store.js';
+import { del, get, ledgerAppend, list, listWhere, put } from './store.js';
 
 // Ops export — the pilot charter §5 interface. A read-only materialized
 // view of the round as NDJSON, snapshotted so the ops leg polls stored
@@ -288,6 +288,61 @@ async function exportSalt(env: EnvLike): Promise<string> {
   return salt;
 }
 
+// Bounded retry for the data write when a marker for identical bytes
+// exists: the marker dedupes the failure EVENT (ledger spam) and sets
+// nextAttemptAt, but never suppresses the write itself — a transient
+// failure that healed must not leave a permanent hole (2026-11
+// CoWizardex finding: marker+event-fail left the dated file missing
+// forever). New content (different file_sha256) retries immediately.
+const SNAPSHOT_RETRY_MS = 10 * 60_000;
+// Dated write with a deduped failure marker: a deterministic failure
+// (oversized row, missing column) would otherwise retry on every poll —
+// appending snapshot_failed, moving the head, and forcing a rebuild,
+// forever. The marker keys on file_sha256 so identical bytes produce
+// one ledger event per backoff window, not one per request.
+// Returns true when the dated row now exists.
+async function stampDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot): Promise<boolean> {
+  const id = `day-${snap.day}`;
+  const failId = `dayfailed-${snap.day}`;
+  const prev = await get<{ file_sha256?: string; nextAttemptAt?: string }>(
+    env.DB, OPS_EXPORT_KIND, failId);
+  const sameFile = prev?.file_sha256 === snap.file_sha256;
+  if (sameFile && prev?.nextAttemptAt
+    && Date.now() < Date.parse(prev.nextAttemptAt)) return false;
+  try {
+    await put(env.DB, OPS_EXPORT_KIND, id, snap);
+    await del(env.DB, OPS_EXPORT_KIND, failId).catch(() => undefined);
+    return true;
+  } catch (e) {
+    console.error('ops-export: dated snapshot write failed', snap.day, e);
+    await put(env.DB, OPS_EXPORT_KIND, failId, {
+      day: snap.day, file_sha256: snap.file_sha256,
+      error: String(e), at: new Date().toISOString(),
+      nextAttemptAt: new Date(Date.now() + SNAPSHOT_RETRY_MS).toISOString(),
+    }).catch(() => undefined);
+    // One failure event per file_sha256 — retries within the backoff
+    // window stay silent; a *new* snapshot for the same day always logs.
+    if (!sameFile) {
+      await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_failed',
+        { day: snap.day, seq: snap.cut.seq, error: String(e) }).catch(() => undefined);
+    }
+    return false;
+  }
+}
+
+// Fast-path self-heal: a dated file can be missing when its write AND
+// the snapshot_failed event write both failed — an unchanged head must
+// not leave that hole unretried (2026-11 review finding). The re-put is
+// byte-identical (same stored snapshot), and the heal lands on the
+// ledger the same way the failure did.
+async function ensureDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot) {
+  if (await get(env.DB, OPS_EXPORT_KIND, `day-${snap.day}`)) return;
+  if (await stampDatedSnapshot(env, snap)) {
+    await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_recovered',
+      { day: snap.day, seq: snap.cut.seq }).catch(() => undefined);
+  }
+}
+
 export async function refreshOpsExport(
   env: EnvLike, opts: { force?: boolean } = {},
 ): Promise<OpsExportSnapshot> {
@@ -298,7 +353,10 @@ export async function refreshOpsExport(
   const headHash = head?.hash ?? '0'.repeat(64);
   const latest = await get<OpsExportSnapshot>(env.DB, OPS_EXPORT_KIND, 'latest');
   if (!opts.force && latest && latest.cut.seq === seq
-    && latest.cut.ledger_head === headHash) return latest;
+    && latest.cut.ledger_head === headHash) {
+    await ensureDatedSnapshot(env, latest);
+    return latest;
+  }
 
   const generatedAt = new Date().toISOString();
   const [
@@ -340,13 +398,9 @@ export async function refreshOpsExport(
   // Dated file = last build of that UTC day; overwritten same-day is
   // idempotent because the payload is a pure function of the cut. A
   // failed dated write is recorded, not swallowed — a missing day is
-  // explainable from the ledger rather than a silent hole.
-  await put(env.DB, OPS_EXPORT_KIND, `day-${snap.day}`, snap)
-    .catch(async (e) => {
-      console.error('ops-export: dated snapshot write failed', snap.day, e);
-      await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_failed',
-        { day: snap.day, seq, error: String(e) }).catch(() => undefined);
-    });
+  // explainable from the ledger rather than a silent hole, and the
+  // fast-path self-heal retries it rather than leaving it unfilled.
+  await stampDatedSnapshot(env, snap);
   return snap;
 }
 

@@ -91,7 +91,13 @@ to `textHash`/`refHash`.
   `a_`/`x_` values rotated once at this schema's first cut.
 - Rebuild gate compares `cut.seq` AND `cut.ledger_head`, not seq alone.
 - A failed dated write appends an `ops-export.snapshot_failed` ledger
-  event; a failed cron refresh appends `ops-export.refresh_failed`.
-- `/ledger/verify?seq=N` returns `{ ok, seq, head }` at exactly that cut
-  (404 beyond the head). Same-cut replay: dated file + `?seq=` +
-  `sed '$d' file.ndjson | sha256sum`.
+  event (deduped per `file_sha256` on a 10-minute backoff — the marker
+  never suppresses the data write itself); a failed cron refresh
+  appends `ops-export.refresh_failed`. A missing dated file self-heals
+  on the next refresh via `ops-export.snapshot_recovered`.
+- `/ledger/verify?seq=N` returns `{ ok, seq, head, verified:false }` —
+  a stored-head lookup at exactly that cut (404 beyond the head), NOT
+  a chain recompute. `?seq=N&verify=1` recomputes every event hash
+  through that cut and compares the tip (`brokenAt` on corruption);
+  no `seq` verifies the full chain. Same-cut replay: dated file +
+  `?seq=N&verify=1` + `sed '$d' file.ndjson | sha256sum`.

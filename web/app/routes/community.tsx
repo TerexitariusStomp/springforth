@@ -80,6 +80,12 @@ export default function Community({ loaderData }: Route.ComponentProps) {
 							<p className={emptyCls}>{t("hub.community.trust.none")}</p>
 						)}
 						<HowNote noteKey="how.community.trust" anchor="s3" />
+						{o.epoch && (
+							<p className="mt-3 text-sm text-muted">
+								<strong>{t("hub.community.trust.epoch")} #{o.epoch.n}</strong> · seq {o.epoch.seq} · <code>{o.epoch.root.slice(0, 12)}…</code>{" — "}
+								<a href={`/trust/epochs/${o.epoch.n}/inputs.json`} className="text-info underline">{t("hub.community.trust.verify")}</a>
+							</p>
+						)}
 					</HubSection>
 
 					<HubSection id="voices" kicker={t("hub.community.voices.k")} title={t("hub.community.voices.t")} count={(o.voices ?? []).length} lede={t("hub.community.voices.lede")}>

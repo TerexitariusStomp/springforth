@@ -67,6 +67,19 @@ export async function listPacked<T>(
   return pages.flatMap((p) => p.records ?? []);
 }
 
+// Insert only when absent, then re-read — concurrent first-writers
+// converge on the single persisted row instead of racing two minted
+// values where only one survives (the ops-export salt race, 2026-11
+// review: atomic get-or-create returning the same value to all callers).
+export async function putIfAbsent<T>(
+  db: D1Database, kind: string, id: string, obj: unknown,
+): Promise<T | null> {
+  await db.prepare(
+    'INSERT INTO entities(kind,id,json,updated_at) VALUES(?,?,?,?) ON CONFLICT(kind,id) DO NOTHING',
+  ).bind(kind, id, JSON.stringify(obj), new Date().toISOString()).run();
+  return get<T>(db, kind, id);
+}
+
 export async function get<T>(db: D1Database, kind: string, id: string): Promise<T | null> {
   const r = await db.prepare('SELECT json FROM entities WHERE kind=? AND id=?')
     .bind(kind, id).first<{ json: string }>();
@@ -111,16 +124,81 @@ export async function ledgerAppend(
   return { ...base, hash };
 }
 
+// Atomic entity writes + ledger event in one db.batch. The head read
+// supplies seq/prev_hash; a concurrent append between the read and the
+// batch collides on the seq primary key, the whole batch rolls back,
+// and we retry on a fresh head — so entity state and its provenance
+// event can never tear across a ledger cut (the claim-writer race the
+// 2026-11 export review demonstrated).
+export async function ledgerAppendWith(
+  db: D1Database,
+  writes: { kind: string; id: string; obj: unknown }[],
+  event: { actor: string; kind: string; payload: unknown; at?: string },
+  attempts = 3,
+): Promise<{ seq: number; hash: string }> {
+  const at = event.at ?? new Date().toISOString();
+  for (let i = 0; ; i++) {
+    const head = await db.prepare('SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1')
+      .first<{ seq: number; hash: string }>();
+    const seq = (head?.seq ?? -1) + 1;
+    const prev_hash = head?.hash ?? '0'.repeat(64);
+    const base = { seq, at, actor: event.actor, kind: event.kind, payload: event.payload, prev_hash };
+    const hash = eventHash(base);
+    try {
+      await db.batch([
+        db.prepare(
+          'INSERT INTO ledger(seq,at,actor,kind,payload,prev_hash,hash) VALUES(?,?,?,?,?,?,?)',
+        ).bind(seq, at, event.actor, event.kind, JSON.stringify(event.payload), prev_hash, hash),
+        ...writes.map((w) => db.prepare(
+          'INSERT INTO entities(kind,id,json,updated_at) VALUES(?,?,?,?) ON CONFLICT(kind,id) DO UPDATE SET json=excluded.json, updated_at=excluded.updated_at',
+        ).bind(w.kind, w.id, JSON.stringify(w.obj), at)),
+      ]);
+      return { seq, hash };
+    } catch (e) {
+      if (i >= attempts - 1 || !/unique|constraint/i.test(String(e))) throw e;
+    }
+  }
+}
+
 type LedgerRow = {
   seq: number; at: string; actor: string; kind: string; payload: string; prev_hash: string; hash: string;
 };
 const parseRow = (e: LedgerRow) => ({ ...e, payload: JSON.parse(e.payload) });
 
 // Head at an exact seq — the same-cut reference a reviewer needs when
-// replaying a dated export against the chain. /ledger/verify?seq=N.
+// replaying a dated export against the chain. This is a STORED-hash
+// lookup, not verification; pair with ledgerVerifyPrefix (the route's
+// ?seq=N&verify=1) when the claim is chain integrity, not just a
+// matching cut.
 export async function ledgerHeadAt(db: D1Database, seq: number) {
   return db.prepare('SELECT seq, hash FROM ledger WHERE seq=?')
     .bind(seq).first<{ seq: number; hash: string }>();
+}
+
+async function ledgerEventsUpTo(db: D1Database, uptoSeq: number) {
+  const r = await db.prepare('SELECT * FROM ledger WHERE seq<=? ORDER BY seq')
+    .bind(uptoSeq).all<LedgerRow>();
+  return (r.results ?? []).map(parseRow);
+}
+
+// Recompute the hash chain for events 1..uptoSeq and compare the tip to
+// the stored head at that cut — a real prefix verification, not a
+// stored-hash echo. Use it to answer "is the chain intact through cut
+// N" (dated export replay); full-chain integrity is ledgerVerify.
+export async function ledgerVerifyPrefix(db: D1Database, uptoSeq: number) {
+  const events = await ledgerEventsUpTo(db, uptoSeq);
+  if (!events.length) return { ok: false, brokenAt: uptoSeq };
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i]!;
+    const prev = i === 0 ? '0'.repeat(64) : events[i - 1]!.hash;
+    if (e.prev_hash !== prev || e.hash !== eventHash(e))
+      return { ok: false, brokenAt: e.seq };
+  }
+  const tip = events.at(-1)!;
+  const stored = await ledgerHeadAt(db, uptoSeq);
+  if (!stored || stored.hash !== tip.hash)
+    return { ok: false, brokenAt: uptoSeq };
+  return { ok: true, verified: events.length, head: tip.hash };
 }
 
 export async function ledgerEvents(db: D1Database) {

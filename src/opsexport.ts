@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
 import type { D1Database } from '@cloudflare/workers-types';
 import {
-  Appreciation, Attestation, Donation, ForumPost, FundingRound,
-  ImpactClaim, OracleCheck, Participation, Pledge, Possibility,
-  RecurringSupport, YieldStream,
+  Appreciation, Attestation, CommitmentPool, Donation, ExternalScore, ForumPost,
+  FundingRound, ImpactClaim, OracleCheck, Participation, Pledge, PoolExchange,
+  Possibility, RecurringSupport, TrustEpoch, Voucher, VoucherHolding,
+  VoucherRedemption, YieldStream,
 } from './entities.ts';
 import type { PlanNode } from './graph.ts';
 import { endowmentAccrual } from './gate.ts';
-import { get, ledgerAppend, list, listWhere, put } from './store.js';
+import { del, get, ledgerAppend, listWhere, put, putIfAbsent } from './store.js';
 
 // Ops export — the pilot charter §5 interface. A read-only materialized
 // view of the round as NDJSON, snapshotted so the ops leg polls stored
@@ -19,6 +20,9 @@ import { get, ledgerAppend, list, listWhere, put } from './store.js';
 // daily files, so ops joins records over time without names.
 
 export const OPS_EXPORT_SPEC = 'springforth.ops-export/v1';
+// Additive schema level — record types added post-v1 bump the revision,
+// not the spec: v1 consumers keep parsing. History in docs/OPS-EXPORT.md.
+export const OPS_EXPORT_REVISION = 'v1.4';
 export const OPS_EXPORT_KIND = 'ops-export';
 
 const digest = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -54,9 +58,28 @@ export interface OpsExportInput {
   streams: RecurringSupport[];
   yields: YieldStream[];
   rounds: FundingRound[];
+  epochs?: TrustEpoch[];
+  externalScores?: ExternalScore[];
+  // CPP lane — commitment pools (docs/CPP.md, docs/CLC-INTEGRATION.md)
+  vouchers?: Voucher[];
+  holdings?: VoucherHolding[];
+  pools?: CommitmentPool[];
+  exchanges?: PoolExchange[];
+  redemptions?: VoucherRedemption[];
+  clcTracks?: ClcTrack[];
   head: { seq: number; hash: string };
   generatedAt: string;
   salt?: string;
+  build?: string;                 // deployed revision (env.BUILD_ID)
+}
+
+// Attribution record for a CLC transaction a Springforth flow
+// coordinated — POST /clc/track writes these.
+export interface ClcTrack {
+  id: string; trackingId?: string; txHash?: string;
+  possibilityId?: string; actor: string; status: string;
+  chainId?: number; at: string;
+  confirmedAt?: string; blockNumber?: number; exchanges?: string[];
 }
 
 type Line = Record<string, unknown>;
@@ -244,11 +267,107 @@ export function buildOpsExport(i: OpsExportInput): {
     });
   }
 
+  // trust epochs — journal pointers, not score blobs: a reviewer
+  // fetches /trust/epochs/:n/inputs.json + /scores.json against the
+  // same cut and recomputes (docs/TRUSTGRAPH.md).
+  for (const e of [...(i.epochs ?? [])].sort((a, b) => a.epoch - b.epoch)) {
+    lines.push({
+      type: 'trust_epoch', epoch: e.epoch,
+      program: `${e.program}/v${e.programVersion}`,
+      cut: { seq: e.cut.seq, ledger_head: e.cut.ledgerHead },
+      inputHash: e.inputHash, paramsHash: e.paramsHash,
+      outputRoot: e.outputRoot, totalValue: e.totalValue,
+      scoresHash: e.scoresHash, edgeCount: e.edgeCount, actorCount: e.actorCount,
+      at: e.createdAt,
+    });
+  }
+
+  // external trust — entries verified against a trustgraphs network's
+  // accepted root (phase 3). `account` stays raw: it's the public leaf
+  // key the proof checks against; `actor` pseudonymizes as usual.
+  for (const s of i.externalScores ?? []) {
+    lines.push({
+      type: 'external_trust', id: oid(s.id, salt), network: s.network,
+      root: s.root, account: s.account, actor: ps(s.actor),
+      value: s.value, totalValue: s.totalValue, at: s.verifiedAt,
+    });
+  }
+
+  // CPP lane — the pooling readout Will Ruddick named: exchanges,
+  // redemption, fulfillment, and pool sustainability as records, not
+  // narrative. holdings = the circulating-inventory snapshot.
+  // CLC lane — pools/vouchers/exchanges carry observation provenance:
+  // `source` distinguishes projections from local records, `chainAddress`
+  // + `chainId` + `chainRef` are the verification join (emitted raw —
+  // public on-chain data, deliberately not pseudonymized).
+  for (const v of [...(i.vouchers ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    lines.push({
+      type: 'voucher', id: oid(v.id, salt), issuer: ps(v.issuer), unit: v.unit,
+      supply: v.supply, state: v.state, termsHash: digest(v.terms), at: v.createdAt,
+      source: v.source ?? 'local',
+      chainAddress: v.chainAddress ?? null, chainId: v.chainId ?? null,
+      observedAt: v.observedAt ?? null,
+    });
+  }
+  for (const h of [...(i.holdings ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'holding', id: oid(h.id, salt), holder: ps(h.holder),
+      voucherId: oid(h.voucherId, salt), amount: h.amount, at: h.updatedAt,
+      source: h.source ?? 'local', chainRef: h.chainRef ?? null,
+    });
+  }
+  for (const p of [...(i.pools ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    lines.push({
+      type: 'pool', id: oid(p.id, salt), operator: ps(p.operator), indexUnit: p.indexUnit,
+      accepted: p.accepted.map((a) => ({
+        voucherId: oid(a.voucherId, salt), rate: a.rate, limit: a.limit, state: a.state })),
+      poolFeeBps: p.poolFeeBps, protocolFeeBps: p.protocolFeeBps,
+      state: p.state, at: p.createdAt,
+      source: p.source ?? 'local',
+      chainAddress: p.chainAddress ?? null, chainId: p.chainId ?? null,
+      observedAt: p.observedAt ?? null,
+      sealState: p.sealState ?? null, feeAddress: p.feeAddress ?? null,
+      quoterType: p.quoterType ?? null,
+    });
+  }
+  for (const x of [...(i.exchanges ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'pool_exchange', id: oid(x.id, salt), poolId: oid(x.poolId, salt),
+      actor: ps(x.actor),
+      give: { voucherId: oid(x.give.voucherId, salt), amount: x.give.amount },
+      receive: { voucherId: oid(x.receive.voucherId, salt), amount: x.receive.amount },
+      fees: { voucherId: oid(x.fees.voucherId, salt), pool: x.fees.pool, protocol: x.fees.protocol },
+      rates: x.rates, at: x.at,
+      source: x.source ?? 'local', chainRef: x.chainRef ?? null,
+    });
+  }
+  for (const r of [...(i.redemptions ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'redemption', id: oid(r.id, salt), voucherId: oid(r.voucherId, salt),
+      holder: ps(r.holder), amount: r.amount, state: r.state,
+      at: r.at, resolvedAt: r.resolvedAt ?? null, chainRef: r.chainRef ?? null,
+    });
+  }
+  for (const t of [...(i.clcTracks ?? [])]
+    .sort((a, b) => a.at.localeCompare(b.at))) {
+    lines.push({
+      type: 'clc_track', id: oid(t.id, salt),
+      trackingId: t.trackingId ?? null, txHash: t.txHash ?? null,
+      possibilityId: t.possibilityId ? oid(t.possibilityId, salt) : null,
+      actor: ps(t.actor), status: t.status,
+      chainId: t.chainId ?? null, at: t.at,
+      confirmedAt: t.confirmedAt ?? null, blockNumber: t.blockNumber ?? null,
+      exchanges: t.exchanges ?? null,
+    });
+  }
+
   const payload = lines.map((l) => JSON.stringify(l)).join('\n') + '\n';
   const counts: Record<string, number> = {};
   for (const l of lines) counts[String(l.type)] = (counts[String(l.type)] ?? 0) + 1;
   const manifest = {
-    type: 'manifest', spec: OPS_EXPORT_SPEC, generatedAt: i.generatedAt,
+    type: 'manifest', spec: OPS_EXPORT_SPEC, revision: OPS_EXPORT_REVISION,
+    generatedAt: i.generatedAt,
+    build: i.build ?? null,
     cut: { seq: i.head.seq, ledger_head: i.head.hash },
     counts, records: lines.length,
     file_sha256: digest(payload),
@@ -267,6 +386,7 @@ export interface OpsExportSnapshot {
 interface EnvLike {
   DB: D1Database;
   EXPORT_SALT?: string;
+  BUILD_ID?: string;              // deployed revision, set at deploy time
 }
 
 // Refresh the snapshot only when the ledger head moved — steady-state
@@ -274,7 +394,9 @@ interface EnvLike {
 // rebuilds unconditionally for the pre-D0 sample run.
 // Salt resolution: env.EXPORT_SALT wins. With no secret configured, a
 // random salt is minted once and persisted under the same kind — server-
-// side only, stable across rebuilds. (The previous default, the spec
+// side only, stable across rebuilds. putIfAbsent makes the first write
+// atomic: concurrent callers all re-read and return the persisted
+// winner, never divergent salts. (The previous default, the spec
 // string, was documented and therefore dictionary-reversible; existing
 // a_/x_ values rotate once at first rebuild under the new salt, which
 // the readout should note rather than hide.)
@@ -282,52 +404,151 @@ async function exportSalt(env: EnvLike): Promise<string> {
   if (env.EXPORT_SALT) return env.EXPORT_SALT;
   const existing = await get<{ salt: string }>(env.DB, OPS_EXPORT_KIND, 'salt');
   if (existing?.salt) return existing.salt;
-  const salt = crypto.randomUUID();
-  await put(env.DB, OPS_EXPORT_KIND, 'salt',
-    { salt, at: new Date().toISOString() });
-  return salt;
+  const minted = { salt: crypto.randomUUID(), at: new Date().toISOString() };
+  const winner = await putIfAbsent<{ salt: string }>(env.DB, OPS_EXPORT_KIND, 'salt', minted);
+  return winner?.salt ?? minted.salt;
+}
+
+// Entity kinds the export materializes, in batch order. The head query
+// leads the batch so every read below it describes the same database
+// instant — one consistent ledger cut, never head-at-T/entities-at-T′.
+const ENTITY_READS: [kind: string, where?: string][] = [
+  ['possibility'],
+  ['participation'],
+  ['plannode', "json_extract(json,'$.possibilityId') IS NOT NULL"],
+  ['appreciation'],
+  ['attestation'],
+  ['oracle-check', "COALESCE(json_extract(json,'$.demo'),0)=0"],
+  ['forum-post', "json_extract(json,'$.kind')='evidence'"],
+  ['claim'],
+  ['pledge'],
+  ['donation'],
+  ['recurring-support'],
+  ['yieldstream'],
+  ['round'],
+  ['trust-epoch'],
+  ['external-score'],
+  ['voucher'],
+  ['voucher-holding'],
+  ['commitment-pool'],
+  ['pool-exchange'],
+  ['redemption'],
+  ['clc-track'],
+];
+
+// One atomic read transaction: head + every entity table in a single
+// db.batch. A claim that lands mid-build either joins the whole cut
+// (head moves with it) or waits for the next one — it can no longer
+// appear in an export labelled with a seq its ledger event postdates
+// on lanes that write entity+event atomically (store.ledgerAppendWith).
+async function snapshotReads(env: EnvLike) {
+  const rs = await env.DB.batch<{ seq?: number; hash?: string; json?: string }>([
+    env.DB.prepare('SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1'),
+    ...ENTITY_READS.map(([kind, where]) => env.DB.prepare(
+      `SELECT json FROM entities WHERE kind=?${where ? ` AND ${where}` : ''} ORDER BY id`,
+    ).bind(kind)),
+  ]);
+  const head = (rs[0]?.results?.[0] ?? null) as { seq: number; hash: string } | null;
+  const rows = rs.slice(1).map((r) =>
+    (r.results ?? []).map((x) => JSON.parse(String((x as { json: string }).json))));
+  return { head, rows };
+}
+
+// Bounded retry for the data write when a marker for identical bytes
+// exists: the marker dedupes the failure EVENT (ledger spam) and sets
+// nextAttemptAt, but never suppresses the write itself — a transient
+// failure that healed must not leave a permanent hole (2026-11
+// CoWizardex finding: marker+event-fail left the dated file missing
+// forever). New content (different file_sha256) retries immediately.
+const SNAPSHOT_RETRY_MS = 10 * 60_000;
+// Dated write with a deduped failure marker: a deterministic failure
+// (oversized row, missing column) would otherwise retry on every poll —
+// appending snapshot_failed, moving the head, and forcing a rebuild,
+// forever. The marker keys on file_sha256 so identical bytes produce
+// one ledger event per backoff window, not one per request.
+// Returns true when the dated row now exists.
+async function stampDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot): Promise<boolean> {
+  const id = `day-${snap.day}`;
+  const failId = `dayfailed-${snap.day}`;
+  const prev = await get<{ file_sha256?: string; nextAttemptAt?: string }>(
+    env.DB, OPS_EXPORT_KIND, failId);
+  const sameFile = prev?.file_sha256 === snap.file_sha256;
+  if (sameFile && prev?.nextAttemptAt
+    && Date.now() < Date.parse(prev.nextAttemptAt)) return false;
+  try {
+    await put(env.DB, OPS_EXPORT_KIND, id, snap);
+    await del(env.DB, OPS_EXPORT_KIND, failId).catch(() => undefined);
+    return true;
+  } catch (e) {
+    console.error('ops-export: dated snapshot write failed', snap.day, e);
+    await put(env.DB, OPS_EXPORT_KIND, failId, {
+      day: snap.day, file_sha256: snap.file_sha256,
+      error: String(e), at: new Date().toISOString(),
+      nextAttemptAt: new Date(Date.now() + SNAPSHOT_RETRY_MS).toISOString(),
+    }).catch(() => undefined);
+    // One failure event per file_sha256 — retries within the backoff
+    // window stay silent; a *new* snapshot for the same day always logs.
+    if (!sameFile) {
+      await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_failed',
+        { day: snap.day, seq: snap.cut.seq, error: String(e) }).catch(() => undefined);
+    }
+    return false;
+  }
+}
+
+// Fast-path self-heal: a dated file can be missing when its write AND
+// the snapshot_failed event write both failed — an unchanged head must
+// not leave that hole unretried (2026-11 review finding). The re-put is
+// byte-identical (same stored snapshot), and the heal lands on the
+// ledger the same way the failure did.
+async function ensureDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot) {
+  if (await get(env.DB, OPS_EXPORT_KIND, `day-${snap.day}`)) return;
+  if (await stampDatedSnapshot(env, snap)) {
+    await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_recovered',
+      { day: snap.day, seq: snap.cut.seq }).catch(() => undefined);
+  }
 }
 
 export async function refreshOpsExport(
   env: EnvLike, opts: { force?: boolean } = {},
 ): Promise<OpsExportSnapshot> {
-  const head = await env.DB
+  const headNow = await env.DB
     .prepare('SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1')
     .first<{ seq: number; hash: string }>();
-  const seq = head?.seq ?? -1;
-  const headHash = head?.hash ?? '0'.repeat(64);
   const latest = await get<OpsExportSnapshot>(env.DB, OPS_EXPORT_KIND, 'latest');
-  if (!opts.force && latest && latest.cut.seq === seq
-    && latest.cut.ledger_head === headHash) return latest;
+  if (!opts.force && latest && headNow
+    && latest.cut.seq === headNow.seq
+    && latest.cut.ledger_head === headNow.hash) {
+    await ensureDatedSnapshot(env, latest);
+    return latest;
+  }
 
   const generatedAt = new Date().toISOString();
+  const { head, rows } = await snapshotReads(env);
+  const seq = head?.seq ?? -1;
+  const headHash = head?.hash ?? '0'.repeat(64);
   const [
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
-  ] = await Promise.all([
-    list<Possibility>(env.DB, 'possibility'),
-    list<Participation>(env.DB, 'participation'),
-    listWhere<PlanNode>(env.DB, 'plannode',
-      "json_extract(json,'$.possibilityId') IS NOT NULL"),
-    list<Appreciation>(env.DB, 'appreciation'),
-    list<Attestation>(env.DB, 'attestation'),
-    listWhere<OracleCheck>(env.DB, 'oracle-check',
-      "COALESCE(json_extract(json,'$.demo'),0)=0"),
-    listWhere<ForumPost>(env.DB, 'forum-post',
-      "json_extract(json,'$.kind')='evidence'"),
-    list<ImpactClaim>(env.DB, 'claim'),
-    list<Pledge>(env.DB, 'pledge'),
-    list<Donation>(env.DB, 'donation'),
-    list<RecurringSupport>(env.DB, 'recurring-support'),
-    list<YieldStream>(env.DB, 'yieldstream'),
-    list<FundingRound>(env.DB, 'round'),
-  ]);
+    epochs, externalScores, vouchers, holdings, pools, exchanges, redemptions,
+    clcTracks,
+  ] = rows as [
+    Possibility[], Participation[], PlanNode[], Appreciation[], Attestation[],
+    OracleCheck[], ForumPost[], ImpactClaim[], Pledge[], Donation[],
+    RecurringSupport[], YieldStream[], FundingRound[],
+    TrustEpoch[], ExternalScore[],
+    Voucher[], VoucherHolding[], CommitmentPool[], PoolExchange[], VoucherRedemption[],
+    ClcTrack[],
+  ];
 
   const { body, manifest } = buildOpsExport({
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
+    epochs, externalScores, vouchers, holdings, pools, exchanges, redemptions,
+    clcTracks,
     head: { seq, hash: headHash }, generatedAt,
     salt: await exportSalt(env),
+    build: env.BUILD_ID,
   });
   const snap: OpsExportSnapshot = {
     day: generatedAt.slice(0, 10), generatedAt,
@@ -340,13 +561,9 @@ export async function refreshOpsExport(
   // Dated file = last build of that UTC day; overwritten same-day is
   // idempotent because the payload is a pure function of the cut. A
   // failed dated write is recorded, not swallowed — a missing day is
-  // explainable from the ledger rather than a silent hole.
-  await put(env.DB, OPS_EXPORT_KIND, `day-${snap.day}`, snap)
-    .catch(async (e) => {
-      console.error('ops-export: dated snapshot write failed', snap.day, e);
-      await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_failed',
-        { day: snap.day, seq, error: String(e) }).catch(() => undefined);
-    });
+  // explainable from the ledger rather than a silent hole, and the
+  // fast-path self-heal retries it rather than leaving it unfilled.
+  await stampDatedSnapshot(env, snap);
   return snap;
 }
 

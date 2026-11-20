@@ -1,5 +1,5 @@
 import { Donation, FundingRound, Possibility, Participation, Pledge, Appreciation, ImpactClaim, OracleCheck, RetroBallot, RetroRound, GovernanceBallot, GovernanceParam, GovernanceProposal } from './core';
-import { mutualWeight, type TrustEdge, PlanNode, OverlapRecord, effectiveStatus, quorumMet, eigenTrust, trustEdges } from './coordination';
+import { mutualWeight, type TrustEdge, PlanNode, OverlapRecord, effectiveStatus, quorumMet, eigenTrust } from './coordination';
 
 // ── index.ts ────────────────────────────────────────
 
@@ -312,11 +312,10 @@ export function toHypercertLexicon(claim: ImpactClaim): Record<string, unknown> 
 // The community's own recognition record decides who reviews.
 
 export function badgeholders(
-  appreciations: Appreciation[],
+  edges: TrustEdge[],
   n: number,
   exclude: string[] = [],
 ): string[] {
-  const edges = trustEdges(appreciations);
   const vec = eigenTrust(edges);
   const skip = new Set(exclude);
   return Object.entries(vec)
@@ -374,9 +373,9 @@ export function tallyRound(
 // Voters must have nonzero EigenTrust standing — the sybil gate is the
 // graph itself, not an external identity service.
 export function eligibleVoters(
-  appreciations: Appreciation[], minTrust = 0,
+  edges: TrustEdge[], minTrust = 0,
 ): string[] {
-  const vec = eigenTrust(trustEdges(appreciations));
+  const vec = eigenTrust(edges);
   return Object.entries(vec)
     .filter(([, v]) => v > minTrust)
     .map(([actor]) => actor);
@@ -419,6 +418,12 @@ export const GOVERNABLE: Record<string, { default: string; describe: string }> =
   'conviction.gamma': { default: '0.5', describe: 'time-weight on donations in conviction rounds' },
   'trust.cap':        { default: '3',  describe: 'max trust multiplier applied to surfacing' },
   'evidence.boost':   { default: '1',  describe: '0 disables evidence-weighted allocation' },
+  'trust.epochMinSeqGap': { default: '25', describe: 'min ledger seqs between trust-epoch checkpoints' },
+  'trust.alpha':      { default: '0.85', describe: 'EigenTrust damping factor (epoch-scored)' },
+  'trust.iters':      { default: '20',   describe: 'EigenTrust power-iteration count (epoch-scored)' },
+  'trust.poolScale':  { default: '1000000', describe: 'fixed score pool epochs quantize into' },
+  'trust.priorSource': { default: '',   describe: 'external trustgraph network ref for the restart prior' },
+  'trust.priorShare': { default: '0',   describe: '0-1 share of restart mass placed on the external prior' },
 };
 
 export function paramValue(

@@ -32,6 +32,11 @@ WEB_FRONTEND = "1"
 # All protocol contracts verified live on celo mainnet (2026-10-20).
 # celo-sepolia is the proving ground once contracts are deployed there.
 CHAIN_MODE = "celo"
+# CLC (cosmolocal.credit) integration — read projections + deep links.
+# CLC_API/CLC_APP default to the hosted service; CLC_SERVICE_TOKEN is a
+# wrangler secret enabling /admin/clc/pool deployments.
+CLC_API = "https://api.cosmolocal.credit"
+CLC_APP = "https://cosmolocal.credit"
 # Silvi public API — campaign-scoped key (secret: SILVI_API_KEY) unlocks
 # campaign 5 "Kenya/Uganda" verified planting claims via /silvi/sync.
 SILVI_CAMPAIGN_ID = "5"
@@ -53,6 +58,9 @@ OC_SEARCH_TERMS = "public goods,regenerative,climate,forest,commons"
 # (Pressword account — its D1 row quota is separate from Widespread's).
 # Remove this line to fall back to the local binding. Secret: D1_PROXY_KEY.
 D1_PROXY_URL = "https://sf-d1proxy.delta-git.workers.dev"
+# Deployed revision stamped into ops-export manifests (manifest.build) —
+# set via `wrangler deploy --var BUILD_ID:$(git rev-parse --short HEAD)` or CI.
+# BUILD_ID = ""
 
 # Workers AI — embeddings for meaning-matched search + overlap scoring.
 # bge-base-en-v1.5 (768-dim); free tier, no secret needed.

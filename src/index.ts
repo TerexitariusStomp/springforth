@@ -4,9 +4,10 @@ import {
   Question, CouncilDecision, DecisionMode, Referral, TestCard,
   FundingRound, Donation, Pledge, ImpactClaim, Attestation,
   RetroRound, RetroBallot, ChainTx, YieldStream,
+  Voucher, VoucherHolding, CommitmentPool, PoolExchange, VoucherRedemption,
   ActorWallet, ActorPersonhood, ActorNonce, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
-  DatasetRelease, DataAccessGrant, Subscription,
+  DatasetRelease, DataAccessGrant, Subscription, TrustEpoch,
   valueCoordinated,
 } from './core';
 import {
@@ -111,8 +112,20 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
-import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerAppendWith, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
 import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
+import { holdingId, poolHolder, protocolHolder } from './pool.js';
+import {
+  clcAuthedClient, clcAppUrl, syncClc, maybeAdvanceClcSync, CLC_CHAIN_ID,
+} from './adapters/clc.js';
+import type { PoolDeployPayload } from '@clc/core/features/pools/logic';
+import { swapPoolGetAmountOutAbi } from '@clc/core/features/pool-swaps/logic';
+import { GNOSIS } from './chain.js';
+import {
+  maybeTrustCheckpoint, ensureTrustEpoch, latestTrustEpoch,
+  getTrustEpoch, getTrustEpochData, epochEdges, scoreProof,
+  TRUST_INPUTS_SPEC, TRUST_SCORES_SPEC,
+} from './trustgraph.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
   loadMetrics, loadCommitments, loadResources, loadTrust,
@@ -137,7 +150,11 @@ export interface Env {
   ONEPLANET_URL?: string;    // defaults to https://mcp.oneplanet.com/mcp
   TELEGRAM_BOT_TOKEN?: string;    // @springforth_bot — /tg webhook + quorum notify
   TELEGRAM_WEBHOOK_SECRET?: string; // X-Telegram-Bot-Api-Secret-Token check
-  CHAIN_MODE?: string;            // 'off' (default) | 'celo-sepolia' | 'sepolia' | 'celo'
+  CHAIN_MODE?: string;            // 'off' (default) | 'celo-sepolia' | 'sepolia' | 'celo' | 'gnosis'
+  CLC_API?: string;               // clc-core API base — defaults to api.cosmolocal.credit
+  CLC_APP?: string;               // CLC PWA deep-link base — defaults to cosmolocal.credit
+  CLC_SERVICE_TOKEN?: string;     // clc-core service JWT — admin writes (pool deploy)
+  GNOSIS_RPC?: string;            // paid-RPC override for Gnosis reads
   CHAIN_RPC?: string;             // optional paid-RPC override
   TELEGRAM_CHAT_ID?: string;      // default group for quorum announcements
   SILVI_API_KEY?: string;         // silvi.earth public API key (silvi_…)
@@ -172,6 +189,7 @@ export interface Env {
   D1_PROXY_URL?: string;      // sf-d1proxy worker URL — routes env.DB cross-account
   D1_PROXY_KEY?: string;      // bearer secret for the proxy (wrangler secret)
   EXPORT_SALT?: string;       // rotates the ops-export actor pseudonym salt
+  BUILD_ID?: string;          // deployed revision stamped into export manifests
 }
 
 // When D1_PROXY_URL is set, env.DB is replaced by an HTTP facade pointed at
@@ -520,8 +538,8 @@ async function sweepPossibilities(env: Env, actor = 'system',
 // grounds; alfajores is decommissioned post-L2.
 const chainCfg = (env: Env): ChainConfig | null =>
   env.CHAIN_MODE === 'celo-sepolia' || env.CHAIN_MODE === 'sepolia'
-    || env.CHAIN_MODE === 'celo'
-    ? chainFor(env.CHAIN_MODE as 'celo-sepolia' | 'sepolia' | 'celo') : null;
+    || env.CHAIN_MODE === 'celo' || env.CHAIN_MODE === 'gnosis'
+    ? chainFor(env.CHAIN_MODE as 'celo-sepolia' | 'sepolia' | 'celo' | 'gnosis') : null;
 
 // Hourly cron: confirm submitted txs, apply side effects. Reads only.
 
@@ -1084,6 +1102,16 @@ export default {
         ctx ? ctx.waitUntil(p) : await p;
       }
     }
+    // Ambient CLC sync lane — the account is on the free plan (5 cron
+    // triggers, ~50 subrequests/invocation), so the mirror advances on
+    // traffic too: every request kicks a bounded syncClc after the
+    // response when a cycle is mid-resume or the last one went stale.
+    // One state-row read per request; the sync itself is metered.
+    {
+      const p = maybeAdvanceClcSync(env)
+        .catch((e) => console.error('clc piggyback failed', e));
+      ctx ? ctx.waitUntil(p) : await p;
+    }
     // HTML pages embed live state (footer timestamp, ticker, counts) — never
     // let the browser heuristically cache them; assets carry their own TTLs.
     if (res.headers.get('content-type')?.includes('text/html')) {
@@ -1372,6 +1400,9 @@ export default {
             return page(req, renderCommunityPage, {
               lang,
               people, mutual: trust.mutual,
+              epoch: trust.epoch
+                ? { n: trust.epoch.epoch, seq: trust.epoch.cut.seq, root: trust.epoch.outputRoot }
+                : null,
               proposals: gov.proposals, ballots: gov.ballots,
               params: gov.params, governable: gov.governable,
               voters: gov.eligibleVoters.length,
@@ -2436,7 +2467,7 @@ export default {
         const ballots = await list<GovernanceBallot>(env.DB, 'gov-ballot');
         const params = await list<GovernanceParam>(env.DB, 'gov-param');
         const govApps = await list<Appreciation>(env.DB, 'appreciation');
-        const voters = eligibleVoters(govApps);
+        const voters = eligibleVoters(trustEdges(govApps));
         if (req.method === 'GET' && seg.length === 1)
           return json({ proposals, ballots, params,
             governable: GOVERNABLE, eligibleVoters: voters });
@@ -2458,6 +2489,7 @@ export default {
             proposer,
             closesAt: String(b.closesAt ?? new Date(Date.now() + 7 * 86_400_000).toISOString()),
             state: 'open', createdAt: now,
+            trustEpoch: (await ensureTrustEpoch(env))?.epoch,
           });
           await put(env.DB, 'gov-proposal', prop.id, prop);
           await ledgerAppend(env.DB, proposer, 'governance.proposed', { id: prop.id, param });
@@ -2467,13 +2499,20 @@ export default {
         }
         const prop = await get<GovernanceProposal>(env.DB, 'gov-proposal', seg[1] ?? '');
         if (!prop) return err('proposal not found', 404);
+        // Pinned epoch → the eligible cohort comes from its committed
+        // edges (frozen at proposal), not the graph at vote/tally time.
+        const pinnedEdges = prop.trustEpoch != null
+          ? await epochEdges(env.DB, prop.trustEpoch) : null;
+        if (prop.trustEpoch != null && !pinnedEdges)
+          return err('pinned trust epoch data missing', 500);
+        const cohort = pinnedEdges ? eligibleVoters(pinnedEdges) : voters;
         if (req.method === 'POST' && seg[2] === 'vote') {
           const ct = req.headers.get('content-type') ?? '';
           const b = ct.includes('form')
             ? Object.fromEntries((await req.formData()).entries())
             : await req.json() as Record<string, unknown>;
           const voter = String(b.voter ?? '');
-          if (!voters.includes(voter)) return err('voter needs EigenTrust standing', 403);
+          if (!cohort.includes(voter)) return err('voter needs EigenTrust standing', 403);
           if (prop.state !== 'open' || Date.parse(prop.closesAt) < Date.now())
             return err('proposal closed', 409);
           const points = Number(b.points ?? 0);
@@ -2493,7 +2532,7 @@ export default {
         }
         if (req.method === 'POST' && seg[2] === 'tally') {
           if (!authed(req, env)) return err('unauthorized', 401);
-          const tally = tallyProposal(prop, ballots, voters);
+          const tally = tallyProposal(prop, ballots, cohort);
           const state = tally.passed ? 'passed' : 'rejected';
           await put(env.DB, 'gov-proposal', prop.id, { ...prop, state });
           if (tally.passed) {
@@ -3195,6 +3234,10 @@ export default {
           });
           await put(env.DB, 'appreciation', ap.id, ap);
           await ledgerAppend(env.DB, from, 'possibility.appreciated', { id: p.id, to });
+          // Trust-epoch checkpoint — mints only when inputs/params moved
+          // and the seq gap allows; failure never blocks the write.
+          await maybeTrustCheckpoint(env)
+            .catch((e) => console.error('trust checkpoint failed', e));
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
             ? new Response(null, { status: 303, headers: { location: '/possibilities' } })
@@ -3540,18 +3583,67 @@ export default {
       // propagation).
       // ?format=attestations emits EAS-shaped records — composable
       // reputation export.
-      if (req.method === 'GET' && seg[0] === 'trust') {
-        if (url.searchParams.get('format') === 'attestations') {
-          const edges = trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
-          return json({
-            attestations: edges.filter((e) => e.mutual > 0).map((e) => ({
-              schema: 'mutual-recognition', from: e.from, to: e.to,
-              weight: e.weight, mutual: e.mutual,
-              ledgerEvent: 'possibility.appreciated',
-            })),
+      if (seg[0] === 'trust') {
+        // Trust epochs — committed scoring rounds (docs/TRUSTGRAPH.md):
+        // journals, the canonical recompute package, and per-actor
+        // Merkle proofs. JSON only.
+        if (seg[1] === 'epochs') {
+          if (req.method === 'POST' && seg[2] === 'checkpoint' && seg.length === 3) {
+            if (!authed(req, env)) return err('unauthorized', 401);
+            const r = await maybeTrustCheckpoint(env, { force: true });
+            return json(r, r.created ? 201 : 200);
+          }
+          if (req.method !== 'GET') return err('method not allowed', 405);
+          if (seg.length === 2) {
+            const epochs = await listWhere<TrustEpoch>(env.DB, 'trust-epoch', "id LIKE 'te-%'");
+            return json({ spec: TRUST_SCORES_SPEC, epochs: [...epochs].reverse() });
+          }
+          const n = Number(seg[2]);
+          const epoch = Number.isInteger(n) && n >= 1 ? await getTrustEpoch(env.DB, n) : null;
+          if (!epoch) return err('no such trust epoch', 404);
+          if (seg.length === 3) return json(epoch);
+          const data = await getTrustEpochData(env.DB, epoch.epoch);
+          if (!data) return err('epoch data missing', 500);
+          if (seg[3] === 'inputs.json') return json({
+            spec: TRUST_INPUTS_SPEC, epoch: epoch.epoch, cut: epoch.cut,
+            program: epoch.program, programVersion: epoch.programVersion,
+            params: epoch.params, paramsHash: epoch.paramsHash,
+            inputHash: epoch.inputHash, edges: data.edges,
+            recompute: 'sha256(JSON.stringify({edges})) === inputHash — docs/TRUSTGRAPH.md',
           });
+          if (seg[3] === 'scores.json') return json({
+            spec: TRUST_SCORES_SPEC, epoch: epoch.epoch,
+            outputRoot: epoch.outputRoot, totalValue: epoch.totalValue,
+            scoresHash: epoch.scoresHash, scores: data.scores,
+            recompute: 'sha256(JSON.stringify({scores})) === scoresHash — docs/TRUSTGRAPH.md',
+          });
+          if (seg[3] === 'score' && seg[4]) {
+            const proof = scoreProof(data.scores, decodeURIComponent(seg[4]));
+            return proof
+              ? json({ epoch: epoch.epoch, outputRoot: epoch.outputRoot, ...proof })
+              : err('actor not scored in this epoch', 404);
+          }
+          return err('unknown epoch route', 404);
         }
-        return json(await loadTrust(env));
+        if (req.method === 'GET' && seg[1] === 'scores' && seg[2] === 'current' && seg.length === 3) {
+          const latest = await latestTrustEpoch(env.DB);
+          if (!latest) return err('no trust epochs yet', 404);
+          const data = await getTrustEpochData(env.DB, latest.epoch);
+          return json({ epoch: latest, scores: data?.scores ?? [] });
+        }
+        if (req.method === 'GET' && seg.length === 1) {
+          if (url.searchParams.get('format') === 'attestations') {
+            const edges = trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
+            return json({
+              attestations: edges.filter((e) => e.mutual > 0).map((e) => ({
+                schema: 'mutual-recognition', from: e.from, to: e.to,
+                weight: e.weight, mutual: e.mutual,
+                ledgerEvent: 'possibility.appreciated',
+              })),
+            });
+          }
+          return json(await loadTrust(env));
+        }
       }
       // Actor standing — the "Community Standing" profile: created/joined
       // counts, earned recognition, transitive trust score.
@@ -3721,6 +3813,9 @@ export default {
             minBackers: b.minBackers != null ? Number(b.minBackers) : undefined,
             skimBps: b.skimBps != null ? Number(b.skimBps) : undefined,
             endowment: b.endowment === true,
+            // Pin the trust epoch at open — pairwise allocation computes
+            // over its committed edges, recomputable at close.
+            trustEpoch: (await ensureTrustEpoch(env))?.epoch,
           });
           await put(env.DB, 'round', round.id, round);
           await ledgerAppend(env.DB, 'api', 'round.opened', { id: round.id });
@@ -4014,8 +4109,10 @@ export default {
             appreciations: apps.filter((a) => a.possibilityId === p.id),
             id: b.id ? String(b.id) : undefined,
           });
-          await put(env.DB, 'claim', claim.id, claim);
-          await ledgerAppend(env.DB, 'api', 'claim.built', { id: claim.id, possibilityId: p.id });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'claim', id: claim.id, obj: claim }],
+            { actor: 'api', kind: 'claim.built',
+              payload: { id: claim.id, possibilityId: p.id } });
           return json({ ...claim, lexicon: toHypercertLexicon(claim) }, 201);
         }
         if (req.method === 'GET' && seg.length === 1) {
@@ -4052,9 +4149,11 @@ export default {
             })),
             at: new Date().toISOString(),
           });
-          await put(env.DB, 'attestation', att.id, att);
-          await put(env.DB, 'claim', claim.id, { ...claim, state: 'attested' as const });
-          await ledgerAppend(env.DB, attester, 'claim.attested', { id: claim.id, attestationId: att.id });
+          await ledgerAppendWith(env.DB, [
+            { kind: 'attestation', id: att.id, obj: att },
+            { kind: 'claim', id: claim.id, obj: { ...claim, state: 'attested' as const } },
+          ], { actor: attester, kind: 'claim.attested',
+            payload: { id: claim.id, attestationId: att.id } });
           return json(att, 201);
         }
         // Hypercert metadata document — the URI mintClaim points at.
@@ -4090,16 +4189,240 @@ export default {
           });
         }
         // Artizen artifact links — external work evidence on the claim.
+        // The ledger payload carries uriHash, not the raw URI: the event
+        // commits to the exact URL (recomputable given it) without pinning
+        // a potentially-sensitive string into the append-only record —
+        // the export's evidence rows hash the same way.
         if (req.method === 'POST' && seg[2] === 'artifacts') {
           const b = await req.json() as Record<string, unknown>;
           const ref = String(b.uri ?? b.ref ?? '');
           if (!/^https?:\/\//.test(ref)) return err('uri=https://… required', 422);
           const next = { ...claim, artifactRefs: [...claim.artifactRefs, ref] };
-          await put(env.DB, 'claim', claim.id, next);
-          await ledgerAppend(env.DB, String(b.actor ?? 'api'), 'claim.artifact',
-            { id: claim.id, uri: ref });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'claim', id: claim.id, obj: next }],
+            { actor: String(b.actor ?? 'api'), kind: 'claim.artifact',
+              payload: { id: claim.id, uriHash: await sha256Hex(enc(ref)) } });
           return json(next, 201);
         }
+      }
+      // ── Commitment pools — CLC projection lane (docs/CLC-INTEGRATION.md) ─
+      // Pools and vouchers settle on CLC's Gnosis contracts; the rows
+      // served here are source-tagged projections written by syncClc.
+      // Native writes are retired (410 + deep link): issuance, curation,
+      // and exchange belong to the CLC stack — Springforth keeps the
+      // evidence, attribution, and discharge records.
+      const deprecateNative = (env: Env, note: string) =>
+        json({ error: `${note} — the D1-native write lane is retired; use the CLC app`,
+          clcUrl: clcAppUrl(env, '/'), docs: '/docs/CLC-INTEGRATION.md' }, 410);
+      if (seg[0] === 'vouchers') {
+        if (req.method === 'GET' && seg.length === 1) {
+          const issuer = url.searchParams.get('issuer');
+          const vs = (await list<Voucher>(env.DB, 'voucher'))
+            .filter((v) => !issuer || v.issuer === issuer);
+          return json({ vouchers: vs });
+        }
+        // Issue — retired: CLC GiftableToken deployment handles issuance.
+        if (req.method === 'POST' && seg.length === 1) {
+          return deprecateNative(env, 'voucher issuance');
+        }
+        const voucher = await get<Voucher>(env.DB, 'voucher', seg[1] ?? '');
+        if (!voucher) return err('voucher not found', 404);
+        if (req.method === 'GET' && seg.length === 2) {
+          const [holdings, redemptions] = await Promise.all([
+            listWhere<VoucherHolding>(env.DB, 'voucher-holding',
+              'json_extract(json,\'$.voucherId\')=?', voucher.id),
+            listWhere<VoucherRedemption>(env.DB, 'redemption',
+              'json_extract(json,\'$.voucherId\')=?', voucher.id),
+          ]);
+          return json({ ...voucher, holdings, redemptions });
+        }
+        // Transfer — retired: circulation happens on-chain via CLC.
+        if (req.method === 'POST' && seg[2] === 'transfer') {
+          return deprecateNative(env, 'voucher transfer');
+        }
+        // Issuer lifecycle — retired: issuer-side, on-chain.
+        if (req.method === 'POST' && seg[2] === 'state') {
+          return deprecateNative(env, 'voucher state change');
+        }
+        // Redeem — the redemption *record* stays ours (the discharge
+        // receipt CLC's model calls for). For CLC-projected vouchers the
+        // record is a redemption request; the token return-transfer is
+        // on-chain (chainRef may carry its txHash) and mirrored balances
+        // are not authoritative, so no holding debit is enforced.
+        if (req.method === 'POST' && seg[2] === 'redeem') {
+          const b = await req.json() as Record<string, unknown>;
+          const holder = String(b.holder ?? '');
+          const amount = Number(b.amount);
+          if (!holder || !(amount > 0)) return err('holder + positive amount required', 422);
+          const now = new Date().toISOString();
+          const writes: { kind: string; id: string; obj: unknown }[] = [];
+          if (voucher.source !== 'clc') {
+            if (holder.startsWith('pool:')) {
+              const pool = await get<CommitmentPool>(env.DB, 'commitment-pool', holder.slice(5));
+              if (!pool || pool.operator !== String(b.actor ?? ''))
+                return err('pool redemptions need actor = pool operator', 403);
+            }
+            const hId = holdingId(holder, voucher.id);
+            const h = await get<VoucherHolding>(env.DB, 'voucher-holding', hId);
+            if (!h || h.amount < amount)
+              return err(`insufficient ${voucher.id} balance`, 409);
+            writes.push({ kind: 'voucher-holding', id: hId,
+              obj: { ...h, amount: h.amount - amount, updatedAt: now } });
+          }
+          const red = VoucherRedemption.parse({
+            id: `red-${voucher.id}-${Date.now().toString(36)}`,
+            voucherId: voucher.id, holder, amount,
+            note: String(b.note ?? ''), at: now,
+            chainRef: b.chainRef ? String(b.chainRef) : undefined,
+          });
+          writes.push({ kind: 'redemption', id: red.id, obj: red });
+          await ledgerAppendWith(env.DB, writes,
+            { actor: holder, kind: 'voucher.redeemed',
+              payload: { id: red.id, voucherId: voucher.id, holder, amount,
+                chainRef: red.chainRef } });
+          return json({ ...red,
+            clcUrl: voucher.source === 'clc' ? clcAppUrl(env, '/') : undefined }, 201);
+        }
+      }
+      if (seg[0] === 'redemptions') {
+        if (req.method === 'GET' && seg.length === 1) {
+          const state = url.searchParams.get('state');
+          const rs = (await list<VoucherRedemption>(env.DB, 'redemption'))
+            .filter((r) => !state || r.state === state);
+          return json({ redemptions: rs });
+        }
+        const red = await get<VoucherRedemption>(env.DB, 'redemption', seg[1] ?? '');
+        if (!red) return err('redemption not found', 404);
+        // Issuer resolves — fulfillment attested by the party who owed.
+        if (req.method === 'POST' && seg[2] === 'resolve') {
+          const b = await req.json() as Record<string, unknown>;
+          const voucher = await get<Voucher>(env.DB, 'voucher', red.voucherId);
+          if (!voucher || voucher.issuer !== String(b.resolver ?? ''))
+            return err('issuer only', 403);
+          const state = String(b.state ?? '');
+          if (red.state !== 'outstanding') return err(`redemption is ${red.state}`, 409);
+          if (!['fulfilled', 'rejected'].includes(state))
+            return err('state = fulfilled|rejected', 422);
+          const next = { ...red, state: state as VoucherRedemption['state'],
+            resolvedAt: new Date().toISOString(), resolvedBy: voucher.issuer };
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'redemption', id: red.id, obj: next }],
+            { actor: voucher.issuer, kind: 'voucher.redemption_resolved',
+              payload: { id: red.id, voucherId: red.voucherId, state } });
+          return json(next);
+        }
+      }
+      if (seg[0] === 'pools') {
+        if (req.method === 'GET' && seg.length === 1) {
+          const pools = await list<CommitmentPool>(env.DB, 'commitment-pool');
+          return json({ pools });
+        }
+        // Pool create — retired: pools deploy as CLC SwapPool contracts
+        // (admin deployment lane: POST /admin/clc/pool).
+        if (req.method === 'POST' && seg.length === 1) {
+          return deprecateNative(env, 'pool creation');
+        }
+        const pool = await get<CommitmentPool>(env.DB, 'commitment-pool', seg[1] ?? '');
+        if (!pool) return err('pool not found', 404);
+        if (req.method === 'GET' && seg.length === 2) {
+          const [inventory, exchanges] = await Promise.all([
+            listWhere<VoucherHolding>(env.DB, 'voucher-holding',
+              'json_extract(json,\'$.holder\')=?', poolHolder(pool.id)),
+            listWhere<PoolExchange>(env.DB, 'pool-exchange',
+              'json_extract(json,\'$.poolId\')=?', pool.id),
+          ]);
+          const protocolFees = await listWhere<VoucherHolding>(env.DB, 'voucher-holding',
+            'json_extract(json,\'$.holder\')=?', protocolHolder(pool.protocolFeeSink));
+          return json({ ...pool, inventory, protocolFees,
+            exchanges: exchanges.length });
+        }
+        // Quote — the chain's getAmountOut is authoritative. For
+        // CLC-projected pools we read it live on Gnosis; `amount` is the
+        // raw integer amount of the give-voucher's smallest unit.
+        if (req.method === 'GET' && seg[2] === 'quote') {
+          const give = url.searchParams.get('give') ?? '';
+          const receive = url.searchParams.get('receive') ?? '';
+          const amountRaw = url.searchParams.get('amount') ?? '';
+          const clcUrl = clcAppUrl(env, '/');
+          if (pool.source !== 'clc' || !pool.chainAddress)
+            return json({ clcUrl, note:
+              'native quote retired — this pool is a local/legacy record; CLC quotes are authoritative' }, 422);
+          const giveAddr = give.replace(/^clc-/, ''), recvAddr = receive.replace(/^clc-/, '');
+          if (!/^0x[0-9a-fA-F]{40}$/.test(giveAddr) || !/^0x[0-9a-fA-F]{40}$/.test(recvAddr)
+            || !/^\d+$/.test(amountRaw))
+            return err('give/receive = voucher id or 0x address, amount = raw integer', 422);
+          try {
+            const client = publicClientFor(GNOSIS, env.GNOSIS_RPC);
+            const out = await client.readContract({
+              address: pool.chainAddress as `0x${string}`,
+              abi: swapPoolGetAmountOutAbi,
+              functionName: 'getAmountOut',
+              args: [recvAddr as `0x${string}`, giveAddr as `0x${string}`, BigInt(amountRaw)],
+            });
+            return json({ poolId: pool.id, give, receive, amount: amountRaw,
+              amountOut: (out as bigint).toString(), chainId: GNOSIS.chainId,
+              clcUrl, source: 'getAmountOut' });
+          } catch (e) {
+            return err(`getAmountOut failed: ${String(e).slice(0, 200)}`, 502);
+          }
+        }
+        // Curation/state/exchange writes — retired: CLC's SwapPool
+        // contracts own them (tokenRegistry, seal(), withdraw).
+        if (req.method === 'POST' && ['curate', 'state', 'exchange'].includes(seg[2] ?? '')) {
+          return deprecateNative(env, `pool ${seg[2]}`);
+        }
+      }
+      // ── CLC transaction attribution (docs/CLC-INTEGRATION.md) ──────
+      // A relayed/submitted CLC tx is recorded so activity can be
+      // attributed to the possibility/actor that coordinated it. The
+      // record is queryable; the ledger event is the observation evidence.
+      if (seg[0] === 'clc' && seg[1] === 'track' && req.method === 'POST') {
+        const b = await req.json() as Record<string, unknown>;
+        const trackingId = String(b.trackingId ?? '');
+        const txHash = String(b.txHash ?? '');
+        if (!trackingId && !txHash) return err('trackingId or txHash required', 422);
+        const id = `track-${(txHash || trackingId).toLowerCase()}`;
+        const rec = {
+          id, trackingId: trackingId || undefined, txHash: txHash || undefined,
+          possibilityId: b.possibilityId ? String(b.possibilityId) : undefined,
+          actor: String(b.actor ?? 'anonymous'),
+          status: 'submitted' as const,
+          chainId: CLC_CHAIN_ID,
+          at: new Date().toISOString(),
+        };
+        await ledgerAppendWith(env.DB,
+          [{ kind: 'clc-track', id, obj: rec }],
+          { actor: rec.actor, kind: 'clc.tx.tracked',
+            payload: { id, trackingId: trackingId || undefined, txHash: txHash || undefined,
+              possibilityId: rec.possibilityId } });
+        return json(rec, 201);
+      }
+      if (seg[0] === 'clc' && seg[1] === 'tracks' && req.method === 'GET') {
+        return json({ tracks: await list(env.DB, 'clc-track') });
+      }
+      // ── CLC admin lanes — ADMIN_TOKEN-gated; service-token writes ──
+      if (seg[0] === 'admin' && seg[1] === 'clc' && seg[2] === 'sync' && req.method === 'POST') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        // ?budget=N overrides the upstream-fetch cap — for verifying
+        // resume behavior and for invocations with known headroom.
+        const b = Number(new URL(req.url).searchParams.get('budget'));
+        return json(await syncClc(env, Number.isFinite(b) && b > 0 ? { budget: b } : undefined));
+      }
+      // Deploy a CLC SwapPool proxy via clc-core's deployment queue.
+      // Body is the vendored PoolDeployPayload shape; returns the otx
+      // trackingId — POST /clc/track attributes the deployment.
+      if (seg[0] === 'admin' && seg[1] === 'clc' && seg[2] === 'pool' && req.method === 'POST') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const clc = clcAuthedClient(env);
+        if (!clc) return err('CLC_SERVICE_TOKEN not configured', 503);
+        const b = await req.json() as Record<string, unknown>;
+        for (const f of ['name', 'symbol', 'owner', 'quoterType', 'unitOfAccount', 'description'])
+          if (!b[f]) return err(`${f} required`, 422);
+        const { trackingId } = await clc.deploy.deployPool(b as unknown as PoolDeployPayload);
+        await ledgerAppend(env.DB, 'admin', 'clc.pool.deploy_requested',
+          { trackingId, name: String(b.name), owner: String(b.owner) });
+        return json({ trackingId, track: `/clc/track`,
+          statusUrl: `${env.CLC_API ?? 'https://api.cosmolocal.credit'}/api/v2/otx/track/${trackingId}` }, 201);
       }
       // ── Attestation on-chain publish ────────────────────────────────
       if (seg[0] === 'attestations' && req.method === 'GET' && seg[2] === 'tx') {
@@ -4131,6 +4454,7 @@ export default {
             claimIds: b.claimIds ?? [], badgeholderCount: b.badgeholderCount,
             pointsPerBallot: b.pointsPerBallot,
             ballotClose: String(b.ballotClose), state: 'open',
+            trustEpoch: (await ensureTrustEpoch(env))?.epoch,
           });
           await put(env.DB, 'retroround', rr.id, rr);
           await ledgerAppend(env.DB, 'api', 'retro.opened', { id: rr.id });
@@ -4149,8 +4473,15 @@ export default {
           if (rr.state !== 'open') return err(`round is ${rr.state}`, 409);
           const b = await req.json() as Record<string, unknown>;
           const holder = String(b.badgeholder ?? '');
-          const apps = await list<Appreciation>(env.DB, 'appreciation');
-          if (!badgeholders(apps, rr.badgeholderCount).includes(holder))
+          // Pinned epoch → badgeholders derive from its committed edges,
+          // not the graph at vote time — the cohort is checkable.
+          const pinnedEdges = rr.trustEpoch != null
+            ? await epochEdges(env.DB, rr.trustEpoch) : null;
+          if (rr.trustEpoch != null && !pinnedEdges)
+            return err('pinned trust epoch data missing', 500);
+          const edges = pinnedEdges
+            ?? trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
+          if (!badgeholders(edges, rr.badgeholderCount).includes(holder))
             return err('not a badgeholder for this round', 403);
           const ballot = RetroBallot.parse({
             id: `ballot-${rr.id}-${holder.toLowerCase().replace(/\W+/g, '-')}`,
@@ -4602,15 +4933,25 @@ export default {
       }
       if (req.method === 'GET' && seg[0] === 'ledger') {
         if (seg[1] === 'verify') {
-          // ?seq=N returns the head at exactly that cut — the same-cut
-          // reference for replaying a dated ops export. JSON only.
+          // ?seq=N&verify=1 recomputes the hash chain through that cut —
+          // real prefix verification for dated-export replay. ?seq=N
+          // alone returns the STORED head at that cut (cheap lookup,
+          // not a recompute) — the same-cut reference, marked as such.
           const seqQ = url.searchParams.get('seq');
           if (seqQ !== null) {
             const s = Number(seqQ);
-            const h = Number.isInteger(s) && s >= 0
-              ? await ledgerHeadAt(env.DB, s) : null;
+            if (!Number.isInteger(s) || s < 0) return err('bad seq', 422);
+            if (url.searchParams.get('verify') === '1') {
+              const v = await ledgerVerifyPrefix(env.DB, s);
+              return json(v.ok
+                ? { ok: true, verifiedThrough: v.verified, head: v.head }
+                : { ok: false, brokenAt: v.brokenAt });
+            }
+            const h = await ledgerHeadAt(env.DB, s);
             return h
-              ? json({ ok: true, seq: h.seq, head: h.hash })
+              ? json({ ok: true, seq: h.seq, head: h.hash,
+                  verified: false,
+                  note: 'stored head lookup — add &verify=1 to recompute the chain through this cut' })
               : err('no event at that seq', 404);
           }
           const v = await ledgerVerify(env.DB);
@@ -4680,15 +5021,37 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
   // from every configured open source; deltas post as checks. The
   // possibility sweep rides the same cadence: expiry and quorum
   // transitions are time-driven too.
-  async scheduled(_ev: unknown, env: Env): Promise<void> {
+  async scheduled(ev: unknown, env: Env): Promise<void> {
     env = proxiedDb(env);
+    // CLC sync FIRST — the evidence cycle's oracle loop burns the whole
+    // ~50-subrequest budget through the D1 proxy (2026-11-17 tail: "Too
+    // many subrequests" at runOracleSources, ~8 nodes in; every proxied
+    // query bills one fetch). The account's 5-trigger cap rules out a
+    // second cron, so the resumable sync takes the head of this budget
+    // and ambient traffic advances it further via ctx.waitUntil.
+    await maybeAdvanceClcSync(env).catch(async (e) => {
+      console.error('clc sync failed', e);
+      await ledgerAppend(env.DB, 'cron', 'clc.sync_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
     const nodes = (await list<PlanNode>(env.DB, 'plannode'))
       .filter((n) => n.kind === 'action' && n.h3);
     for (const n of nodes) await runOracleSources(env, n);
-    await sweepPossibilities(env, 'cron');
+    await sweepPossibilities(env, 'cron').catch(async (e) => {
+      console.error('possibility sweep failed', e);
+      await ledgerAppend(env.DB, 'cron', 'cron.sweep_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
     const chainConfirmed = await syncChain(env).catch(() => 0);
     const streamsAccrued = await accrueStreams(env).catch(() => 0);
     const yieldCredited = await syncYield(env).catch(() => 0);
+    // Trust-epoch checkpoint — hourly catch-up for edge changes the
+    // appreciate-time hook deferred on the seq gap.
+    await maybeTrustCheckpoint(env).catch(async (e) => {
+      console.error('trust checkpoint failed', e);
+      await ledgerAppend(env.DB, 'cron', 'trust.checkpoint_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
     // Ops export snapshot — rebuilds only when the ledger head moved.
     await refreshOpsExport(env).catch(async (e) => {
       console.error('ops-export: refresh failed', e);

@@ -86,6 +86,9 @@ export const Possibility = z.object({
     boundaries: BriefField.optional(),  // scope — what's in / out
     resources: BriefField.optional(),   // what's already available
   }).optional(),
+  // The CLC SwapPool this possibility's delivery flows through, when one
+  // is linked — the allocation/quorum layer pointing at the pooling layer.
+  clcPool: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
   createdAt: z.string().datetime(),
 });
 export type Possibility = z.infer<typeof Possibility>;
@@ -305,6 +308,10 @@ export const FundingRound = z.object({
   // Permanent endowment: matchingFund is locked principal; only accrued
   // skim is allocable. Endowment rounds never allocate match themselves.
   endowment: z.boolean().default(false),
+  // Trust epoch pinned at open — pairwise allocation computes
+  // discoordination over this epoch's committed edges, not the live
+  // graph, so the match is recomputable at close (docs/TRUSTGRAPH.md).
+  trustEpoch: z.number().int().min(1).optional(),
 });
 export type FundingRound = z.infer<typeof FundingRound>;
 
@@ -502,6 +509,9 @@ export const RetroRound = z.object({
   pointsPerBallot: z.number().int().min(1).default(100),
   ballotClose: z.string().datetime(),
   state: RetroRoundState.default('open'),
+  // Trust epoch pinned at open — badgeholders derive from its committed
+  // edges, not the live graph, so the cohort is checkable at tally.
+  trustEpoch: z.number().int().min(1).optional(),
 });
 export type RetroRound = z.infer<typeof RetroRound>;
 
@@ -529,6 +539,9 @@ export const GovernanceProposal = z.object({
   closesAt: z.string().datetime(),
   state: z.enum(['open', 'passed', 'rejected']).default('open'),
   createdAt: z.string().datetime(),
+  // Trust epoch pinned at proposal — the eligible-voter cohort comes
+  // from its committed edges, not the graph at tally time.
+  trustEpoch: z.number().int().min(1).optional(),
 });
 export type GovernanceProposal = z.infer<typeof GovernanceProposal>;
 
@@ -552,6 +565,77 @@ export const GovernanceParam = z.object({
   updatedAt: z.string().datetime(),
 });
 export type GovernanceParam = z.infer<typeof GovernanceParam>;
+
+// Trust epoch — a frozen, committed scoring round over the appreciation
+// graph (the trustgraphs.xyz epoch model applied natively): input edges
+// and params committed at a ledger cut, output published as a Merkle
+// root anyone can recompute. Acceptance is itself a ledger event
+// ('trust.epoch') — appended, never edited. Spec: docs/TRUSTGRAPH.md.
+export const TrustEpoch = z.object({
+  id: z.string().min(1),                     // 'te-000001' — zero-padded so id sort = epoch order
+  epoch: z.number().int().min(1),
+  program: z.literal('springforth-mutual-recognition'),
+  programVersion: z.literal(1),
+  cut: z.object({
+    seq: z.number().int(),                   // ledger seq the inputs froze at
+    ledgerHead: z.string().min(1),           // /ledger/verify?seq=N head at that cut
+    at: z.string().datetime(),
+  }),
+  inputHash: z.string().min(1),              // sha256 of the canonical edge set
+  edgeCount: z.number().int().min(0),
+  actorCount: z.number().int().min(0),
+  paramsHash: z.string().min(1),
+  params: z.record(z.string(), z.unknown()), // published in full — public anyway
+  outputRoot: z.string().min(1),             // 0x merkle root over (actor, value) leaves
+  totalValue: z.string().min(1),             // fixed-point pool total (string for int safety)
+  scoresHash: z.string().min(1),             // sha256 of the canonical scores blob
+  createdAt: z.string().datetime(),
+});
+export type TrustEpoch = z.infer<typeof TrustEpoch>;
+
+// The epoch's recompute package — canonical edges + scores, served by
+// /trust/epochs/:n/inputs.json and /scores.json. Separate row so listing
+// journals stays light; same id as the journal.
+export const TrustEpochData = z.object({
+  id: z.string().min(1),                     // 'te-000001'
+  epoch: z.number().int().min(1),
+  edges: z.array(z.object({
+    from: z.string().min(1), to: z.string().min(1),
+    weight: z.number(), mutual: z.number(),
+  })),
+  scores: z.array(z.object({ actor: z.string().min(1), value: z.number() })),
+});
+export type TrustEpochData = z.infer<typeof TrustEpochData>;
+
+// On-chain vouch mirror (phase 2) — maps a published EAS vouch back to
+// the appreciation + ledger event it mirrors, so the on-chain graph
+// stays auditable against the chain of record.
+export const VouchMirror = z.object({
+  id: z.string().min(1),
+  appreciationId: z.string().min(1),
+  uid: z.string().optional(),                // EAS attestation uid
+  txHash: z.string().optional(),
+  from: z.string().min(1),                   // actor ids
+  to: z.string().min(1),
+  weight: z.number().min(0).default(1),
+  state: z.enum(['pending', 'published', 'revoked']).default('pending'),
+  at: z.string().datetime(),
+});
+export type VouchMirror = z.infer<typeof VouchMirror>;
+
+// External proven score (phase 3) — an entry verified against a
+// trustgraphs network's accepted Merkle root, keyed by a bound wallet.
+export const ExternalScore = z.object({
+  id: z.string().min(1),                     // `${network}:${root}:${account}`
+  network: z.string().min(1),                // 'trustgraphs:<chain>:<snapshot>'
+  root: z.string().min(1),                   // the accepted root this leaf was verified against
+  account: z.string().min(1),                // 0x account the leaf scores
+  actor: z.string().min(1),                  // bound actor id
+  value: z.string().min(1),                  // leaf value (string for uint safety)
+  totalValue: z.string().min(1),
+  verifiedAt: z.string().datetime(),
+});
+export type ExternalScore = z.infer<typeof ExternalScore>;
 
 // Signed dataset release — a frozen graph slice (JSONL) with a sha256
 // manifest, OTS-anchored, optionally pinned to IPFS. CC-BY-SA licensed;
@@ -666,3 +750,129 @@ export const YieldStream = z.object({
   updatedAt: z.string().datetime(),
 });
 export type YieldStream = z.infer<typeof YieldStream>;
+
+// ── Commitment pools — CPP lane (Grassroots Economics' Commitment
+// Pooling Protocol shape, docs.cosmolocal.credit) ──────────────────────
+// A different economic layer from the funding/attestation mechanisms
+// above: allocation decides where resources go; a commitment pool is a
+// governed marketplace of redeemable commitments that keeps economic
+// exchange going after any funding campaign ends. Issuers publish
+// vouchers — commitments to deliver goods or services on stated terms;
+// pools curate which vouchers they accept, value them against a common
+// index unit, cap exposure per voucher, and let commitments circulate
+// between participants via exchanges. Pool fees + protocol fees are the
+// sustainability lane. Balances are ledger records — the voucher is the
+// commitment, settlement with the issuer happens on redemption.
+
+// A redeemable commitment issued by one actor — essentially a tokenized
+// promise of goods/services ("$5 of produce", "1 hour carpentry"),
+// redeemable with the issuer under published terms.
+// Projection fields — rows mirrored from an external system carry the
+// observation provenance alongside the domain fields. source:'clc' rows
+// are written by the CLC sync (src/adapters/clc.ts); source:'local' rows
+// are legacy/sample data. chainRef is the on-chain pointer (txHash or
+// address) the row was observed at — the dual-verification join.
+const Projection = {
+  source: z.enum(['local', 'clc']).default('local'),
+  chainAddress: z.string().optional(),
+  chainId: z.number().int().optional(),
+  observedAt: z.string().datetime().optional(),
+  chainRef: z.string().optional(),
+};
+
+export const Voucher = z.object({
+  id: z.string().min(1),
+  issuer: z.string().min(1),               // actor standing behind redemption
+  title: z.string().min(1),
+  unit: z.string().min(1),                 // denomination label: 'USD', 'hour', 'kg'…
+  description: z.string().default(''),
+  terms: z.string().default(''),           // published redemption terms
+  supply: z.number().positive(),           // total units issued to the issuer
+  possibilityId: z.string().optional(),    // born from a card's offer node, when it is
+  expiresAt: z.string().datetime().optional(),
+  state: z.enum(['issued', 'suspended', 'retired']).default('issued'),
+  createdAt: z.string().datetime(),
+  ...Projection,
+});
+export type Voucher = z.infer<typeof Voucher>;
+
+// Who holds how much of a voucher. `holder` is an actor id, `pool:<id>`
+// for pool inventory, or `protocol:<sink>` for accrued protocol fees.
+export const VoucherHolding = z.object({
+  id: z.string().min(1),                   // hold-<holder>-<voucherId>
+  holder: z.string().min(1),
+  voucherId: z.string().min(1),
+  amount: z.number().min(0),
+  updatedAt: z.string().datetime(),
+  ...Projection,
+});
+export type VoucherHolding = z.infer<typeof VoucherHolding>;
+
+// The governed marketplace: curation (which vouchers/issuers are
+// accepted), valuation (rate = index units per voucher unit), and
+// limitation (limit = max pool inventory of the voucher) are all
+// operator-set and written to the ledger on change.
+export const CommitmentPool = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().default(''),
+  operator: z.string().min(1),             // pool steward — curates, sets params
+  indexUnit: z.string().min(1).default('index'),  // common unit of account label
+  accepted: z.array(z.object({
+    voucherId: z.string().min(1),
+    rate: z.number().positive(),           // index units per 1 voucher unit
+    limit: z.number().positive(),          // exposure cap: max pool inventory
+    state: z.enum(['accepted', 'suspended']).default('accepted'),
+  })).default([]),
+  poolFeeBps: z.number().int().min(0).max(10000).default(0),    // accrues in pool inventory
+  protocolFeeBps: z.number().int().min(0).max(10000).default(0), // accrues to protocolFeeSink
+  protocolFeeSink: z.string().min(1).default('protocol'),
+  state: z.enum(['open', 'paused', 'closed']).default('open'),
+  createdAt: z.string().datetime(),
+  ...Projection,
+  // CLC SwapPool projection — contract configuration mirrored from the
+  // chain/API so the governed parameters are legible without a node.
+  sealState: z.number().int().min(0).optional(),  // SwapPool seal bitmask
+  feeAddress: z.string().optional(),              // pool-fee recipient
+  quoterType: z.string().optional(),              // decimal|oracle|relative
+});
+export type CommitmentPool = z.infer<typeof CommitmentPool>;
+
+// One exchange: actor deposits `give` units, receives `receive` units
+// priced through the pool's index unit. Fees are recorded in give-voucher
+// units — the pool fee is the spread retained in pool inventory, the
+// protocol fee moves to the `protocol:<sink>` holding.
+export const PoolExchange = z.object({
+  id: z.string().min(1),
+  poolId: z.string().min(1),
+  actor: z.string().min(1),
+  give: z.object({ voucherId: z.string().min(1), amount: z.number().positive() }),
+  receive: z.object({ voucherId: z.string().min(1), amount: z.number().positive() }),
+  fees: z.object({
+    voucherId: z.string().min(1),          // always the give voucher
+    pool: z.number().min(0),
+    protocol: z.number().min(0),
+  }),
+  rates: z.object({ give: z.number().positive(), receive: z.number().positive() }),
+  at: z.string().datetime(),
+  ...Projection,
+});
+export type PoolExchange = z.infer<typeof PoolExchange>;
+
+// Redemption — the commitment loop closing: a holder returns units to
+// the issuer for the underlying goods/services. Units burn at redeem
+// (obligation discharged); the record tracks outstanding → fulfilled so
+// fulfillment is measurable, not assumed.
+export const VoucherRedemption = z.object({
+  id: z.string().min(1),
+  voucherId: z.string().min(1),
+  holder: z.string().min(1),
+  amount: z.number().positive(),
+  note: z.string().default(''),
+  state: z.enum(['outstanding', 'fulfilled', 'rejected']).default('outstanding'),
+  at: z.string().datetime(),
+  resolvedAt: z.string().datetime().optional(),
+  resolvedBy: z.string().optional(),
+  chainRef: z.string().optional(),        // return-transfer txHash, when on-chain
+});
+export type VoucherRedemption = z.infer<typeof VoucherRedemption>;

@@ -96,10 +96,14 @@ export function earnedRecognition(
 // OpenRank runs this as paid compute; at community scale it's ~40 lines.
 // Local trust values = mutual edge weights; personalized seed = the viewer
 // (card surfacing), uniform seed = global score (steering/standing).
+// `prior` adds a weighted-prior restart (trustgraphs 'weighted-prior'
+// semantics): the prior distributes restart mass every iteration at
+// share `priorShare` of the uniform mass — edges still decide where
+// influence flows. Explicit `seed` wins over `prior`.
 // Power-iterate: t_{k+1} = α·Mᵀ·t_k + (1−α)·d, M column-normalized.
 export function eigenTrust(
   edges: TrustEdge[],
-  opts: { seed?: string; alpha?: number; iters?: number } = {},
+  opts: { seed?: string; prior?: Record<string, number>; priorShare?: number; alpha?: number; iters?: number } = {},
 ): Record<string, number> {
   const alpha = opts.alpha ?? 0.85;
   const iters = opts.iters ?? 20;
@@ -110,6 +114,7 @@ export function eigenTrust(
     actors.add(e.from); actors.add(e.to);
     mut.set(`${e.from}→${e.to}`, e.mutual);
   }
+  for (const k of Object.keys(opts.prior ?? {})) actors.add(k);
   const ids = [...actors];
   if (!ids.length) return {};
   const colSum = new Map<string, number>();
@@ -117,7 +122,15 @@ export function eigenTrust(
     const [f] = k.split('→');
     colSum.set(f!, (colSum.get(f!) ?? 0) + w);
   }
-  const d = new Map(ids.map((a) => [a, opts.seed ? (a === opts.seed ? 1 : 0) : 1]));
+  // Restart vector: seed → single actor; prior → share × N × normalized
+  // prior + (1−share) uniform (same total mass N as plain uniform, only
+  // the distribution changes); else uniform 1.
+  const share = opts.prior ? (opts.priorShare ?? 1) : 0;
+  const psum = ids.reduce((s, a) => s + Math.max(0, opts.prior?.[a] ?? 0), 0);
+  const d = new Map(ids.map((a) => [a, opts.seed
+    ? (a === opts.seed ? 1 : 0)
+    : share * ids.length * (psum > 0 ? Math.max(0, opts.prior![a] ?? 0) / psum : 0)
+      + (1 - share) * 1]));
   let t = new Map(d);
   for (let k = 0; k < iters; k++) {
     const next = new Map<string, number>(ids.map((a) => [a, 0]));

@@ -3,6 +3,7 @@
   "include": [
     ".react-router/types/**/*",
     "../src/**/*",
+    "../vendor/clc/**/*",
     "app/**/*",
     "app/**/.server/**/*",
     "app/**/.client/**/*",
@@ -34,6 +35,12 @@
     "paths": {
       "~/*": [
         "./app/*"
+      ],
+      "@clc/api/*": [
+        "../vendor/clc/api/*"
+      ],
+      "@clc/core/*": [
+        "../vendor/clc/core/*"
       ]
     },
     "esModuleInterop": true,

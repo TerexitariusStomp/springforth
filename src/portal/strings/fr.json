@@ -1199,5 +1199,13 @@
   "hub.impact.ecocycle.lede": "où en est le portefeuille — de la graine au compost, les deux pièges comptés en direct.",
   "hub.impact.ecocycle.traps": "les nombres entre parenthèses sont en direct : cartes actuellement dans chaque piège.",
   "trail.brief": "brief mis à jour",
-  "trail.test": "événement de carte de test"
+  "trail.test": "événement de carte de test",
+  "hub.community.trust.epoch": "Époque",
+  "hub.community.trust.verify": "vérifier les entrées →",
+  "gov.param.trust.epochMinSeqGap": "nombre minimal d’événements du registre entre les époques de confiance",
+  "gov.param.trust.alpha": "facteur d’amortissement EigenTrust des scores d’époque",
+  "gov.param.trust.iters": "itérations EigenTrust par époque",
+  "gov.param.trust.poolScale": "réserve fixe dans laquelle les époques quantifient les scores",
+  "gov.param.trust.priorSource": "réseau trustgraph externe alimentant le prior de redémarrage",
+  "gov.param.trust.priorShare": "part 0–1 de la masse de redémarrage placée sur le prior externe"
 }

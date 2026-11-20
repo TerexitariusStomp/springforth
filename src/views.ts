@@ -8,6 +8,7 @@ import {
   RetroRound, ActorWallet, RecurringSupport, YieldStream,
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
   CouncilSeat, ForumPost, Question, CouncilDecision, Referral, TestCard,
+  CommitmentPool, PoolExchange, Voucher,
   valueCoordinated, roundDemand, endowmentAccrual,
 } from './core';
 import {
@@ -23,6 +24,7 @@ import {
 import { ecocycleStage, ecocycleTraps } from './data/ecocycle.ts';
 import { enactmentStats } from './data/knowledge.ts';
 import { SOURCES, evidenceBoost } from './oracle';
+import { epochEdges, latestTrustEpoch } from './trustgraph.js';
 import { list, listWhere, ledgerEventsMentioning, ledgerTail, ledgerVerifyIncremental } from './store.js';
 import type { Env } from './index.js';
 
@@ -91,12 +93,16 @@ export async function allocFor(env: Env, round: FundingRound, donations: Donatio
     evidenceOn ? evidenceBoost(needNodeId, checks) : 1;
   if (round.matchingMode !== 'pairwise' && !round.conviction)
     return allocateMatching(round, donations, { weightMultiplier: boost });
-  const [apps, wallets] = await Promise.all([
-    list<Appreciation>(env.DB, 'appreciation'),
-    list<ActorWallet>(env.DB, 'actor-wallet'),
-  ]);
+  const wallets = await list<ActorWallet>(env.DB, 'actor-wallet');
+  // Pinned trust epoch → discoordination over the epoch's committed
+  // edges (frozen at open), not the live graph — recomputable at close.
+  // A pin whose data row is gone is corruption, not a fallback case.
+  const edges = round.trustEpoch != null
+    ? await epochEdges(env.DB, round.trustEpoch)
+        .then((e) => e ?? Promise.reject(new Error(`pinned trust epoch ${round.trustEpoch} missing`)))
+    : trustEdges(await list<Appreciation>(env.DB, 'appreciation'));
   const walletToActor = new Map(wallets.map((w) => [w.address.toLowerCase(), w.actor]));
-  return pairwiseAllocate(round, donations, trustEdges(apps), {
+  return pairwiseAllocate(round, donations, edges, {
     alpha: Number(paramValue(govParams, 'pairwise.alpha')) || 4,
     beta: Number(paramValue(govParams, 'pairwise.beta')) || 2,
     gamma: round.conviction ? Number(paramValue(govParams, 'conviction.gamma')) || 0.5 : 0,
@@ -125,11 +131,19 @@ export async function loadMetrics(env: Env) {
   const completedApps = apps.filter((a) => a.possibilityId && completedIds.has(a.possibilityId)).length;
   const first = Math.min(...statuses.map((x) => Date.parse(x.p.createdAt)), now);
   const weeks = Math.max(1, (now - first) / (7 * 86_400_000));
-  const [passes, questions, decisions, referrals, interests, tests, seats] = await Promise.all([
+  const [passes, questions, decisions, referrals, interests, tests, seats,
+    clcPools, clcVouchers, clcTracks, clcExchanges] = await Promise.all([
     list<Pass>(env.DB, 'pass'), list<Question>(env.DB, 'question'),
     list<CouncilDecision>(env.DB, 'decision'), list<Referral>(env.DB, 'referral'),
     list<Interest>(env.DB, 'interest'), list<TestCard>(env.DB, 'test'),
     list<CouncilSeat>(env.DB, 'council-seat'),
+    // CLC lane — filtered reads, projections only (source:'clc').
+    listWhere<CommitmentPool>(env.DB, 'commitment-pool',
+      "json_extract(json,'$.source')='clc'"),
+    listWhere<Voucher>(env.DB, 'voucher', "json_extract(json,'$.source')='clc'"),
+    list<{ id: string; status: string }>(env.DB, 'clc-track'),
+    listWhere<PoolExchange>(env.DB, 'pool-exchange',
+      "json_extract(json,'$.source')='clc'"),
   ]);
   const expiringSoon = statuses.filter((x) =>
     (x.s === 'active' || x.s === 'draft') && x.p.deadline
@@ -210,6 +224,37 @@ export async function loadMetrics(env: Env) {
         parts, seats, tests,
       });
     })(),
+    // CLC integration — projected pool/voucher counts, attribution
+    // tracks, and possibilities linked to a pool. Observations only;
+    // on-chain state is authoritative (docs/CLC-INTEGRATION.md).
+    clc: {
+      pools: clcPools.length,
+      activePools: clcPools.filter((p) => p.state === 'open').length,
+      vouchers: clcVouchers.length,
+      trackedTx: clcTracks.length,
+      confirmedTx: clcTracks.filter((t) => t.status === 'confirmed').length,
+      exchanges: clcExchanges.length,
+      // Seal bits (SwapPool.sol): registry sealed = curation frozen —
+      // the charter's "frozen parameters" made legible.
+      sealedPools: clcPools.filter((p) => (p.sealState ?? 0) !== 0).length,
+      registrySealed: clcPools.filter((p) => ((p.sealState ?? 0) & 8) !== 0)
+        .length,
+      // Routing fabric — vouchers accepted by ≥2 pools are the paths a
+      // multi-hop route could take; today's swaps are same-pool, but
+      // this is the network's latent netting capacity.
+      vouchersCurated: new Set(clcPools.flatMap((p) =>
+        (p.accepted ?? []).map((a) => a.voucherId))).size,
+      vouchersMultiPool: (() => {
+        const n = new Map<string, number>();
+        for (const p of clcPools) {
+          for (const a of p.accepted ?? []) {
+            n.set(a.voucherId, (n.get(a.voucherId) ?? 0) + 1);
+          }
+        }
+        return [...n.values()].filter((c) => c > 1).length;
+      })(),
+      possibilitiesLinked: poss.filter((p) => p.clcPool).length,
+    },
     // Monetary value, per currency (never converted) — committed and
     // matched are ledger-derived; volunteer time is declared hours ×
     // the cited ONS rate where the card places in GB. Aggregated per
@@ -313,11 +358,12 @@ export async function loadResources(env: Env,
   return { resources };
 }
 
-// GET /trust — {rule, edges, mutual, actors}.
+// GET /trust — {rule, edges, mutual, actors, epoch}.
 export async function loadTrust(env: Env) {
-  const [apps, credits] = await Promise.all([
+  const [apps, credits, epoch] = await Promise.all([
     list<Appreciation>(env.DB, 'appreciation'),
     list<AssuranceCredit>(env.DB, 'assurance-credit'),
+    latestTrustEpoch(env.DB),
   ]);
   const edges = trustEdges(apps);
   const earned = earnedRecognition(edges, credits);
@@ -329,6 +375,19 @@ export async function loadTrust(env: Env) {
   const rule = 'mutual recognition = min(a→b, b→a); recognition ∝ √earned (Bloom √-norm); propagation: EigenTrust';
   return {
     rule,
+    // Latest committed epoch — the journal a decision can pin. Scores
+    // above are live-derived; the epoch's are frozen and recomputable
+    // (docs/TRUSTGRAPH.md).
+    epoch: epoch ? {
+      epoch: epoch.epoch, cut: epoch.cut,
+      inputHash: epoch.inputHash, paramsHash: epoch.paramsHash,
+      outputRoot: epoch.outputRoot, totalValue: epoch.totalValue,
+      scoresHash: epoch.scoresHash,
+      verify: {
+        inputs: `/trust/epochs/${epoch.epoch}/inputs.json`,
+        scores: `/trust/epochs/${epoch.epoch}/scores.json`,
+      },
+    } : null,
     edges, mutual: edges.filter((e) => e.mutual > 0),
     actors: [...actorIds].map((id) => ({
       id, earned: earned[id] ?? 0,
@@ -381,7 +440,7 @@ export async function loadRoundsView(env: Env) {
 export async function loadRetro(env: Env) {
   const rounds = await list<RetroRound>(env.DB, 'retroround');
   const apps = await list<Appreciation>(env.DB, 'appreciation');
-  const badgeholderList = badgeholders(apps, 8);
+  const badgeholderList = badgeholders(trustEdges(apps), 8);
   const rule = 'badgeholders = top EigenTrust on the appreciation graph; quadratic ballot on attested claims';
   return { rounds, badgeholders: badgeholderList, rule };
 }
@@ -396,7 +455,7 @@ export async function loadGovernance(env: Env) {
   ]);
   return {
     proposals, ballots, params,
-    governable: GOVERNABLE, eligibleVoters: eligibleVoters(govApps),
+    governable: GOVERNABLE, eligibleVoters: eligibleVoters(trustEdges(govApps)),
   };
 }
 

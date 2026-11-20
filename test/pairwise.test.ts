@@ -98,7 +98,7 @@ describe('trust-gated governance', () => {
   });
 
   it('only EigenTrust-eligible actors vote', () => {
-    const voters = eligibleVoters(apps);
+    const voters = eligibleVoters(trustEdges(apps));
     expect(voters).toContain('alice');
     const ballots = [bal('alice', 25, true), bal('mallory', 10000, false)];
     const t = tallyProposal(props, ballots, voters);
@@ -109,7 +109,7 @@ describe('trust-gated governance', () => {
   });
 
   it('quadratic cost: 4×points = 2×weight', () => {
-    const voters = eligibleVoters(apps);
+    const voters = eligibleVoters(trustEdges(apps));
     const t = tallyProposal(props, [bal('alice', 100, true)], voters);
     expect(t.forWeight).toBeCloseTo(10);
     expect(t.passed).toBe(true);

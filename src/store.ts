@@ -166,10 +166,39 @@ type LedgerRow = {
 const parseRow = (e: LedgerRow) => ({ ...e, payload: JSON.parse(e.payload) });
 
 // Head at an exact seq — the same-cut reference a reviewer needs when
-// replaying a dated export against the chain. /ledger/verify?seq=N.
+// replaying a dated export against the chain. This is a STORED-hash
+// lookup, not verification; pair with ledgerVerifyPrefix (the route's
+// ?seq=N&verify=1) when the claim is chain integrity, not just a
+// matching cut.
 export async function ledgerHeadAt(db: D1Database, seq: number) {
   return db.prepare('SELECT seq, hash FROM ledger WHERE seq=?')
     .bind(seq).first<{ seq: number; hash: string }>();
+}
+
+async function ledgerEventsUpTo(db: D1Database, uptoSeq: number) {
+  const r = await db.prepare('SELECT * FROM ledger WHERE seq<=? ORDER BY seq')
+    .bind(uptoSeq).all<LedgerRow>();
+  return (r.results ?? []).map(parseRow);
+}
+
+// Recompute the hash chain for events 1..uptoSeq and compare the tip to
+// the stored head at that cut — a real prefix verification, not a
+// stored-hash echo. Use it to answer "is the chain intact through cut
+// N" (dated export replay); full-chain integrity is ledgerVerify.
+export async function ledgerVerifyPrefix(db: D1Database, uptoSeq: number) {
+  const events = await ledgerEventsUpTo(db, uptoSeq);
+  if (!events.length) return { ok: false, brokenAt: uptoSeq };
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i]!;
+    const prev = i === 0 ? '0'.repeat(64) : events[i - 1]!.hash;
+    if (e.prev_hash !== prev || e.hash !== eventHash(e))
+      return { ok: false, brokenAt: e.seq };
+  }
+  const tip = events.at(-1)!;
+  const stored = await ledgerHeadAt(db, uptoSeq);
+  if (!stored || stored.hash !== tip.hash)
+    return { ok: false, brokenAt: uptoSeq };
+  return { ok: true, verified: events.length, head: tip.hash };
 }
 
 export async function ledgerEvents(db: D1Database) {

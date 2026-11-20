@@ -24,14 +24,25 @@ tail -1 ops.ndjson | python3 -m json.tool   # manifest: revision, build, cut, co
 ## Layer 2 — replay the ledger
 
 ```bash
+# Full chain recompute — every event's hash re-derived, links checked:
+curl -s 'https://springforth.widespread.workers.dev/ledger/verify'
+# → { ok, events, head }
+
+# Prefix verify through an exact cut (dated-export replay):
+curl -s 'https://springforth.widespread.workers.dev/ledger/verify?seq=N&verify=1'
+# → { ok, verifiedThrough, head } or { ok:false, brokenAt }
+
+# Stored-head lookup at a cut — cheap, does NOT recompute:
 curl -s 'https://springforth.widespread.workers.dev/ledger/verify?seq=N'
-# → { head, verified, events } — hash chain integrity to seq N
+# → { ok, seq, head, verified:false }  (adds a note saying so)
 ```
 
-Each event's `hash` = sha256 of `[seq, at, actor, kind, payload,
-prev_hash]`; `verify` recomputes the chain incrementally from a stored
-checkpoint. `clc.*` events are **observation records** — they attest
-what the sync saw and when, never claim to be the state.
+`?seq=N` alone returns the **stored** hash at that sequence — useful to
+confirm the export's `cut.ledger_head` names a real ledger position,
+but it is not chain verification. `&verify=1` recomputes every event's
+`hash` (= sha256 of `[seq, at, actor, kind, payload, prev_hash]`) from
+the genesis event through seq N and compares the recomputed tip to the
+stored head — that IS verification of the prefix.
 
 ## Layer 3 — verify on-chain (the new dual check)
 

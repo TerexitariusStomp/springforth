@@ -454,17 +454,27 @@ async function snapshotReads(env: EnvLike) {
   return { head, rows };
 }
 
+// Bounded retry for the data write when a marker for identical bytes
+// exists: the marker dedupes the failure EVENT (ledger spam) and sets
+// nextAttemptAt, but never suppresses the write itself — a transient
+// failure that healed must not leave a permanent hole (2026-11
+// CoWizardex finding: marker+event-fail left the dated file missing
+// forever). New content (different file_sha256) retries immediately.
+const SNAPSHOT_RETRY_MS = 10 * 60_000;
 // Dated write with a deduped failure marker: a deterministic failure
 // (oversized row, missing column) would otherwise retry on every poll —
 // appending snapshot_failed, moving the head, and forcing a rebuild,
-// forever. The marker keys on file_sha256 so identical bytes are
-// retried only once; a *new* snapshot for the same day always retries.
+// forever. The marker keys on file_sha256 so identical bytes produce
+// one ledger event per backoff window, not one per request.
 // Returns true when the dated row now exists.
 async function stampDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot): Promise<boolean> {
   const id = `day-${snap.day}`;
   const failId = `dayfailed-${snap.day}`;
-  const prev = await get<{ file_sha256?: string }>(env.DB, OPS_EXPORT_KIND, failId);
-  if (prev?.file_sha256 === snap.file_sha256) return false;
+  const prev = await get<{ file_sha256?: string; nextAttemptAt?: string }>(
+    env.DB, OPS_EXPORT_KIND, failId);
+  const sameFile = prev?.file_sha256 === snap.file_sha256;
+  if (sameFile && prev?.nextAttemptAt
+    && Date.now() < Date.parse(prev.nextAttemptAt)) return false;
   try {
     await put(env.DB, OPS_EXPORT_KIND, id, snap);
     await del(env.DB, OPS_EXPORT_KIND, failId).catch(() => undefined);
@@ -474,9 +484,14 @@ async function stampDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot): Promis
     await put(env.DB, OPS_EXPORT_KIND, failId, {
       day: snap.day, file_sha256: snap.file_sha256,
       error: String(e), at: new Date().toISOString(),
+      nextAttemptAt: new Date(Date.now() + SNAPSHOT_RETRY_MS).toISOString(),
     }).catch(() => undefined);
-    await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_failed',
-      { day: snap.day, seq: snap.cut.seq, error: String(e) }).catch(() => undefined);
+    // One failure event per file_sha256 — retries within the backoff
+    // window stay silent; a *new* snapshot for the same day always logs.
+    if (!sameFile) {
+      await ledgerAppend(env.DB, 'ops-export', 'ops-export.snapshot_failed',
+        { day: snap.day, seq: snap.cut.seq, error: String(e) }).catch(() => undefined);
+    }
     return false;
   }
 }

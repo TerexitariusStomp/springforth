@@ -75,3 +75,23 @@ to `textHash`/`refHash`.
   pseudonym — targets are entities, not people.
 - A disputed attestation is a flag *event*, not an edit — nothing in
   this export is ever rewritten; corrections append.
+
+## v1.1 (2026-11-08)
+
+- Record `id` and id-shaped join fields (`needs[]`, `brings[]`,
+  `bringingNodeId`, `nodeId`, `needNodeId`, `claimId`, attestation `to`)
+  ship as opaque `x_<hash>` values: `x_` + `sha256("${salt}:id:${raw}")[:16]`.
+  Same input → same output, so joins hold. `a_` and `x_` share the salt.
+- New `claim` record type: every claim an edge can target gets a row,
+  evidence or none. Fields: `claimId`, `possibilityId`, `state`,
+  `contributors[]` (pseudonymized), `nodeIds[]`, `checks`,
+  `appreciations`, `artifacts`, `scopeHash`, `at`.
+- Salt: `env.EXPORT_SALT` if set, else a random UUID minted once and
+  persisted server-side. The spec-string fallback is deprecated —
+  `a_`/`x_` values rotated once at this schema's first cut.
+- Rebuild gate compares `cut.seq` AND `cut.ledger_head`, not seq alone.
+- A failed dated write appends an `ops-export.snapshot_failed` ledger
+  event; a failed cron refresh appends `ops-export.refresh_failed`.
+- `/ledger/verify?seq=N` returns `{ ok, seq, head }` at exactly that cut
+  (404 beyond the head). Same-cut replay: dated file + `?seq=` +
+  `sed '$d' file.ndjson | sha256sum`.

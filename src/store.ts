@@ -116,6 +116,13 @@ type LedgerRow = {
 };
 const parseRow = (e: LedgerRow) => ({ ...e, payload: JSON.parse(e.payload) });
 
+// Head at an exact seq — the same-cut reference a reviewer needs when
+// replaying a dated export against the chain. /ledger/verify?seq=N.
+export async function ledgerHeadAt(db: D1Database, seq: number) {
+  return db.prepare('SELECT seq, hash FROM ledger WHERE seq=?')
+    .bind(seq).first<{ seq: number; hash: string }>();
+}
+
 export async function ledgerEvents(db: D1Database) {
   const r = await db.prepare('SELECT * FROM ledger ORDER BY seq').all<LedgerRow>();
   return (r.results ?? []).map(parseRow);

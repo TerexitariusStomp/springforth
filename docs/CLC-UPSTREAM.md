@@ -31,10 +31,15 @@ modules; entry points are `client/*`, `features/pools`, `features/vouchers`,
 
 Gaps we shimmed locally that belong upstream:
 
-1. **`sealState` on pool reads** — `/api/v2/pools` exposes `feePpm`,
-   `feeAddress`, `quoterType`, `limiterAddress` (all projected), but not
-   `sealState` — we read it on-chain via multicall instead. A PR adding
-   `sealState` to the pool response would drop one RPC call per cycle.
+1. **~~`sealState` on pool reads~~ → PR filed** —
+   [clc-core#64](https://github.com/cosmo-local-credit/clc-core/pull/64):
+   `/api/v2/pools` exposed `feePpm`, `feeAddress`, `quoterType`,
+   `limiterAddress` (all projected) but not `sealState` — we read it
+   on-chain via multicall instead. The PR joins `pool_chain_state` in
+   the four catalog queries + `poolPageProjection` and exposes
+   `sealState` on every pool read (list, detail, vouchers, offerings,
+   wants); `TestPoolCatalogExposesChainSealState` covers the route→store
+   path. When merged, one RPC call drops per sync cycle.
 2. **~~`GET /api/v2/vouchers` pagination docs~~ → shipped** —
    [clc-core#52](https://github.com/cosmo-local-credit/clc-core/pull/52):
    a cursorless `next` (the first-page shape every naive pager sends)
@@ -46,12 +51,14 @@ Gaps we shimmed locally that belong upstream:
    export maps already complete; only `private:true` + `workspace:*`
    block install. Publishing cadence is a maintainer decision → issue,
    not a PR.
-4. **`otx/track` public read for non-contract txs** — confirmed during
-   attribution work: `/api/v2/otx/track/:id` exists but is **owner-scoped**
-   (`clc-app` auth client comments: it "answers only for rows the caller
-   owns"), so trackingId resolution needs `CLC_SERVICE_TOKEN`. Our
-   fallback reads receipts on Gnosis directly; a public (or
-   integrator-scoped) status surface would close the loop API-side.
+4. **~~`otx/track` public read~~ → PR filed** —
+   [clc-core#65](https://github.com/cosmo-local-credit/clc-core/pull/65):
+   `GET /api/v2/otx/status/:trackingId` — public, rate-limited,
+   minimal-disclosure (`status` PENDING/SUCCESS/FAILED + `txHashes`
+   only; `raw_tx`, signers, nonces stay on the authenticated route).
+   `/otx/track` remains owner-scoped for the full chain; the new
+   endpoint answers only "did it land." When merged, trackingId
+   resolution stops needing `CLC_SERVICE_TOKEN`.
 
 Rules for upstream PRs: AGPL headers preserved, changes offered under
 upstream's license, no Springforth secrets in examples, test with their

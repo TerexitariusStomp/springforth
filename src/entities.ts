@@ -89,6 +89,13 @@ export const Possibility = z.object({
   // The CLC SwapPool this possibility's delivery flows through, when one
   // is linked — the allocation/quorum layer pointing at the pooling layer.
   clcPool: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
+  // Validation-design fields (Alena's four-phase test): which arm of a
+  // staggered rollout this card belongs to, and whether organizer
+  // facilitation was withdrawn. Both optional — absence means
+  // unclassified, never silently 'platform'.
+  cohort: z.string().optional(),             // e.g. 'mars-2026', 'kilifi-2025'
+  arm: z.enum(['baseline', 'platform', 'delayed']).optional(),
+  facilitation: z.enum(['full', 'minimal']).optional(),
   createdAt: z.string().datetime(),
 });
 export type Possibility = z.infer<typeof Possibility>;
@@ -876,3 +883,77 @@ export const VoucherRedemption = z.object({
   chainRef: z.string().optional(),        // return-transfer txHash, when on-chain
 });
 export type VoucherRedemption = z.infer<typeof VoucherRedemption>;
+
+// Ops report — self-reported offline coordination filed by the ops leg
+// (WhatsApp threads, in-person meetings). Always labeled self-reported:
+// the ledger records the claim, never the observation. Exported as
+// evidence via:'ops-report' so off-platform activity has an attributed,
+// honest lane instead of invisibility.
+export const OpsReport = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().optional(),
+  actor: z.string().min(1),               // who filed it (ops leg member)
+  channel: z.enum(['whatsapp', 'in-person', 'call', 'other']).default('other'),
+  text: z.string().min(1),
+  at: z.string().datetime(),
+});
+export type OpsReport = z.infer<typeof OpsReport>;
+
+// Coordination effort — the denominator of the coordination-leverage
+// metric: human hours spent coordinating, self-reported. Never mixed
+// with platform-observed data; the export marks selfReported:true.
+export const CoordinationEffort = z.object({
+  id: z.string().min(1),
+  week: z.string().regex(/^\d{4}-W\d{2}$/), // ISO week
+  actor: z.string().min(1),
+  possibilityId: z.string().optional(),
+  hours: z.number().positive(),
+  activity: z.string().default(''),
+  selfReported: z.literal(true).default(true),
+  at: z.string().datetime(),
+});
+export type CoordinationEffort = z.infer<typeof CoordinationEffort>;
+
+// Baseline report — pre-platform coordination stats for a cohort,
+// filed before the platform arm starts. Self-reported by definition;
+// gives the four-phase validation its phase-1 baseline as data.
+export const BaselineReport = z.object({
+  id: z.string().min(1),
+  cohort: z.string().min(1),
+  actor: z.string().min(1),
+  period: z.string().min(1),              // e.g. '2026-09' or '8 weeks'
+  summary: z.string().min(1),             // what coordination looked like offline
+  at: z.string().datetime(),
+});
+export type BaselineReport = z.infer<typeof BaselineReport>;
+
+// Readout — the pilot's published result as a ledgered artifact.
+// `result` admits negative/null outcomes explicitly: a readout exists
+// to be cited, not to be flattering.
+export const Readout = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().optional(),
+  roundId: z.string().optional(),
+  title: z.string().min(1),
+  result: z.enum(['positive', 'null', 'negative', 'mixed']),
+  body: z.string().default(''),
+  actor: z.string().min(1),
+  at: z.string().datetime(),
+  publishedAt: z.string().datetime().optional(),
+});
+export type Readout = z.infer<typeof Readout>;
+
+// Dispute — a flag on a claim, attestation edge, or record. Flags are
+// events, never edits: the export carries them so contested evidence is
+// visible in the denominator, not silently absent.
+export const Dispute = z.object({
+  id: z.string().min(1),
+  targetKind: z.enum(['claim', 'attestation', 'evidence', 'edge']),
+  targetId: z.string().min(1),
+  by: z.string().min(1),
+  reason: z.string().min(1),
+  state: z.enum(['open', 'resolved', 'dismissed']).default('open'),
+  at: z.string().datetime(),
+  resolvedAt: z.string().datetime().optional(),
+});
+export type Dispute = z.infer<typeof Dispute>;

@@ -1,8 +1,27 @@
 # How to verify this system
 
 Everything Springforth asserts is checkable without trusting the
-operator. Three independent layers: recompute the export, replay the
-ledger, verify on-chain.
+operator. The honest decomposition — adopted from the 2026-11-21
+three-validity review — is that verification answers three *different*
+questions, and no single check covers all three:
+
+1. **Record integrity** — is the file/chain internally consistent and
+   unmodified? (Layers 1–2 below: recompute, replay, prefix-verify.)
+2. **Authorization** — did the named actor actually do the thing?
+   Receipt confirmation proves a tx *mined*; actor↔initiator joins
+   need wallet binding + signed intent. `self-reported` lanes
+   (`via:'ops-report'`, `coordination_effort`, `baseline_report`)
+   record claims, never observations.
+3. **Outcome truth** — did the claimed impact happen? Attestation
+   edges record that ≥N participants *attested* completion
+   (`attesterCount` makes N checkable); they do not prove mangroves
+   were planted. Evidence records are pointers (`uriHash`/`textHash`),
+   not validated content. `readout.result` admits `null`/`negative`
+   precisely because this dimension stays open.
+
+What the system *does* guarantee: every claim above is labeled, and
+the labels are in the file — a reviewer never has to guess which
+validity a record speaks to.
 
 ## Layer 1 — recompute the export
 
@@ -35,7 +54,18 @@ curl -s 'https://springforth.widespread.workers.dev/ledger/verify?seq=N&verify=1
 # Stored-head lookup at a cut — cheap, does NOT recompute:
 curl -s 'https://springforth.widespread.workers.dev/ledger/verify?seq=N'
 # → { ok, seq, head, verified:false }  (adds a note saying so)
+
+# Inclusion proof for one event (SCITT-style receipt):
+curl -s 'https://springforth.widespread.workers.dev/ledger/proof?seq=N'
+# → { ok, seq, event{...}, position{seq,headSeq,depth},
+#     integrity, anchor{...}|null, semantics }
 ```
+
+`/ledger/proof` returns the event row, its position in the chain, the
+current head, a pointer to `?verify=1` for recomputation, and the
+newest OTS anchor at-or-after that seq when one exists. Its `semantics`
+field says it plainly: **inclusion only** — the record exists at that
+position; nothing about truth, authorization, or outcome.
 
 `?seq=N` alone returns the **stored** hash at that sequence — useful to
 confirm the export's `cut.ledger_head` names a real ledger position,
@@ -43,6 +73,27 @@ but it is not chain verification. `&verify=1` recomputes every event's
 `hash` (= sha256 of `[seq, at, actor, kind, payload, prev_hash]`) from
 the genesis event through seq N and compares the recomputed tip to the
 stored head — that IS verification of the prefix.
+
+## Layer 2b — external timestamp (OpenTimestamps)
+
+The ledger head is anchored to the public Bitcoin calendar network —
+proof that a given head hash existed by a wall-clock time, independent
+of this service staying up:
+
+```bash
+curl -s 'https://springforth.widespread.workers.dev/ledger/anchor'
+# → { anchors: [{seq, hash, calendar, status, submittedAt, ...}] }
+```
+
+- `pending` → the calendar accepted the digest; `attested` → the
+  receipt was upgraded after Bitcoin aggregation (verify the `.ots`
+  receipt with `ots verify`).
+- Anchoring runs automatically (~hourly, head-moved only) from cron +
+  ambient traffic; `POST /ledger/anchor` (admin) forces a round.
+- Each anchor also lands in the export as an `anchor` record, so the
+  timestamp evidence is bound to the same cut it timestamps.
+- An anchor proves *existence by time*, nothing more — same boundary
+  as SCITT receipts: inclusion, not truth.
 
 ## Layer 3 — verify on-chain (the new dual check)
 

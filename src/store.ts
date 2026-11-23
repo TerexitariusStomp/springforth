@@ -185,6 +185,16 @@ async function ledgerEventsUpTo(db: D1Database, uptoSeq: number) {
 // the stored head at that cut — a real prefix verification, not a
 // stored-hash echo. Use it to answer "is the chain intact through cut
 // N" (dated export replay); full-chain integrity is ledgerVerify.
+// Full event row at a seq — the /ledger/proof inclusion surface.
+// Returns null for out-of-range or empty ledgers.
+export async function ledgerEventAt(db: D1Database, seq: number) {
+  return db.prepare('SELECT seq,at,actor,kind,payload,prev_hash,hash FROM ledger WHERE seq=?')
+    .bind(seq).first<{
+      seq: number; at: string; actor: string; kind: string;
+      payload: string; prev_hash: string; hash: string;
+    }>();
+}
+
 export async function ledgerVerifyPrefix(db: D1Database, uptoSeq: number) {
   const events = await ledgerEventsUpTo(db, uptoSeq);
   if (!events.length) return { ok: false, brokenAt: uptoSeq };

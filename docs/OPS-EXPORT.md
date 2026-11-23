@@ -26,7 +26,7 @@ always the last line** and carries:
 {
   "type": "manifest",
   "spec": "springforth.ops-export/v1",
-  "revision": "v1.4",
+  "revision": "v1.5",
   "generatedAt": "…",
   "build": "abc1234 | null",
   "cut": { "seq": 4217, "ledger_head": "f83b…" },
@@ -61,7 +61,7 @@ Two different checks: `file_sha256` proves the file arrived intact;
 | `declaration` | possibilityId, actor, at, status, threshold{min,max}, needs[{id,required,category}], brings[nodeIds], deadline, place, h3 | `possibility` + linked `plannode`s |
 | `commitment` | id, possibilityId, actor, at, bringingNodeId, hours | `participation` |
 | `quorum` | possibilityId, activated_at, committed[actor…] | quorumAt + joins ≤ activation |
-| `evidence` | id, via (oracle-check / forum-post / report / claim-artifact), nodeId/possibilityId/claimId, uriHash/textHash/refHash, at | checks (demo excluded), forum evidence posts, report.evidence, claim artifactRefs |
+| `evidence` | id, via (oracle-check / forum-post / report / claim-artifact / ops-report), nodeId/possibilityId/claimId, uriHash/textHash/refHash, verification ('self-reported' on ops-report only), at | checks (demo excluded), forum evidence posts, report.evidence, claim artifactRefs, ops-leg offline reports |
 | `attestation_edge` | via (appreciation / attestation), id, from, to, possibilityId, at | `appreciation`, `attestation` — deduped to one edge per pair (earliest) |
 | `match_flow` | lane (matching_fund / pledge / donation / stream / yield / revshare), id, roundId/possibilityId/needNodeId, actor, amount, currency, state, at | `round`, `pledge`, `donation`, `recurring-support`, `yieldstream`, derived |
 | `trust_epoch` | epoch, program, cut{seq,ledger_head}, inputHash, paramsHash, outputRoot, totalValue, scoresHash, edgeCount, actorCount, at | `trust-epoch` journals — pointers, not score blobs |
@@ -72,6 +72,12 @@ Two different checks: `file_sha256` proves the file arrived intact;
 | `pool_exchange` | id, poolId, actor, give{voucherId,amount}, receive{voucherId,amount}, fees{voucherId,pool,protocol}, rates, at, **source, chainRef** | `pool-exchange` — `chainRef` carries the settlement txHash |
 | `redemption` | id, voucherId, holder, amount, state, at, resolvedAt, **chainRef** | `redemption` — discharge records; `chainRef` = return-transfer txHash |
 | `clc_track` | id, trackingId, txHash, possibilityId, actor, status, chainId, at, confirmedAt, blockNumber, exchanges | `clc-track` — CLC transactions *reported as* coordinated by an actor (`POST /clc/track`); `status` moves `submitted`→`confirmed`/`failed` as receipts resolve; `exchanges` links decoded `pool_exchange` ids. `confirmed` proves the tx mined — NOT that the named actor initiated it (that join needs a wallet binding + signed intent) |
+| `test_resolution` | id, possibilityId, questionId, actor, state, runner, beliefHash, failState, result, at, resolvedAt | `test` — every proposed experiment lands somewhere: `passed`/`failed`/`running`/`proposed`. Failed experiments are evidence too |
+| `dispute` | id, targetKind, targetId, by, reasonHash, state, at, resolvedAt | `dispute` — flags are events, never edits; contested evidence stays visible in the denominator |
+| `coordination_effort` | id, week, actor, possibilityId, hours, activity, selfReported:true, at | `coordination-effort` — self-reported hours; the denominator of coordination leverage. Always labeled |
+| `baseline_report` | id, cohort, actor, period, summaryHash, at | `baseline-report` — pre-platform coordination stats, self-reported by definition |
+| `readout` | id, possibilityId, roundId, titleHash, result(positive/null/negative/mixed), bodyHash, actor, at, publishedAt | `readout` — published results as ledgered artifacts; negative/null outcomes are first-class |
+| `anchor` | id, seq, hash, calendar, status, submittedAt, upgradedAt, receiptBytes | `anchor` — OTS Bitcoin-calendar timestamp proofs over ledger heads; raw seq+hash (public chain data) |
 
 Provenance fields (`source`, `chainAddress`, `chainId`, `chainRef`,
 `observedAt`) are emitted **raw** — public on-chain data, deliberately
@@ -88,7 +94,31 @@ across daily files so records join over time. Pseudonymous, not
 anonymous; salt rotates via `EXPORT_SALT`.
 
 Evidence is pointers, never footage: URIs hash to `uriHash`, free text
-to `textHash`/`refHash`.
+to `textHash`/`refHash`. `via:'ops-report'` evidence carries
+`verification:'self-reported'` permanently — the ledger records the
+ops leg's claim about offline coordination, never an observation of it.
+
+## The funnel (manifest.funnel)
+
+Every declared card lands somewhere — the denominator is computed from
+the cut, not asserted:
+
+- `declared` — all `possibility` rows in the cut
+- `quorum` — cards with `quorumAt` set
+- `completed` / `expired` — terminal states
+- `disputed` — open+resolved `dispute` rows
+- `testFailed` — `test` rows in state `failed`
+
+Cards still `active`/`draft`/`quorum` are the in-flight remainder:
+`declared − quorum − expired` is not a bug, it's the live set.
+
+## Lifecycle states
+
+`possibility.status`: `draft → active → quorum → completed | expired`.
+`declaration.status` in the export mirrors it verbatim. `test.state`:
+`proposed → running → passed | failed`. `dispute.state`:
+`open → resolved | dismissed`. `anchor.status`: `pending → attested`
+(once the Bitcoin calendar returns the upgraded OTS receipt).
 
 ## Consistency model
 
@@ -188,3 +218,28 @@ to `textHash`/`refHash`.
 - New `clc_track` record type — CLC transactions (trackingId/txHash)
   attributed to the possibility/actor that coordinated them: the
   "which allocation caused which exchange" join.
+
+## v1.5 (2026-11-21)
+
+Validation-hardening lane, answering the three-validity review
+(docs/VERIFICATION.md):
+
+- `manifest.funnel` — the denominator made explicit (see above).
+- New record types: `test_resolution`, `dispute`, `coordination_effort`,
+  `baseline_report`, `readout`, `anchor`; `evidence` gains
+  `via:'ops-report'` with `verification:'self-reported'`.
+- `attestation_edge.attesterCount` — distinct attesters per subject
+  across both lanes, so the charter's ≥3-attester rule is checkable
+  in-file.
+- `declaration` gains `cohort`, `arm` (`baseline|platform|delayed`),
+  `facilitation` (`full|minimal`) — the staggered-rollout fields a
+  causal readout needs; `null` when unclassified, never silently
+  'platform'.
+- OTS anchoring is now automated: `maybeAnchorLedgerHead` submits the
+  head to both Bitcoin calendars at most once per 55 min (anchor-state
+  gate), upgrades pending receipts on the same cadence, and runs from
+  both the hourly cron and ambient traffic. `POST /ledger/anchor`
+  remains the manual path.
+- Ops-leg write endpoints (all admin-authed, entity+event atomic):
+  `POST /ops/report`, `/ops/effort`, `/ops/baseline`, `/ops/readout`,
+  `/ops/dispute`.

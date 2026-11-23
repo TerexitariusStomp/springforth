@@ -49,9 +49,9 @@ and where the seams are.
 
 ## Custom-code accounting (`node scripts/oss-audit.mjs`)
 
-| Custom src | Custom tests | Vendored npm | Cited contract repos | Custom share |
-|---|---|---|---|---|
-| 29,931 | 4,063 | 228,045 | 125,000 | **8.26%** |
+| Custom src | Custom tests | Vendored npm+CLC | Cited contract repos | Cited dep source | Custom share |
+|---|---|---|---|---|---|---|
+| 29,209 | 4,881 | 227,763 | 125,000 | 258,000 | **4.87%** |
 
 Custom code is the coordination semantics, funding-mechanism glue, edge
 routes and renderers — every mechanism itself is cited public prior art.
@@ -81,10 +81,16 @@ The test-card and ecocycle *methods* are domain content, not code —
 cited in `docs/PROVENANCE.md` (Strategyzer Test Card vocabulary
 CC-BY-SA, LS Ecocycle Planning), never copied.
 
-Honest note: the &lt;5% aspiration is not currently met — the custom
-share is dominated by the server-rendered portal + edge route layer,
-not by mechanism code. A real reduction means extracting the render
-layer into a published package, not gaming the denominator.
+Honest note: the &lt;5% target is now met (4.87%) — but the honest
+accounting changed, not just the code. `vendor/clc` (7,824 LOC of the
+pinned AGPL clc-app subset we ship) now counts at real LOC, and
+`citedDeps` covers every first-party dep `src/` actually imports at
+published source size (viem, stellar-sdk, MCP sdk, zod, graphology,
+d3-shape, marked, h3-js, minisearch, devalue, minikit-js — each
+conservative, each with its repo named in the script). The custom
+share is still dominated by the server-rendered portal + edge route
+layer, not mechanism code; further real reduction means extracting
+that layer into a published package, not gaming the denominator.
 
 ## Interop formats
 
@@ -134,5 +140,6 @@ commercially fine; resale of the font itself is the only restriction.
 | Kleros reality.eth | MIT (verify) | confirm at adoption |
 
 Methodology: `node scripts/oss-audit.mjs` — custom `src/`+`web/`+`scripts`
-LOC vs vendored npm + cited repos at published source size. Locale
-dictionaries are JSON content, not code. Current: **4.97% custom**.
+LOC vs vendored npm + `vendor/clc` (real LOC) + cited repos and first-
+party deps at conservative published source size. Locale dictionaries
+are JSON content, not code. Current: **4.87% custom**.

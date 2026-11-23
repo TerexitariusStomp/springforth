@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 import type { D1Database } from '@cloudflare/workers-types';
 import {
-  Appreciation, Attestation, CommitmentPool, Donation, ExternalScore, ForumPost,
-  FundingRound, ImpactClaim, OracleCheck, Participation, Pledge, PoolExchange,
-  Possibility, RecurringSupport, TrustEpoch, Voucher, VoucherHolding,
+  Appreciation, Attestation, BaselineReport, CommitmentPool, CoordinationEffort,
+  Dispute, Donation, ExternalScore, ForumPost, FundingRound, ImpactClaim,
+  OracleCheck, OpsReport, Participation, Pledge, PoolExchange, Possibility,
+  Readout, RecurringSupport, TestCard, TrustEpoch, Voucher, VoucherHolding,
   VoucherRedemption, YieldStream,
 } from './entities.ts';
 import type { PlanNode } from './graph.ts';
@@ -22,7 +23,7 @@ import { del, get, ledgerAppend, listWhere, put, putIfAbsent } from './store.js'
 export const OPS_EXPORT_SPEC = 'springforth.ops-export/v1';
 // Additive schema level — record types added post-v1 bump the revision,
 // not the spec: v1 consumers keep parsing. History in docs/OPS-EXPORT.md.
-export const OPS_EXPORT_REVISION = 'v1.4';
+export const OPS_EXPORT_REVISION = 'v1.5';
 export const OPS_EXPORT_KIND = 'ops-export';
 
 const digest = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -67,6 +68,16 @@ export interface OpsExportInput {
   exchanges?: PoolExchange[];
   redemptions?: VoucherRedemption[];
   clcTracks?: ClcTrack[];
+  // Validation-hardening lane (2026-11 Alena review): the denominator —
+  // failed tests, disputes, self-reported offline coordination, effort,
+  // baselines, published readouts, and OTS anchors.
+  tests?: TestCard[];
+  opsReports?: OpsReport[];
+  efforts?: CoordinationEffort[];
+  baselines?: BaselineReport[];
+  readouts?: Readout[];
+  disputes?: Dispute[];
+  anchors?: AnchorRow[];
   head: { seq: number; hash: string };
   generatedAt: string;
   salt?: string;
@@ -80,6 +91,12 @@ export interface ClcTrack {
   possibilityId?: string; actor: string; status: string;
   chainId?: number; at: string;
   confirmedAt?: string; blockNumber?: number; exchanges?: string[];
+}
+
+// OTS anchor rows (kind 'anchor') — written by the /ledger/anchor lane.
+export interface AnchorRow {
+  id: string; seq: number; hash: string; calendar: string;
+  receipt: string; status: string; submittedAt: string; upgradedAt?: string;
 }
 
 type Line = Record<string, unknown>;
@@ -116,6 +133,8 @@ export function buildOpsExport(i: OpsExportInput): {
         .map((n) => ({ id: oid(n.id, salt), required: n.required ?? false, category: n.category ?? null })),
       brings: nodes.filter((n) => n.kind === 'offer').map((n) => oid(n.id, salt)),
       deadline: p.deadline ?? null, place: p.place ?? null, h3: p.h3 ?? null,
+      cohort: p.cohort ?? null, arm: p.arm ?? null,
+      facilitation: p.facilitation ?? null,
     });
   }
 
@@ -186,6 +205,15 @@ export function buildOpsExport(i: OpsExportInput): {
   }
 
   // attestation edges — attester→subject, once per pair (earliest wins).
+  // attesterCount = distinct attesters per subject across BOTH lanes —
+  // the charter's ≥3-distinct-attesters rule becomes checkable in-file.
+  const attestCount = new Map<string, Set<string>>();
+  const bumpAttest = (to: string, from: string) => {
+    if (!to) return;
+    attestCount.set(to, (attestCount.get(to) ?? new Set()).add(from));
+  };
+  for (const a of [...i.appreciations]) bumpAttest(a.toActor, a.fromActor);
+  for (const a of [...i.attestations]) bumpAttest(a.claimId ?? a.nodeId ?? '', a.attester);
   const seenPairs = new Set<string>();
   for (const a of [...i.appreciations].sort(byAt)) {
     const k = `app:${a.fromActor}>${a.toActor}:${a.possibilityId ?? ''}`;
@@ -195,6 +223,7 @@ export function buildOpsExport(i: OpsExportInput): {
       type: 'attestation_edge', via: 'appreciation', id: oid(a.id, salt),
       from: ps(a.fromActor), to: ps(a.toActor),
       possibilityId: a.possibilityId ?? null, at: a.at,
+      attesterCount: attestCount.get(a.toActor)?.size ?? 1,
     });
   }
   for (const a of [...i.attestations].sort(byAt)) {
@@ -207,6 +236,7 @@ export function buildOpsExport(i: OpsExportInput): {
       // Claim targets oid-join the claim rows above; node targets oid-join
       // needs[].id / evidence.nodeId / needNodeId — same function, same salt.
       from: ps(a.attester), to: to ? oid(to, salt) : '', schemaRef: a.schemaRef, uid: a.uid ?? null, at: a.at,
+      attesterCount: attestCount.get(to)?.size ?? 1,
     });
   }
 
@@ -361,15 +391,103 @@ export function buildOpsExport(i: OpsExportInput): {
     });
   }
 
+  // ops-report lane — self-reported offline coordination. verification
+  // stays 'self-reported' forever: the ledger records the claim, the
+  // label is the honesty boundary (Alena's observational-completeness
+  // point — off-platform activity gets an attributed lane, not silence).
+  for (const r of [...(i.opsReports ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'evidence', id: oid(r.id, salt), via: 'ops-report',
+      possibilityId: r.possibilityId ?? null, actor: ps(r.actor),
+      channel: r.channel, textHash: digest(r.text),
+      verification: 'self-reported', at: r.at,
+    });
+  }
+
+  // test resolutions — failed experiments are evidence too (the
+  // denominator includes what didn't work).
+  for (const t of [...(i.tests ?? [])].sort((a, b) => a.at.localeCompare(b.at))) {
+    lines.push({
+      type: 'test_resolution', id: oid(t.id, salt), possibilityId: t.possibilityId,
+      questionId: t.questionId ? oid(t.questionId, salt) : null,
+      actor: ps(t.actor), state: t.state, runner: t.runner ? ps(t.runner) : null,
+      beliefHash: digest(t.belief), failState: t.failState || null,
+      result: t.result ? { actor: ps(t.result.actor), textHash: digest(t.result.text), at: t.result.at } : null,
+      at: t.at, resolvedAt: t.resolvedAt ?? null,
+    });
+  }
+
+  // disputes — flags are events, never edits; contested evidence stays
+  // visible in the denominator.
+  for (const d of [...(i.disputes ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'dispute', id: oid(d.id, salt), targetKind: d.targetKind,
+      targetId: oid(d.targetId, salt), by: ps(d.by), reasonHash: digest(d.reason),
+      state: d.state, at: d.at, resolvedAt: d.resolvedAt ?? null,
+    });
+  }
+
+  // coordination effort — self-reported hours; the denominator of the
+  // coordination-leverage metric. Always labeled.
+  for (const e of [...(i.efforts ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'coordination_effort', id: oid(e.id, salt), week: e.week,
+      actor: ps(e.actor), possibilityId: e.possibilityId ? oid(e.possibilityId, salt) : null,
+      hours: e.hours, activity: e.activity || null,
+      selfReported: true, at: e.at,
+    });
+  }
+
+  // baseline reports — pre-platform coordination stats, self-reported.
+  for (const b of [...(i.baselines ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'baseline_report', id: oid(b.id, salt), cohort: oid(b.cohort, salt),
+      actor: ps(b.actor), period: b.period, summaryHash: digest(b.summary), at: b.at,
+    });
+  }
+
+  // readouts — published results as ledgered artifacts; negative/null
+  // outcomes are first-class.
+  for (const r of [...(i.readouts ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'readout', id: oid(r.id, salt),
+      possibilityId: r.possibilityId ? oid(r.possibilityId, salt) : null,
+      roundId: r.roundId ? oid(r.roundId, salt) : null,
+      titleHash: digest(r.title), result: r.result, bodyHash: digest(r.body),
+      actor: ps(r.actor), at: r.at, publishedAt: r.publishedAt ?? null,
+    });
+  }
+
+  // OTS anchors — external timestamp proofs over ledger heads. Raw seq
+  // + hash stay un-pseudonymized: they're public chain data by design.
+  for (const a of [...(i.anchors ?? [])].sort((x, y) => x.seq - y.seq)) {
+    lines.push({
+      type: 'anchor', id: oid(a.id, salt), seq: a.seq, hash: a.hash,
+      calendar: new URL(a.calendar).host, status: a.status,
+      submittedAt: a.submittedAt, upgradedAt: a.upgradedAt ?? null,
+      receiptBytes: a.receipt.length,
+    });
+  }
+
   const payload = lines.map((l) => JSON.stringify(l)).join('\n') + '\n';
   const counts: Record<string, number> = {};
   for (const l of lines) counts[String(l.type)] = (counts[String(l.type)] ?? 0) + 1;
+  // The funnel — the denominator Alena asked for, computed from the cut:
+  // every declared card lands somewhere, including the ones that failed.
+  const funnel = {
+    declared: i.possibilities.length,
+    quorum: i.possibilities.filter((p) => p.quorumAt).length,
+    completed: i.possibilities.filter((p) => p.status === 'completed').length,
+    expired: i.possibilities.filter((p) => p.status === 'expired').length,
+    disputed: (i.disputes ?? []).length,
+    testFailed: (i.tests ?? []).filter((t) => t.state === 'failed').length,
+  };
   const manifest = {
     type: 'manifest', spec: OPS_EXPORT_SPEC, revision: OPS_EXPORT_REVISION,
     generatedAt: i.generatedAt,
     build: i.build ?? null,
     cut: { seq: i.head.seq, ledger_head: i.head.hash },
-    counts, records: lines.length,
+    counts, records: lines.length, funnel,
     file_sha256: digest(payload),
     recompute: "sed '$d' ops.ndjson | sha256sum",
   };
@@ -434,6 +552,13 @@ const ENTITY_READS: [kind: string, where?: string][] = [
   ['pool-exchange'],
   ['redemption'],
   ['clc-track'],
+  ['test'],
+  ['ops-report'],
+  ['coordination-effort'],
+  ['baseline-report'],
+  ['readout'],
+  ['dispute'],
+  ['anchor'],
 ];
 
 // One atomic read transaction: head + every entity table in a single
@@ -531,21 +656,22 @@ export async function refreshOpsExport(
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
     epochs, externalScores, vouchers, holdings, pools, exchanges, redemptions,
-    clcTracks,
+    clcTracks, tests, opsReports, efforts, baselines, readouts, disputes, anchors,
   ] = rows as [
     Possibility[], Participation[], PlanNode[], Appreciation[], Attestation[],
     OracleCheck[], ForumPost[], ImpactClaim[], Pledge[], Donation[],
     RecurringSupport[], YieldStream[], FundingRound[],
     TrustEpoch[], ExternalScore[],
     Voucher[], VoucherHolding[], CommitmentPool[], PoolExchange[], VoucherRedemption[],
-    ClcTrack[],
+    ClcTrack[], TestCard[], OpsReport[], CoordinationEffort[], BaselineReport[],
+    Readout[], Dispute[], AnchorRow[],
   ];
 
   const { body, manifest } = buildOpsExport({
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
     epochs, externalScores, vouchers, holdings, pools, exchanges, redemptions,
-    clcTracks,
+    clcTracks, tests, opsReports, efforts, baselines, readouts, disputes, anchors,
     head: { seq, hash: headHash }, generatedAt,
     salt: await exportSalt(env),
     build: env.BUILD_ID,

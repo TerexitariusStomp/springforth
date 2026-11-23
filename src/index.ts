@@ -8,6 +8,7 @@ import {
   ActorWallet, ActorPersonhood, ActorNonce, RoundApplication, RecurringSupport,
   GovernanceProposal, GovernanceBallot, GovernanceParam,
   DatasetRelease, DataAccessGrant, Subscription, TrustEpoch,
+  OpsReport, CoordinationEffort, BaselineReport, Readout, Dispute,
   valueCoordinated,
 } from './core';
 import {
@@ -112,7 +113,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
-import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerAppendWith, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
+import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerAppendWith, ledgerEvents, ledgerHeadAt, ledgerEventAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
 import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
 import { holdingId, poolHolder, protocolHolder } from './pool.js';
 import {
@@ -203,6 +204,70 @@ const OTS_CALENDARS = [
   'https://alice.btc.calendar.opentimestamps.org',
   'https://finney.calendar.eternitywall.com',
 ];
+
+// Ambient anchor cadence — at most one submission round per interval,
+// and only when the head actually moved. Pending→attested upgrades ride
+// the same gate: receipts take hours-to-days to confirm on Bitcoin, so
+// hourly polling is ample. ~2 D1 reads per request when gated off.
+const ANCHOR_INTERVAL_MS = 55 * 60_000;
+
+interface AnchorRow {
+  id: string; seq: number; hash: string; calendar: string;
+  receipt: string; status: string; submittedAt: string; upgradedAt?: string;
+}
+
+// Submit the current ledger head to the OTS calendars + upgrade pending
+// receipts. Called from the hourly cron and the ambient lane; the
+// anchor-state gate keeps calendar traffic bounded regardless of caller.
+async function maybeAnchorLedgerHead(env: Env) {
+  const head = await env.DB.prepare('SELECT seq,hash FROM ledger ORDER BY seq DESC LIMIT 1')
+    .first<{ seq: number; hash: string }>();
+  if (!head) return { skipped: 'empty' };
+  const state = await get<{ seq?: number; hash?: string; at?: string }>(
+    env.DB, 'anchor-state', 'last');
+  const recent = state?.at && Date.now() - Date.parse(state.at) < ANCHOR_INTERVAL_MS;
+  if (recent && state?.seq === head.seq) return { skipped: 'recent' };
+  // Upgrade pass — bounded: only pending rows fetch, at most one GET each.
+  let upgraded = 0;
+  const anchors = await list<AnchorRow>(env.DB, 'anchor');
+  for (const a of anchors) {
+    if (a.status !== 'pending') continue;
+    try {
+      const r = await fetch(`${a.calendar}/timestamp/${a.hash}`);
+      if (r.ok) {
+        a.receipt = btoa(String.fromCharCode(...new Uint8Array(await r.arrayBuffer())));
+        a.status = 'attested'; a.upgradedAt = new Date().toISOString();
+        await put(env.DB, 'anchor', a.id, a); upgraded++;
+      }
+    } catch { /* calendar unreachable — stays pending */ }
+  }
+  if (recent) return { skipped: 'recent', pendingUpgraded: upgraded };
+  if (state?.seq === head.seq) return { skipped: 'same-head', pendingUpgraded: upgraded };
+  const digestBytes = Uint8Array.from(head.hash.match(/../g)!.map((h) => parseInt(h, 16)));
+  const anchored: string[] = [];
+  const failed: string[] = [];
+  for (const cal of OTS_CALENDARS) {
+    const host = new URL(cal).host;
+    try {
+      const r = await fetch(`${cal}/digest`, { method: 'POST', body: digestBytes });
+      if (!r.ok) { failed.push(`${host}:http ${r.status}`); continue; }
+      const receipt = btoa(String.fromCharCode(...new Uint8Array(await r.arrayBuffer())));
+      await put(env.DB, 'anchor', `anchor-${head.seq}-${host}`, {
+        id: `anchor-${head.seq}-${host}`, seq: head.seq, hash: head.hash,
+        calendar: cal, receipt, status: 'pending',
+        submittedAt: new Date().toISOString(),
+      });
+      anchored.push(host);
+    } catch (e) { failed.push(`${host}:${String(e).slice(0, 60)}`); }
+  }
+  if (anchored.length === OTS_CALENDARS.length) {
+    const at = new Date().toISOString();
+    await put(env.DB, 'anchor-state', 'last', { seq: head.seq, hash: head.hash, at });
+    await ledgerAppend(env.DB, 'cron', 'ledger.anchored',
+      { seq: head.seq, hash: head.hash, calendars: anchored.length, at });
+  }
+  return { seq: head.seq, anchored, failed, pendingUpgraded: upgraded };
+}
 
 // h3 cell → centroid for source adapters. Oracle targets are plannodes —
 // field records and declared actions carry h3 directly.
@@ -1110,6 +1175,13 @@ export default {
     {
       const p = maybeAdvanceClcSync(env)
         .catch((e) => console.error('clc piggyback failed', e));
+      ctx ? ctx.waitUntil(p) : await p;
+    }
+    // Ambient OTS anchor — gated to ~hourly by anchor-state; keeps the
+    // ledger head timestamped even when cron's subrequest budget dies.
+    {
+      const p = maybeAnchorLedgerHead(env)
+        .catch((e) => console.error('anchor piggyback failed', e));
       ctx ? ctx.waitUntil(p) : await p;
     }
     // HTML pages embed live state (footer timestamp, ticker, counts) — never
@@ -2924,6 +2996,14 @@ export default {
               : (b.lat != null && b.lon != null && isFinite(Number(b.lat)) && isFinite(Number(b.lon)))
                 ? latLngToCell(Number(b.lat), Number(b.lon), 5) : undefined,
             context: b.context,
+            // Validation-design fields (staggered-rollout arms) — only
+            // accepted when they match the schema enums; anything else
+            // is dropped rather than stored as free text.
+            cohort: typeof b.cohort === 'string' ? b.cohort.slice(0, 80) : undefined,
+            arm: ['baseline', 'platform', 'delayed'].includes(String(b.arm))
+              ? b.arm as 'baseline' | 'platform' | 'delayed' : undefined,
+            facilitation: ['full', 'minimal'].includes(String(b.facilitation))
+              ? b.facilitation as 'full' | 'minimal' : undefined,
             status: 'active', createdAt: iso,
           });
           await put(env.DB, 'possibility', p.id, p);
@@ -4932,6 +5012,42 @@ export default {
         });
       }
       if (req.method === 'GET' && seg[0] === 'ledger') {
+        if (seg[1] === 'proof') {
+          // Inclusion proof (SCITT-style receipt): the event row at seq,
+          // its chain position, the current head, and the newest OTS
+          // anchor at-or-after it when one exists. Proves the record is
+          // IN the ledger state — never that its claim is true, that an
+          // actor authorized it, or that an outcome happened.
+          const s = Number(url.searchParams.get('seq'));
+          if (!Number.isInteger(s) || s < 0) return err('bad seq', 422);
+          const event = await ledgerEventAt(env.DB, s);
+          if (!event) return err('no event at that seq', 404);
+          const head = await env.DB.prepare(
+            'SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1',
+          ).first<{ seq: number; hash: string }>();
+          const anchorRows = await env.DB.prepare(
+            `SELECT json FROM entities WHERE kind='anchor'
+             AND json_extract(json,'$.seq')>=? ORDER BY id DESC LIMIT 1`,
+          ).bind(s).all<{ json: string }>();
+          const anchor = anchorRows.results?.[0]
+            ? JSON.parse(String(anchorRows.results[0].json)) : null;
+          return json({
+            ok: true, seq: event.seq, event: {
+              at: event.at, actor: event.actor, kind: event.kind,
+              payload: JSON.parse(event.payload), prev_hash: event.prev_hash,
+              hash: event.hash,
+            },
+            position: { seq: event.seq, headSeq: head?.seq ?? event.seq,
+              depth: (head?.seq ?? event.seq) - event.seq },
+            integrity: 'recompute: GET /ledger/verify?seq=' + event.seq + '&verify=1',
+            anchor: anchor ? {
+              seq: anchor.seq, hash: anchor.hash, calendar: anchor.calendar,
+              status: anchor.status, submittedAt: anchor.submittedAt,
+              upgradedAt: anchor.upgradedAt ?? null,
+            } : null,
+            semantics: 'inclusion only — proves the record exists in the chain at this position; does not establish truthfulness, authorization, or outcome',
+          });
+        }
         if (seg[1] === 'verify') {
           // ?seq=N&verify=1 recomputes the hash chain through that cut —
           // real prefix verification for dated-export replay. ?seq=N
@@ -4961,6 +5077,46 @@ export default {
         if (wantsHtml(req) && url.searchParams.get('format') !== 'json')
           return page(req, renderLedgerPage, events, await ledgerVerifyIncremental(env.DB), langFrom(url, req.headers.get('cookie')));
         return json({ events });
+      }
+      // Ops-leg filing endpoints — the pilot's self-reported lanes.
+      // Every record is labeled self-reported at the schema level; the
+      // ledger event attributes the filer, never the claim's truth.
+      if (seg[0] === 'ops' && req.method === 'POST') {
+        if (!authed(req, env)) return err('unauthorized', 401);
+        const b = await req.json() as Record<string, unknown>;
+        const actor = String(b.actor ?? 'ops');
+        const at = new Date().toISOString();
+        const mk = (prefix: string) =>
+          `${prefix}-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 6)}`;
+        const write = async (
+          kind: string, id: string, obj: unknown, eventKind: string,
+        ) => {
+          await ledgerAppendWith(env.DB,
+            [{ kind, id, obj }],
+            { actor, kind: eventKind, payload: { id, ...((obj ?? {}) as object) }, at });
+          return json({ id, kind }, 201);
+        };
+        if (seg[1] === 'report' && seg.length === 2) {
+          const r = OpsReport.parse({ ...b, id: String(b.id ?? mk('opsrep')), at: b.at ?? at });
+          return write('ops-report', r.id, r, 'ops.report_filed');
+        }
+        if (seg[1] === 'effort' && seg.length === 2) {
+          const r = CoordinationEffort.parse({ ...b, id: String(b.id ?? mk('effort')), at: b.at ?? at });
+          return write('coordination-effort', r.id, r, 'ops.effort_filed');
+        }
+        if (seg[1] === 'baseline' && seg.length === 2) {
+          const r = BaselineReport.parse({ ...b, id: String(b.id ?? mk('baseline')), at: b.at ?? at });
+          return write('baseline-report', r.id, r, 'ops.baseline_filed');
+        }
+        if (seg[1] === 'readout' && seg.length === 2) {
+          const r = Readout.parse({ ...b, id: String(b.id ?? mk('readout')), at: b.at ?? at });
+          return write('readout', r.id, r, 'ops.readout_published');
+        }
+        if (seg[1] === 'dispute' && seg.length === 2) {
+          const d = Dispute.parse({ ...b, id: String(b.id ?? mk('dispute')), at: b.at ?? at });
+          return write('dispute', d.id, d, 'ops.dispute_filed');
+        }
+        return err('unknown ops endpoint', 404);
       }
       // Ops export — pilot charter §5 interface: a stored NDJSON
       // materialized view the ops leg polls read-only. The manifest is
@@ -5056,6 +5212,13 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
     await refreshOpsExport(env).catch(async (e) => {
       console.error('ops-export: refresh failed', e);
       await ledgerAppend(env.DB, 'cron', 'ops-export.refresh_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
+    // OTS anchoring — head-of-line cheap when gated; submits only on a
+    // moved head, upgrades pending receipts either way.
+    await maybeAnchorLedgerHead(env).catch(async (e) => {
+      console.error('anchor failed', e);
+      await ledgerAppend(env.DB, 'cron', 'ledger.anchor_failed',
         { error: String(e) }).catch(() => undefined);
     });
     await ledgerAppend(env.DB, 'cron', 'oracle.cycle',

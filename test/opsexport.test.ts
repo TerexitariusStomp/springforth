@@ -156,7 +156,7 @@ describe('ops export', () => {
 
   it('manifest carries revision and build stamp', () => {
     const { manifest } = buildOpsExport({ ...fixture(), build: 'd0f6bf3' });
-    expect(manifest.revision).toBe('v1.4');
+    expect(manifest.revision).toBe('v1.5');
     expect(manifest.build).toBe('d0f6bf3');
     expect(buildOpsExport(fixture()).manifest.build).toBeNull();
   });
@@ -187,6 +187,62 @@ describe('ops export', () => {
     expect((pool.accepted as { voucherId: string }[])[0]!.voucherId).toMatch(/^x_/);
     const ex = lines.find((l) => l.type === 'pool_exchange')!;
     expect(ex.rates).toEqual({ give: 4, receive: 4 });
+  });
+
+  it('v1.5: emits denominator records — tests, disputes, effort, baselines, readouts, anchors, funnel', () => {
+    const i = fixture();
+    i.tests = [{ id: 'tst-1', possibilityId: 'poss-a', actor: 'chi',
+      belief: 'boats suffice', action: 'trial run', measure: 'completion',
+      failState: 'tide too high', state: 'failed',
+      result: { actor: 'chi', text: 'tide won', at: '2026-10-23T00:00:00.000Z' },
+      at: T, resolvedAt: '2026-10-23T01:00:00.000Z' }] as OpsExportInput['tests'];
+    i.opsReports = [{ id: 'opsrep-1', possibilityId: 'poss-a', actor: 'ops-leg',
+      channel: 'whatsapp', text: 'coordinated planting rota offline', at: T }] as OpsExportInput['opsReports'];
+    i.efforts = [{ id: 'eff-1', week: '2026-W43', actor: 'ops-leg',
+      possibilityId: 'poss-a', hours: 6, activity: 'rota coordination',
+      selfReported: true, at: T }] as OpsExportInput['efforts'];
+    i.baselines = [{ id: 'base-1', cohort: 'mars-2026', actor: 'ops-leg',
+      period: '8 weeks', summary: 'met weekly, no platform', at: T }] as OpsExportInput['baselines'];
+    i.readouts = [{ id: 'ro-1', possibilityId: 'poss-a', title: 'Pilot readout',
+      result: 'null', body: 'quorum formed, zero match', actor: 'ops-leg',
+      at: T, publishedAt: T }] as OpsExportInput['readouts'];
+    i.disputes = [{ id: 'dsp-1', targetKind: 'claim', targetId: 'clm-1',
+      by: 'duma', reason: 'film shows different site', state: 'open', at: T }] as OpsExportInput['disputes'];
+    i.anchors = [{ id: 'anchor-42-alice.btc.calendar.opentimestamps.org',
+      seq: 42, hash: 'f'.repeat(64),
+      calendar: 'https://alice.btc.calendar.opentimestamps.org',
+      receipt: 'AAAA', status: 'pending', submittedAt: T }] as OpsExportInput['anchors'];
+    const { body, manifest } = buildOpsExport(i);
+    const lines = linesOf(body);
+    for (const t of ['test_resolution', 'coordination_effort', 'baseline_report',
+      'readout', 'dispute', 'anchor'])
+      expect(lines.some((l) => l.type === t), `record type ${t}`).toBe(true);
+    const ev = lines.find((l) => l.via === 'ops-report')!;
+    expect(ev.verification).toBe('self-reported');
+    expect(ev.textHash).toBe(sha('coordinated planting rota offline'));
+    const ce = lines.find((l) => l.type === 'coordination_effort')!;
+    expect(ce.selfReported).toBe(true);
+    const an = lines.find((l) => l.type === 'anchor')!;
+    expect(an.seq).toBe(42);
+    expect(an.calendar).toBe('alice.btc.calendar.opentimestamps.org');
+    const f = manifest.funnel as Record<string, number>;
+    expect(f.declared).toBe(2);
+    expect(f.quorum).toBe(1);
+    expect(f.testFailed).toBe(1);
+    expect(f.disputed).toBe(1);
+  });
+
+  it('v1.5: attestation_edge carries attesterCount per subject', () => {
+    const i = fixture();
+    i.attestations = [
+      { id: 'att-1', claimId: 'clm-1', attester: 'chi', schemaRef: 's', payload: '{}', at: T },
+      { id: 'att-2', claimId: 'clm-1', attester: 'duma', schemaRef: 's', payload: '{}', at: T },
+      { id: 'att-3', claimId: 'clm-1', attester: 'aisha', schemaRef: 's', payload: '{}', at: T },
+    ] as OpsExportInput['attestations'];
+    const lines = linesOf(buildOpsExport(i).body);
+    const edges = lines.filter((l) => l.type === 'attestation_edge' && l.via === 'attestation');
+    expect(edges).toHaveLength(3);
+    for (const e of edges) expect(e.attesterCount).toBe(3);
   });
 
   it('is deterministic — same cut, same file_sha256', () => {

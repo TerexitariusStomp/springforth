@@ -26,7 +26,11 @@ const customScripts = countLines('scripts', '-name "*.mjs"', '-not -path "*/node
 const jsExt = '-name "*.js" -o -name "*.ts" -o -name "*.d.ts" -o -name "*.cjs" -o -name "*.mjs" -o -name "*.jsx" -o -name "*.tsx"';
 const vendored = countLines('node_modules', jsExt, '-not -path "*/.pnpm/*"')
   + countLines('web/node_modules', jsExt)
-  + countLines('.devin/skills', '-name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.css" -o -name "*.md"');
+  + countLines('.devin/skills', '-name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.css" -o -name "*.md"')
+  // vendor/clc — the pinned AGPL-3.0 subset of cosmo-local-credit/clc-app
+  // we actually ship (see vendor/clc/VENDOR.md). Counted at real LOC,
+  // not an estimate — it's in the repo.
+  + countLines('vendor/clc', '-name "*.ts"');
 
 // Cited contract/spec repos counted at their published size — the public
 // mechanisms this codebase calls into (allo-v2 contracts ≈35k, eas
@@ -41,7 +45,15 @@ const contractRepos = 125_000;
 const citedDeps =
   150_000 +  // viem (src/chain.ts, attest.ts) — wevm/viem source
    30_000 +  // @stellar/stellar-sdk (src/adapters/*) — stellar/js-stellar-sdk
-   20_000;   // @modelcontextprotocol/sdk (MCP lanes) — modelcontextprotocol/typescript-sdk
+   20_000 +  // @modelcontextprotocol/sdk (MCP lanes) — modelcontextprotocol/typescript-sdk
+   20_000 +  // zod (entities.ts — every schema) — colinhacks/zod v3 source
+   12_000 +  // graphology + graphology-layout-forceatlas2 (trust graph viz) — graphology/graphology
+    6_000 +  // d3-shape (portal charts) — d3/d3-shape
+   12_000 +  // marked (docs/markdown render) — markedjs/marked
+    2_000 +  // h3-js (geo cells) — uber/h3-js
+    3_000 +  // minisearch (portal search) — lifor/Minisearch
+    1_000 +  // devalue (serialization) — Rich-Harris/devalue
+    2_000;   // @worldcoin/minikit-js (siwe lane) — worldcoin/minikit-js
 
 const custom = customSrc + customScripts;
 const total = custom + customTest + vendored + contractRepos + citedDeps;

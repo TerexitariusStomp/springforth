@@ -111,7 +111,7 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
-import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerTail, ledgerVerify, ledgerVerifyIncremental } from './store.js';
+import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerEvents, ledgerHeadAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
 import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
 import {
   VOLUNTEER_GB, GB_PLACE, DATASET_SOURCES, fundingMaps, allocFor,
@@ -4602,6 +4602,27 @@ export default {
       }
       if (req.method === 'GET' && seg[0] === 'ledger') {
         if (seg[1] === 'verify') {
+          // ?seq=N&verify=1 recomputes the hash chain through that cut —
+          // real prefix verification for dated-export replay. ?seq=N
+          // alone returns the STORED head at that cut (cheap lookup,
+          // not a recompute) — the same-cut reference, marked as such.
+          const seqQ = url.searchParams.get('seq');
+          if (seqQ !== null) {
+            const s = Number(seqQ);
+            if (!Number.isInteger(s) || s < 0) return err('bad seq', 422);
+            if (url.searchParams.get('verify') === '1') {
+              const v = await ledgerVerifyPrefix(env.DB, s);
+              return json(v.ok
+                ? { ok: true, verifiedThrough: v.verified, head: v.head }
+                : { ok: false, brokenAt: v.brokenAt });
+            }
+            const h = await ledgerHeadAt(env.DB, s);
+            return h
+              ? json({ ok: true, seq: h.seq, head: h.hash,
+                  verified: false,
+                  note: 'stored head lookup — add &verify=1 to recompute the chain through this cut' })
+              : err('no event at that seq', 404);
+          }
           const v = await ledgerVerify(env.DB);
           return wantsHtml(req) ? page(req, renderLedgerVerifyPage, v, langFrom(url, req.headers.get('cookie'))) : json(v);
         }
@@ -4679,7 +4700,11 @@ ${pageHeader({ kicker: t(lang, 'nf.kicker'), title: t(lang, 'nf.h1'),
     const streamsAccrued = await accrueStreams(env).catch(() => 0);
     const yieldCredited = await syncYield(env).catch(() => 0);
     // Ops export snapshot — rebuilds only when the ledger head moved.
-    await refreshOpsExport(env).catch(() => undefined);
+    await refreshOpsExport(env).catch(async (e) => {
+      console.error('ops-export: refresh failed', e);
+      await ledgerAppend(env.DB, 'cron', 'ops-export.refresh_failed',
+        { error: String(e) }).catch(() => undefined);
+    });
     await ledgerAppend(env.DB, 'cron', 'oracle.cycle',
       { nodes: nodes.length, chainConfirmed, yieldCredited, at: new Date().toISOString() });
   },

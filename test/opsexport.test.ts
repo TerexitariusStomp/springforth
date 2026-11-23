@@ -125,7 +125,10 @@ describe('ops export', () => {
     const lines = linesOf(buildOpsExport(fixture()).body);
     const app = lines.filter((l) => l.type === 'attestation_edge' && l.via === 'appreciation');
     expect(app).toHaveLength(2); // aisha→biko (earliest kept) + biko→aisha
-    expect(app[0]!.id).toBe('ap-1');
+    for (const e of app) expect(e.id).toMatch(/^x_[0-9a-f]{16}$/);
+    expect(app[0]!.id).not.toBe(app[1]!.id);
+    expect(app.map((e) => `${e.from}>${e.to}`).sort()).toEqual(
+      [`${pseudonym('aisha')}>${pseudonym('biko')}`, `${pseudonym('biko')}>${pseudonym('aisha')}`].sort());
   });
 
   it('counts in the manifest match emitted lines', () => {

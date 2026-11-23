@@ -114,7 +114,7 @@ import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
 import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerAppendWith, ledgerEvents, ledgerHeadAt, ledgerEventAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
-import { OPS_EXPORT_SPEC, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
+import { OPS_EXPORT_SPEC, OTS_CALENDARS, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
 import { holdingId, poolHolder, protocolHolder } from './pool.js';
 import {
   clcAuthedClient, clcAppUrl, syncClc, maybeAdvanceClcSync, CLC_CHAIN_ID,
@@ -199,11 +199,8 @@ export interface Env {
 const proxiedDb = (env: Env): Env =>
   env.D1_PROXY_URL ? { ...env, DB: httpD1(env.D1_PROXY_URL, env.D1_PROXY_KEY ?? '') } : env;
 
-// OpenTimestamps public calendars — free, keyless Bitcoin anchoring.
-const OTS_CALENDARS = [
-  'https://alice.btc.calendar.opentimestamps.org',
-  'https://finney.calendar.eternitywall.com',
-];
+// OpenTimestamps calendars live in opsexport.ts (OTS_CALENDARS) —
+// shared by the ledger-head lane below and the dated-snapshot lane.
 
 // Ambient anchor cadence — at most one submission round per interval,
 // and only when the head actually moved. Pending→attested upgrades ride

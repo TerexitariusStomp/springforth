@@ -21,6 +21,12 @@ import { del, get, ledgerAppend, listWhere, put, putIfAbsent } from './store.js'
 // daily files, so ops joins records over time without names.
 
 export const OPS_EXPORT_SPEC = 'springforth.ops-export/v1';
+// OpenTimestamps public calendars — shared by the ledger-head lane
+// (index.ts) and the dated-snapshot lane below. Free, keyless.
+export const OTS_CALENDARS = [
+  'https://alice.btc.calendar.opentimestamps.org',
+  'https://finney.calendar.eternitywall.com',
+];
 // Additive schema level — record types added post-v1 bump the revision,
 // not the spec: v1 consumers keep parsing. History in docs/OPS-EXPORT.md.
 export const OPS_EXPORT_REVISION = 'v1.5';
@@ -93,10 +99,12 @@ export interface ClcTrack {
   confirmedAt?: string; blockNumber?: number; exchanges?: string[];
 }
 
-// OTS anchor rows (kind 'anchor') — written by the /ledger/anchor lane.
+// OTS anchor rows (kind 'anchor') — written by the /ledger/anchor lane
+// (subject 'ledger-head') and the dated-snapshot lane ('export-file').
 export interface AnchorRow {
   id: string; seq: number; hash: string; calendar: string;
   receipt: string; status: string; submittedAt: string; upgradedAt?: string;
+  subject?: 'ledger-head' | 'export-file';
 }
 
 type Line = Record<string, unknown>;
@@ -463,6 +471,7 @@ export function buildOpsExport(i: OpsExportInput): {
   for (const a of [...(i.anchors ?? [])].sort((x, y) => x.seq - y.seq)) {
     lines.push({
       type: 'anchor', id: oid(a.id, salt), seq: a.seq, hash: a.hash,
+      subject: a.subject ?? (a.id.startsWith('anchor-file-') ? 'export-file' : 'ledger-head'),
       calendar: new URL(a.calendar).host, status: a.status,
       submittedAt: a.submittedAt, upgradedAt: a.upgradedAt ?? null,
       receiptBytes: a.receipt.length,
@@ -603,6 +612,7 @@ async function stampDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot): Promis
   try {
     await put(env.DB, OPS_EXPORT_KIND, id, snap);
     await del(env.DB, OPS_EXPORT_KIND, failId).catch(() => undefined);
+    await anchorDatedFile(env, snap);
     return true;
   } catch (e) {
     console.error('ops-export: dated snapshot write failed', snap.day, e);
@@ -618,6 +628,46 @@ async function stampDatedSnapshot(env: EnvLike, snap: OpsExportSnapshot): Promis
         { day: snap.day, seq: snap.cut.seq, error: String(e) }).catch(() => undefined);
     }
     return false;
+  }
+}
+
+// Dated-snapshot anchoring — submits the day's file_sha256 to the OTS
+// calendars once per unique file per day ("this exact export existed
+// on this date", independent of the live service). Marker under
+// 'anchor-state' id `file-<day>` dedupes identical bytes; new content
+// (head moved → new cut → new hash) anchors again. Additive evidence —
+// failures never block the export.
+async function anchorDatedFile(env: EnvLike, snap: OpsExportSnapshot) {
+  try {
+    const markerId = `file-${snap.day}`;
+    const prev = await get<{ file_sha256?: string }>(env.DB, 'anchor-state', markerId);
+    if (prev?.file_sha256 === snap.file_sha256) return;
+    const digestBytes = Uint8Array.from(
+      snap.file_sha256.match(/../g)!.map((h) => parseInt(h, 16)));
+    const at = new Date().toISOString();
+    let ok = 0;
+    for (const cal of OTS_CALENDARS) {
+      const host = new URL(cal).host;
+      try {
+        const r = await fetch(`${cal}/digest`, { method: 'POST', body: digestBytes });
+        if (!r.ok) continue;
+        const receipt = btoa(String.fromCharCode(...new Uint8Array(await r.arrayBuffer())));
+        await put(env.DB, 'anchor', `anchor-file-${snap.day}-${snap.cut.seq}-${host}`, {
+          id: `anchor-file-${snap.day}-${snap.cut.seq}-${host}`,
+          seq: snap.cut.seq, hash: snap.file_sha256, subject: 'export-file',
+          calendar: cal, receipt, status: 'pending', submittedAt: at,
+        });
+        ok++;
+      } catch { /* calendar unreachable */ }
+    }
+    if (ok > 0) {
+      await put(env.DB, 'anchor-state', markerId, { file_sha256: snap.file_sha256, at });
+      await ledgerAppend(env.DB, 'ops-export', 'ops-export.file_anchored',
+        { day: snap.day, seq: snap.cut.seq, file_sha256: snap.file_sha256,
+          calendars: ok }).catch(() => undefined);
+    }
+  } catch (e) {
+    console.error('ops-export: dated anchor failed', snap.day, e);
   }
 }
 

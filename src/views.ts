@@ -8,7 +8,7 @@ import {
   RetroRound, ActorWallet, RecurringSupport, YieldStream,
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
   CouncilSeat, ForumPost, Question, CouncilDecision, Referral, TestCard,
-  CommitmentPool, PoolExchange, Voucher,
+  CommitmentPool, PoolExchange, Voucher, CoordinationEffort,
   valueCoordinated, roundDemand, endowmentAccrual,
 } from './core';
 import {
@@ -132,7 +132,7 @@ export async function loadMetrics(env: Env) {
   const first = Math.min(...statuses.map((x) => Date.parse(x.p.createdAt)), now);
   const weeks = Math.max(1, (now - first) / (7 * 86_400_000));
   const [passes, questions, decisions, referrals, interests, tests, seats,
-    clcPools, clcVouchers, clcTracks, clcExchanges] = await Promise.all([
+    clcPools, clcVouchers, clcTracks, clcExchanges, efforts] = await Promise.all([
     list<Pass>(env.DB, 'pass'), list<Question>(env.DB, 'question'),
     list<CouncilDecision>(env.DB, 'decision'), list<Referral>(env.DB, 'referral'),
     list<Interest>(env.DB, 'interest'), list<TestCard>(env.DB, 'test'),
@@ -144,6 +144,8 @@ export async function loadMetrics(env: Env) {
     list<{ id: string; status: string }>(env.DB, 'clc-track'),
     listWhere<PoolExchange>(env.DB, 'pool-exchange',
       "json_extract(json,'$.source')='clc'"),
+    // Self-reported coordination hours — the leverage denominator.
+    list<CoordinationEffort>(env.DB, 'coordination-effort'),
   ]);
   const expiringSoon = statuses.filter((x) =>
     (x.s === 'active' || x.s === 'draft') && x.p.deadline
@@ -255,6 +257,38 @@ export async function loadMetrics(env: Env) {
       })(),
       possibilitiesLinked: poss.filter((p) => p.clcPool).length,
     },
+    // Coordination leverage — verified outcomes / human coordination
+    // effort (the review's missing denominator). Effort is self-reported
+    // (coordination-effort rows, always labeled); the ratio is null
+    // until real data exists — never fabricated. byArm/byCohort are the
+    // per-group funnel cuts a staggered-rollout readout needs.
+    coordination: (() => {
+      const effortHours = efforts.reduce((s, e) => s + e.hours, 0);
+      const byArm: Record<string, { declared: number; quorum: number; completed: number; expired: number }> = {};
+      const byCohort: Record<string, number> = {};
+      for (const row of statuses) {
+        const arm = row.p.arm ?? 'unclassified';
+        (byArm[arm] ??= { declared: 0, quorum: 0, completed: 0, expired: 0 });
+        const a = byArm[arm]!;
+        a.declared++;
+        if (row.s === 'quorum' || row.s === 'completed') a.quorum++;
+        if (row.s === 'completed') a.completed++;
+        if (row.s === 'expired') a.expired++;
+        if (row.p.cohort) byCohort[row.p.cohort] = (byCohort[row.p.cohort] ?? 0) + 1;
+      }
+      return {
+        effortReports: efforts.length,
+        effortHours: Math.round(effortHours * 100) / 100,
+        selfReported: true as const,
+        completedCards: completed,
+        // Outcomes per self-reported coordination hour — directional,
+        // not causal: the platform can't observe offline effort.
+        leveragePerHour: effortHours > 0
+          ? +(completed / effortHours).toFixed(4) : null,
+        funnelByArm: byArm,
+        declaredByCohort: byCohort,
+      };
+    })(),
     // Monetary value, per currency (never converted) — committed and
     // matched are ledger-derived; volunteer time is declared hours ×
     // the cited ONS rate where the card places in GB. Aggregated per

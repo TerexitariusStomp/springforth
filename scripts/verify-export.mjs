@@ -61,9 +61,10 @@ const v = await fetch(`${base}/ledger/verify?seq=${seq}&verify=1`);
 if (!v.ok) check('ledger_head', false, `verify HTTP ${v.status}`);
 else {
   const j = await v.json();
-  check('ledger_head', j.ok === true && j.head === manifest.cut.ledger_head
-    && j.verifiedThrough === seq,
-    `cut seq ${seq}, verifiedThrough=${j.verifiedThrough}`);
+  // verifiedThrough is the COUNT of events replayed (seq+1), not a seq —
+  // the real check is that the replayed tip hash equals the cut's head.
+  check('ledger_head', j.ok === true && j.head === manifest.cut.ledger_head,
+    `cut seq ${seq}, events replayed ${j.verifiedThrough}`);
 }
 
 // 3. manifest signature vs the published JWK set.

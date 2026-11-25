@@ -43,3 +43,47 @@ A funder or reviewer asking "is this a real commons or a platform
 experiment" can check each row against the export. Rows marked "honest
 gap" are where the pilot is weaker than the principle — stated in
 advance so the readout can't be accused of discovering them late.
+
+## Evidence-gate ladder (review framework)
+
+Borrowed from the Beacon review's decision sequence — each gate is a
+**prerequisite**, not a point total. Green upstream never compensates
+for Red downstream.
+
+| Gate | Question | Export evidence | Status rule |
+|---|---|---|---|
+| Distribution | Can the local graph be reached? | `exposure`, `access_exclusion` | G: coverage > exclusion; R: blocked channel dominates |
+| Desirability | Do people want to interact? | `interest`, `question`, `commitment` (OIR) | G: `oir` > threshold |
+| Viability | Does it create value? | `outcome_report` (VER/NPOR/energy) | G: `viableRateSurveyed` > floor |
+| Repeat | Does behavior return? | repeat `commitment`, `resilienceRate` | G: repeat > novelty-window rate |
+| Organicity | Does it work without facilitation? | `intervention`, `adr`, `siir`, `orr` | R if `adr` > 0.5 — operator artifact |
+| Replication | Does it repeat across groups? | `funnelByArm`, `declaredByCohort` | G: second cohort replicates |
+| Geography | Does the mechanism travel? | `place`/`h3` per-cohort comparison | G: second site replicates |
+
+## Diagnostic matrix
+
+Symptom → first question → what *not* to assume:
+
+| Symptom | Ask first | Don't assume |
+|---|---|---|
+| Low `declared`→`quorum` | Is the ask legible / threshold reachable? | No demand |
+| High quorum, low completed | Is attestation legible, evidence lane open? | Delivery failure |
+| High `adr` | How much is operator intervention? | Product pull |
+| High completed, low `surveyed` | Is the survey instrument being filed? | Happy participants |
+| Many `exit` records | Is the cost side (`costReport`) too high? | Churn noise |
+| Zero `access_exclusion` | Is exclusion actually zero, or unobserved? | Universal reach |
+
+## Amendment governance
+
+Post-hoc rule changes are `amendment` records — visible by
+construction, never silent edits:
+
+- Any metric, threshold, param, or cohort-membership change after
+  data collection begins is filed via `POST /ops/amendment`.
+- A post-hoc cohort exclusion is an amendment, not a deletion —
+  the ledger can't delete, which is the point.
+- `independent: false` when the approver's work is scored by the
+  metric being redefined (growth owners don't redefine their own
+  proof criteria); filed visible, not forbidden.
+- `effectiveSeq` pins the ledger position where the new rule
+  applies — pre- and post-amendment data stay separable.

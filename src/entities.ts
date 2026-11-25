@@ -96,6 +96,10 @@ export const Possibility = z.object({
   cohort: z.string().optional(),             // e.g. 'mars-2026', 'kilifi-2025'
   arm: z.enum(['baseline', 'platform', 'delayed']).optional(),
   facilitation: z.enum(['full', 'minimal']).optional(),
+  // Data-model dimensions (encounter-configuration vocabulary): the
+  // recurring occasion this card serves, and whom the outcome benefits.
+  occasion: z.string().optional(),
+  beneficiary: z.enum(['self', 'group', 'community']).optional(),
   createdAt: z.string().datetime(),
 });
 export type Possibility = z.infer<typeof Possibility>;
@@ -112,6 +116,11 @@ export const Participation = z.object({
   // derived "coordinated value" estimate (valuation.ts). Declared, not
   // verified; always labelled as such downstream.
   hours: z.number().positive().optional(),
+  // Provenance dimensions: how the actor arrived (organic/referral/
+  // direct/ops) and their self-described tie to the declarer — feeds
+  // organic-rate and relation-type analysis. Optional; absence = unknown.
+  source: z.enum(['organic', 'referral', 'direct', 'ops']).optional(),
+  relation: z.enum(['known', 'vouched', 'stranger']).optional(),
   at: z.string().datetime(),
 });
 export type Participation = z.infer<typeof Participation>;
@@ -150,6 +159,8 @@ export const Interest = z.object({
   possibilityId: z.string().min(1),
   actor: z.string().min(1),
   level: z.number().int().min(1).max(3).optional(),
+  source: z.enum(['organic', 'referral', 'direct', 'ops']).optional(),
+  relation: z.enum(['known', 'vouched', 'stranger']).optional(),
   at: z.string().datetime(),
 });
 export type Interest = z.infer<typeof Interest>;
@@ -923,6 +934,7 @@ export const BaselineReport = z.object({
   actor: z.string().min(1),
   period: z.string().min(1),              // e.g. '2026-09' or '8 weeks'
   summary: z.string().min(1),             // what coordination looked like offline
+  collector: z.enum(['self', 'enumerator', 'ops']).optional(),
   at: z.string().datetime(),
 });
 export type BaselineReport = z.infer<typeof BaselineReport>;
@@ -937,6 +949,16 @@ export const Readout = z.object({
   title: z.string().min(1),
   result: z.enum(['positive', 'null', 'negative', 'mixed']),
   body: z.string().default(''),
+  // Decision-grade fields (the review's "final board line"): a
+  // three-answer decision space — yes / no / not enough evidence —
+  // plus what the next proof would be and who owns it. Optional so
+  // partial readouts stay fileable.
+  decision: z.enum(['scale', 'refine', 'stop', 'insufficient-evidence']).optional(),
+  confidence: z.enum(['high', 'medium', 'low']).optional(),
+  nextEvidence: z.string().optional(),
+  decisionOwner: z.string().optional(),
+  reviewDate: z.string().optional(),
+  sampleRationale: z.string().optional(), // CONSORT item: why this n
   actor: z.string().min(1),
   at: z.string().datetime(),
   publishedAt: z.string().datetime().optional(),
@@ -957,3 +979,99 @@ export const Dispute = z.object({
   resolvedAt: z.string().datetime().optional(),
 });
 export type Dispute = z.infer<typeof Dispute>;
+
+// Outcome report — post-encounter micro-survey (the instrument that turns
+// attestation claims into outcome data). `incremental` is the IER probe
+// ("would this have happened without the platform?"), `energyDelta` is
+// the pre/post energy measure, `wouldRepeat` the repeat-intention proxy.
+// `collector` + `lang` follow the Sarafu enumerator-survey method —
+// instruments may be administered by a trained collector, not only
+// self-filed. CIDS-aligned naming where the concepts match. Always
+// self-reported, never platform-observed.
+export const OutcomeReport = z.object({
+  id: z.string().min(1),
+  possibilityId: z.string().min(1),
+  actor: z.string().min(1),
+  outcome: z.enum(['positive', 'neutral', 'negative']),
+  energyDelta: z.number().min(-2).max(2).optional(),
+  wouldRepeat: z.boolean().optional(),
+  incremental: z.enum(['true', 'false', 'unknown']).optional(),
+  costReport: z.string().optional(),
+  collector: z.enum(['self', 'enumerator', 'ops']).default('self'),
+  lang: z.string().optional(),
+  selfReported: z.literal(true).default(true),
+  at: z.string().datetime(),
+});
+export type OutcomeReport = z.infer<typeof OutcomeReport>;
+
+// Exposure — first named-actor view of a possibility card. First-view
+// only (id-deduped per actor×possibility): reach data for the
+// opportunity-to-intent rate, not attention tracking. Anonymous views
+// are never recorded.
+export const Exposure = z.object({
+  id: z.string().min(1),              // exposure-<possibilityId>-<actor>
+  possibilityId: z.string().min(1),
+  actor: z.string().min(1),
+  at: z.string().datetime(),
+});
+export type Exposure = z.infer<typeof Exposure>;
+
+// Intervention — an explicit ops/organizer action on the record: the
+// denominator for ambassador-dependency analysis. Pool-health research
+// (UNC commitment-pool study) finds leadership/facilitation is the
+// dominant success condition — measuring it is the design, not a
+// confound to hide.
+export const Intervention = z.object({
+  id: z.string().min(1),
+  type: z.enum(['nudge', 'facilitation', 'reminder', 'matchmaking', 'other']),
+  targetKind: z.enum(['possibility', 'actor', 'cohort']),
+  targetId: z.string().min(1),
+  channel: z.string().default(''),
+  actor: z.string().min(1),           // who intervened
+  at: z.string().datetime(),
+});
+export type Intervention = z.infer<typeof Intervention>;
+
+// Exit — a churn record. Self-filed or ops-observed; the "why they
+// stopped" stream item.
+export const Exit = z.object({
+  id: z.string().min(1),
+  actor: z.string().min(1),
+  reason: z.string().default(''),
+  at: z.string().datetime(),
+});
+export type Exit = z.infer<typeof Exit>;
+
+// Access exclusion — ops-observed would-be participants blocked by
+// channel constraints (no wallet, no device, no Telegram). Aggregate
+// counts only: filed by an observer, never per-person telemetry — we
+// cannot detect failed loads and don't pretend to.
+export const AccessExclusion = z.object({
+  id: z.string().min(1),
+  channel: z.string().min(1),
+  reason: z.enum(['no-wallet', 'no-device', 'no-telegram', 'other']),
+  count: z.number().int().min(1).default(1),
+  actor: z.string().min(1),
+  at: z.string().datetime(),
+});
+export type AccessExclusion = z.infer<typeof AccessExclusion>;
+
+// Amendment — a labeled change to frozen parameters, metric definitions,
+// or cohort membership after data collection began. The ledger's
+// append-only property makes post-hoc rules changes visible by
+// construction; `independent` marks approvers with no stake in the
+// outcome being measured (growth owners don't redefine proof criteria
+// their work is scored by).
+export const Amendment = z.object({
+  id: z.string().min(1),
+  subject: z.enum(['param', 'metric', 'threshold', 'cohort', 'instrument']),
+  field: z.string().min(1),
+  oldValue: z.string().default(''),
+  newValue: z.string().default(''),
+  reason: z.string().min(1),
+  approver: z.string().min(1),
+  independent: z.boolean().default(false),
+  effectiveSeq: z.number().int().min(0).optional(),
+  at: z.string().datetime(),
+});
+export type Amendment = z.infer<typeof Amendment>;

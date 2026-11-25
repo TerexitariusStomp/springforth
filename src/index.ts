@@ -9,6 +9,7 @@ import {
   GovernanceProposal, GovernanceBallot, GovernanceParam,
   DatasetRelease, DataAccessGrant, Subscription, TrustEpoch,
   OpsReport, CoordinationEffort, BaselineReport, Readout, Dispute,
+  OutcomeReport, Exposure, Intervention, Exit, AccessExclusion, Amendment,
   valueCoordinated,
 } from './core';
 import {
@@ -113,8 +114,8 @@ import MiniSearch from 'minisearch';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import type { NetworkGraph, NetVertex, NetEdge } from './portal/index';
-import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, del, ledgerAppend, ledgerAppendWith, ledgerEvents, ledgerHeadAt, ledgerEventAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
-import { OPS_EXPORT_SPEC, OTS_CALENDARS, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
+import { get, list, listWhere, listPacked, put, putPackedPage, putMany, putManyIfChanged, putIfAbsent, del, ledgerAppend, ledgerAppendWith, ledgerEvents, ledgerHeadAt, ledgerEventAt, ledgerTail, ledgerVerify, ledgerVerifyIncremental, ledgerVerifyPrefix } from './store.js';
+import { OPS_EXPORT_SPEC, OTS_CALENDARS, exportVerifyJwk, getOpsExport, listOpsExportDays, refreshOpsExport } from './opsexport.js';
 import { holdingId, poolHolder, protocolHolder } from './pool.js';
 import {
   clcAuthedClient, clcAppUrl, syncClc, maybeAdvanceClcSync, CLC_CHAIN_ID,
@@ -1136,7 +1137,7 @@ export default {
       }
     }
     if (!res) {
-      res = await this.handle(req, env).catch((e) =>
+      res = await this.handle(req, env, ctx).catch((e) =>
         json({ error: 'internal', detail: String(e) }, 500));
       if (key && res.ok && TEXTUAL.test(res.headers.get('content-type') ?? '')) {
         const copy = res.clone();
@@ -1193,7 +1194,7 @@ export default {
     }
     return withCors(res, env, req);
   },
-  async handle(req: Request, env: Env): Promise<Response> {
+  async handle(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     const seg = url.pathname.split('/').filter(Boolean)
       .map((s) => { try { return decodeURIComponent(s); } catch { return s; } });
@@ -3136,6 +3137,22 @@ export default {
           }).sort((a, b) =>
             (live.includes(a.status) ? 0 : 1) - (live.includes(b.status) ? 0 : 1)
             || b.score - a.score);
+          // Exposure — first-view reach records for the OIR metric.
+          // Entity-only writes (idempotent ids, never ledger events):
+          // reach telemetry must not move the head and force rebuilds.
+          // Attribution is self-asserted — `?actor=` is a claim, like
+          // every actor-param write on this surface.
+          if (viewer && ctx) {
+            const at = new Date().toISOString();
+            const san = viewer.toLowerCase().replace(/\W+/g, '-');
+            ctx.waitUntil(Promise.all(cards.map((c) =>
+              putIfAbsent(env.DB, 'exposure', `exposure-${c.id}-${san}`,
+                Exposure.parse({
+                  id: `exposure-${c.id}-${san}`, possibilityId: c.id,
+                  actor: viewer, at,
+                })),
+            )).catch((e) => console.error('exposure write failed', e)));
+          }
           if (url.searchParams.get('format') === 'json') return json({ possibilities: cards });
           const connections = await loadCardConnections(env, cards,
             { nodes, recs, dons, apps, interests });
@@ -3333,8 +3350,9 @@ export default {
             id: `pass-${p.id}-${actor.toLowerCase().replace(/\W+/g, '-')}`,
             possibilityId: p.id, actor, at: new Date().toISOString(),
           });
-          await put(env.DB, 'pass', pass.id, pass);
-          await ledgerAppend(env.DB, actor, 'possibility.passed', { id: p.id });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'pass', id: pass.id, obj: pass }],
+            { actor, kind: 'possibility.passed', payload: { id: p.id }, at: pass.at });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
             ? new Response(null, { status: 303, headers: { location: safeNext(b.next, '/possibilities') } })
@@ -3359,8 +3377,9 @@ export default {
             level: Number.isInteger(lvl) && lvl >= 1 && lvl <= 3 ? lvl : undefined,
             at: new Date().toISOString(),
           });
-          await put(env.DB, 'interest', interest.id, interest);
-          await ledgerAppend(env.DB, actor, 'possibility.interested', { id: p.id });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'interest', id: interest.id, obj: interest }],
+            { actor, kind: 'possibility.interested', payload: { id: p.id }, at: interest.at });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
             ? new Response(null, { status: 303, headers: { location: safeNext(b.next, `/possibilities?actor=${encodeURIComponent(actor)}#${p.id}`) } })
@@ -3410,8 +3429,10 @@ export default {
             id: `q-${p.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
             possibilityId: p.id, actor, text, at: new Date().toISOString(),
           });
-          await put(env.DB, 'question', q.id, q);
-          await ledgerAppend(env.DB, actor, 'possibility.question_asked', { id: p.id, questionId: q.id });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'question', id: q.id, obj: q }],
+            { actor, kind: 'possibility.question_asked',
+              payload: { id: p.id, questionId: q.id }, at: q.at });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
             ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
@@ -3431,8 +3452,10 @@ export default {
           if (!q || q.possibilityId !== p.id) return err('question not found on this card', 404);
           const next = Question.parse({ ...q, state: 'answered',
             answer: { actor, text, at: new Date().toISOString() } });
-          await put(env.DB, 'question', qid, next);
-          await ledgerAppend(env.DB, actor, 'possibility.question_answered', { id: p.id, questionId: qid });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'question', id: qid, obj: next }],
+            { actor, kind: 'possibility.question_answered',
+              payload: { id: p.id, questionId: qid }, at: next.answer!.at });
           const wantsHtml = ct.includes('form') || (req.headers.get('accept') ?? '').includes('text/html');
           return wantsHtml
             ? new Response(null, { status: 303, headers: { location: `/possibilities#${p.id}` } })
@@ -3523,8 +3546,10 @@ export default {
             possibilityId: p.id, fromActor: actor, toActor,
             note: String(b.note ?? '').slice(0, 300), at: new Date().toISOString(),
           });
-          await put(env.DB, 'referral', ref.id, ref);
-          await ledgerAppend(env.DB, actor, 'possibility.referred', { id: p.id, to: toActor });
+          await ledgerAppendWith(env.DB,
+            [{ kind: 'referral', id: ref.id, obj: ref }],
+            { actor, kind: 'possibility.referred',
+              payload: { id: p.id, to: toActor }, at: ref.at });
           await notifySubscribers(env, p.id, 'referred',
             `${actor} referred ${toActor} to: ${p.title}`,
             `https://springforth.widespread.workers.dev/possibilities#${p.id}`);
@@ -5075,6 +5100,16 @@ export default {
           return page(req, renderLedgerPage, events, await ledgerVerifyIncremental(env.DB), langFrom(url, req.headers.get('cookie')));
         return json({ events });
       }
+      // Export signing keys — the public half of EXPORT_SIGNING_JWK as a
+      // JWK set: what verify-export.mjs and reviewers verify manifest
+      // signatures against. Empty set + note when signing isn't
+      // configured — the absence is reported, never masked.
+      if (seg[0] === '.well-known' && seg[1] === 'springforth-keys.json') {
+        const jwk = await exportVerifyJwk(env);
+        return json(jwk
+          ? { keys: [jwk] }
+          : { keys: [], note: 'export signing not configured — manifests carry signature:null' });
+      }
       // Ops-leg filing endpoints — the pilot's self-reported lanes.
       // Every record is labeled self-reported at the schema level; the
       // ledger event attributes the filer, never the claim's truth.
@@ -5112,6 +5147,26 @@ export default {
         if (seg[1] === 'dispute' && seg.length === 2) {
           const d = Dispute.parse({ ...b, id: String(b.id ?? mk('dispute')), at: b.at ?? at });
           return write('dispute', d.id, d, 'ops.dispute_filed');
+        }
+        if (seg[1] === 'outcome' && seg.length === 2) {
+          const r = OutcomeReport.parse({ ...b, id: String(b.id ?? mk('outcome')), at: b.at ?? at });
+          return write('outcome-report', r.id, r, 'ops.outcome_filed');
+        }
+        if (seg[1] === 'intervention' && seg.length === 2) {
+          const r = Intervention.parse({ ...b, id: String(b.id ?? mk('intervention')), at: b.at ?? at });
+          return write('intervention', r.id, r, 'ops.intervention_filed');
+        }
+        if (seg[1] === 'exit' && seg.length === 2) {
+          const r = Exit.parse({ ...b, id: String(b.id ?? mk('exit')), at: b.at ?? at });
+          return write('exit', r.id, r, 'ops.exit_filed');
+        }
+        if (seg[1] === 'access' && seg.length === 2) {
+          const r = AccessExclusion.parse({ ...b, id: String(b.id ?? mk('access')), at: b.at ?? at });
+          return write('access-exclusion', r.id, r, 'ops.access_filed');
+        }
+        if (seg[1] === 'amendment' && seg.length === 2) {
+          const r = Amendment.parse({ ...b, id: String(b.id ?? mk('amendment')), at: b.at ?? at });
+          return write('amendment', r.id, r, 'ops.amendment_filed');
         }
         return err('unknown ops endpoint', 404);
       }

@@ -53,7 +53,8 @@ const citedDeps =
     2_000 +  // h3-js (geo cells) — uber/h3-js
     3_000 +  // minisearch (portal search) — lifor/Minisearch
     1_000 +  // devalue (serialization) — Rich-Harris/devalue
-    2_000;   // @worldcoin/minikit-js (siwe lane) — worldcoin/minikit-js
+    2_000 +  // @worldcoin/minikit-js (siwe lane) — worldcoin/minikit-js
+   15_000;   // jose (export manifest Ed25519 signatures) — panva/jose
 
 const custom = customSrc + customScripts;
 const total = custom + customTest + vendored + contractRepos + citedDeps;

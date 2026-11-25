@@ -42,6 +42,7 @@ and where the seams are.
 | @ethereum-attestation-service/eas-sdk + EAS contracts (Celo) | MIT | outcome/evaluation attestations |
 | @hypercerts-org/lexicon + sdk-core | MIT | impact claim records (ATProto) |
 | viem | MIT | chain client + calldata building |
+| jose | MIT | Ed25519 export-manifest signatures + JWK serving |
 | gitcoinco/quadratic-funding | MIT | QF reference implementation / test vectors |
 | gitcoinco/easy-retro-pgf (+ allo2 strategy) | MIT | retro-round ballot model reference |
 | 360Giving / IATI | open standards | grant + activity exports |

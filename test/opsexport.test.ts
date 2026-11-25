@@ -156,7 +156,7 @@ describe('ops export', () => {
 
   it('manifest carries revision and build stamp', () => {
     const { manifest } = buildOpsExport({ ...fixture(), build: 'd0f6bf3' });
-    expect(manifest.revision).toBe('v1.5');
+    expect(manifest.revision).toBe('v1.6');
     expect(manifest.build).toBe('d0f6bf3');
     expect(buildOpsExport(fixture()).manifest.build).toBeNull();
   });
@@ -250,5 +250,82 @@ describe('ops export', () => {
     const b = buildOpsExport(fixture());
     expect(a.manifest.file_sha256).toBe(b.manifest.file_sha256);
     expect(a.body).toBe(b.body);
+  });
+
+  it('v1.6: emits the Beacon-review record types + field additions', () => {
+    const i = fixture();
+    i.outcomes = [{ id: 'oc-1', possibilityId: 'poss-a', actor: 'chi',
+      outcome: 'positive', energyDelta: 1, wouldRepeat: true,
+      incremental: 'true', costReport: 'half a day',
+      collector: 'enumerator', lang: 'sw', selfReported: true, at: T }];
+    i.exposures = [{ id: 'exposure-poss-a-chi', possibilityId: 'poss-a',
+      actor: 'chi', at: T }];
+    i.referrals = [{ id: 'ref-1', possibilityId: 'poss-a', fromActor: 'aisha',
+      toActor: 'duma', note: 'you would love this', at: T }];
+    i.interests = [{ id: 'int-1', possibilityId: 'poss-a', actor: 'duma',
+      level: 2, source: 'referral', relation: 'known', at: T }];
+    i.questions = [{ id: 'q-1', possibilityId: 'poss-a', actor: 'duma',
+      text: 'when is the planting?', state: 'answered',
+      answer: { actor: 'aisha', text: 'tuesday', at: T }, at: T }];
+    i.decisions = [{ id: 'cd-1', possibilityId: 'poss-a', title: 'move date',
+      mode: 'consent', proposer: 'chi', state: 'decided',
+      outcome: 'approved', rationale: 'tide window',
+      responses: [{ actor: 'biko', kind: 'support', text: '', at: T }],
+      createdAt: T }] as unknown as OpsExportInput['decisions'];
+    i.passes = [{ id: 'pass-1', possibilityId: 'poss-a', actor: 'duma', at: T },
+      { id: 'pass-2', possibilityId: 'poss-a', actor: 'biko', at: T }];
+    i.interventions = [{ id: 'iv-1', type: 'nudge', targetKind: 'possibility',
+      targetId: 'poss-a', channel: 'whatsapp', actor: 'ops-leg', at: T }];
+    i.exits = [{ id: 'ex-1', actor: 'duma', reason: 'time cost', at: T }];
+    i.accessExclusions = [{ id: 'ax-1', channel: 'telegram',
+      reason: 'no-device', count: 2, actor: 'ops-leg', at: T }];
+    i.amendments = [{ id: 'am-1', subject: 'metric', field: 'viableRate',
+      oldValue: '', newValue: 'defined', reason: 'review integration',
+      approver: 'ops-leg', independent: true, effectiveSeq: 42, at: T }];
+    const { body, manifest } = buildOpsExport(i);
+    const lines = linesOf(body);
+    for (const t of ['outcome_report', 'exposure', 'referral', 'interest',
+      'question', 'council_decision', 'pass_summary', 'intervention',
+      'exit', 'access_exclusion', 'amendment'])
+      expect(lines.some((l) => l.type === t), `record type ${t}`).toBe(true);
+    // outcome_report: selfReported is load-bearing, never dropped.
+    const oc = lines.find((l) => l.type === 'outcome_report')!;
+    expect(oc.selfReported).toBe(true);
+    expect(oc.collector).toBe('enumerator');
+    expect(oc.incremental).toBe('true');
+    // exposure is honestly labeled self-asserted, not verified.
+    const ex = lines.find((l) => l.type === 'exposure')!;
+    expect(ex.attribution).toBe('self-asserted');
+    // pass_summary carries NO actor field — aggregate only.
+    const ps = lines.find((l) => l.type === 'pass_summary')!;
+    expect(ps.count).toBe(2);
+    expect('actor' in ps).toBe(false);
+    expect('fromActor' in ps).toBe(false);
+    // amendment keeps values raw (governance visibility), hashes reason.
+    const am = lines.find((l) => l.type === 'amendment')!;
+    expect(am.newValue).toBe('defined');
+    expect(am.independent).toBe(true);
+    expect(String(am.reasonHash)).toMatch(/^[0-9a-f]{64}$/);
+    // funnel gains the new denominators.
+    const f = manifest.funnel as Record<string, number>;
+    expect(f.surveyed).toBe(1);
+    expect(f.interventions).toBe(1);
+    expect(f.exits).toBe(1);
+    expect(f.amendments).toBe(1);
+  });
+
+  it('v1.6: declaration/commitment carry the new dimension fields', () => {
+    const i = fixture();
+    i.possibilities[0]!.occasion = 'weekly rota';
+    i.possibilities[0]!.beneficiary = 'community';
+    i.participations[0]!.source = 'referral';
+    i.participations[0]!.relation = 'vouched';
+    const lines = linesOf(buildOpsExport(i).body);
+    const d = lines.find((l) => l.type === 'declaration')!;
+    expect(d.occasion).toBe('weekly rota');
+    expect(d.beneficiary).toBe('community');
+    const c = lines.find((l) => l.type === 'commitment')!;
+    expect(c.source).toBe('referral');
+    expect(c.relation).toBe('vouched');
   });
 });

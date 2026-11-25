@@ -152,3 +152,49 @@ curl 'https://springforth.widespread.workers.dev/pools/clc-<addr>/quote?give=<vo
   (`maybeAdvanceClcSync`). First prod sync completed 2026-11-17
   (104 pools, 1,187 vouchers; `clc.synced` in `/ledger`). If `clc.*`
   events stop appearing again, that is itself the evidence.
+
+## SCITT terminology map
+
+The ledger/proof/export stack follows the IETF SCITT architecture
+(draft-ietf-scitt-architecture-22, submitted to IESG) vocabulary:
+
+| SCITT term | Springforth surface |
+|---|---|
+| Signed Statement | a ledger event (actor + kind + payload + chain hash) |
+| Receipt | `/ledger/proof?seq=N` — positional inclusion + covering anchor |
+| Transparent Statement | receipt + the statement it covers |
+| Transparency Service | the append-only ledger itself |
+| Registration policy | quorum/attestation rules in the charter |
+
+Divergence, stated honestly: our inclusion proof is *positional*
+(hash-chain seq + head), not a COSE Merkle-tree path — a linear
+chain's proof of position, with the same "inclusion-only" semantics.
+A tree-structured upgrade (COSE receipts per draft-ietf-scitt-cose-merkle-proof)
+is the standards-aligned path if proof size ever matters.
+
+## Manifest signatures (v1.6)
+
+When `EXPORT_SIGNING_JWK` is set, every export manifest carries an
+Ed25519 JWS over `file_sha256:ledger_head:seq` — the full SCITT
+'signed statement' property: not just that the file is consistent,
+but that this service issued it. Public keys are published as a JWK
+Set at `/.well-known/springforth-keys.json` (current + rotation
+window). `node scripts/verify-export.mjs` runs the whole check:
+file hash → ledger prefix → signature → anchor structure. When the
+key is absent the manifest carries `signature: null` explicitly.
+
+## EAS interop note
+
+`attestation_edge` and `outcome_report` carry EAS-mintable field
+shapes. The standards-aligned onchain path for private attestation
+data is EAS's Private Data schema (Merkle-root selective disclosure,
+UID `0x2035...dbc2`) — records hash free text the same way, so a
+future anchor lane can mint without reshaping. Not implemented —
+shape-compatible only.
+
+## Evidence-reset rule
+
+Changing the mechanism mid-pilot (new arm, facilitation mode,
+instrument) resets the evidence clock for what it changes. File an
+`amendment` with `effectiveSeq` so pre/post data stays separable —
+don't carry prior evidence forward to an adjacent hypothesis.

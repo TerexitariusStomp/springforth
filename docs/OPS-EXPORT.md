@@ -26,7 +26,7 @@ always the last line** and carries:
 {
   "type": "manifest",
   "spec": "springforth.ops-export/v1",
-  "revision": "v1.5",
+  "revision": "v1.6",
   "generatedAt": "…",
   "build": "abc1234 | null",
   "cut": { "seq": 4217, "ledger_head": "f83b…" },
@@ -74,6 +74,17 @@ Two different checks: `file_sha256` proves the file arrived intact;
 | `clc_track` | id, trackingId, txHash, possibilityId, actor, status, chainId, at, confirmedAt, blockNumber, exchanges | `clc-track` — CLC transactions *reported as* coordinated by an actor (`POST /clc/track`); `status` moves `submitted`→`confirmed`/`failed` as receipts resolve; `exchanges` links decoded `pool_exchange` ids. `confirmed` proves the tx mined — NOT that the named actor initiated it (that join needs a wallet binding + signed intent) |
 | `test_resolution` | id, possibilityId, questionId, actor, state, runner, beliefHash, failState, result, at, resolvedAt | `test` — every proposed experiment lands somewhere: `passed`/`failed`/`running`/`proposed`. Failed experiments are evidence too |
 | `dispute` | id, targetKind, targetId, by, reasonHash, state, at, resolvedAt | `dispute` — flags are events, never edits; contested evidence stays visible in the denominator |
+| `outcome_report` | id, possibilityId, actor, outcome, energyDelta, wouldRepeat, incremental, costReportHash, collector, lang, selfReported, at | `outcome-report` — post-encounter survey (IER/NPOR/energy probes); `collector` names who administered it |
+| `exposure` | id, possibilityId, actor, via='deck-serve', attribution='self-asserted', at | `exposure` — first-view reach; entity-backed telemetry (not a ledger event), self-asserted actor |
+| `referral` | id, possibilityId, fromActor, toActor, noteHash, at | `referral` — organic invites |
+| `interest` | id, possibilityId, actor, level, source, relation, at | `interest` — warm intent |
+| `question` | id, possibilityId, actor, state, textHash, answer{actor,textHash,at}, at | `question` — intention responses |
+| `council_decision` | id, possibilityId, titleHash, mode, proposer, decider, state, outcome, rationaleHash, responses[], closesAt, at | `council-decision` — consent trail |
+| `pass_summary` | possibilityId, count | `pass` — per-card AGGREGATE only; no actor field exists (privacy invariant) |
+| `intervention` | id, interventionType, targetKind, targetId, channel, actor, at | `intervention` — ops/organizer actions; ADR denominator |
+| `exit` | id, actor, reasonHash, at | `exit` — churn records |
+| `access_exclusion` | id, channel, reason, count, actor, at | `access-exclusion` — ops-observed exclusions, aggregate |
+| `amendment` | id, subject, field, oldValue, newValue, reasonHash, approver, independent, effectiveSeq, at | `amendment` — labeled post-hoc rule changes |
 | `coordination_effort` | id, week, actor, possibilityId, hours, activity, selfReported:true, at | `coordination-effort` — self-reported hours; the denominator of coordination leverage. Always labeled |
 | `baseline_report` | id, cohort, actor, period, summaryHash, at | `baseline-report` — pre-platform coordination stats, self-reported by definition |
 | `readout` | id, possibilityId, roundId, titleHash, result(positive/null/negative/mixed), bodyHash, actor, at, publishedAt | `readout` — published results as ledgered artifacts; negative/null outcomes are first-class |
@@ -243,3 +254,44 @@ Validation-hardening lane, answering the three-validity review
 - Ops-leg write endpoints (all admin-authed, entity+event atomic):
   `POST /ops/report`, `/ops/effort`, `/ops/baseline`, `/ops/readout`,
   `/ops/dispute`.
+
+
+## v1.6 (2026-11-24)
+
+New record types (Beacon-review integration):
+
+- `outcome_report` — post-encounter survey (outcome, energyDelta,
+  wouldRepeat, incremental, costReportHash, collector, lang);
+  `selfReported: true` always. Unlocks IER/NPOR/energy-delta.
+- `exposure` — first named-viewer card view; `via:'deck-serve'`,
+  `attribution:'self-asserted'` (the `?actor=` claim, not verified
+  identity). Entity-backed telemetry — never ledger events, so reach
+  records can't thrash the head.
+- `referral` — organic invites (fromActor→toActor, pseudonymized).
+- `interest` — warm intent (level, source, relation).
+- `question` — intention responses (state + answer folded).
+- `council_decision` — consent trail (mode, responses, rationaleHash).
+- `pass_summary` — per-card aggregate pass counts. No actor field
+  exists by design (privacy invariant).
+- `intervention` — ops/organizer actions; the ADR denominator.
+- `exit` — churn records (reasonHash).
+- `access_exclusion` — ops-observed channel exclusion counts.
+- `amendment` — labeled post-hoc rule changes (subject, field,
+  old/new values raw, reasonHash, independent flag, effectiveSeq).
+
+New fields: `declaration.{occasion,beneficiary}`,
+`commitment.{source,relation}`, `interest.{source,relation}`,
+`baseline_report.collector`,
+`readout.{decision,confidence,nextEvidenceHash,decisionOwner,
+reviewDate,sampleRationaleHash}` (decision admits
+`insufficient-evidence`), `evidence via:'ops-report'.channel`
+(pre-existing).
+
+Funnel additions: `surveyed`, `interventions`, `exits`, `amendments`.
+
+**Signed manifests**: when `EXPORT_SIGNING_JWK` is configured, the
+manifest carries `signature` (Ed25519 JWS over
+`file_sha256:ledger_head:seq`) + `keyId`. Public key served at
+`/.well-known/springforth-keys.json` — verify with
+`node scripts/verify-export.mjs`. Unconfigured → `signature:null`
+exported honestly, never omitted.

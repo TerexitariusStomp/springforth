@@ -9,6 +9,7 @@ import {
   GovernanceProposal, GovernanceBallot, GovernanceParam, DatasetRelease,
   CouncilSeat, ForumPost, Question, CouncilDecision, Referral, TestCard,
   CommitmentPool, PoolExchange, Voucher, CoordinationEffort,
+  OutcomeReport, Exposure, Intervention,
   valueCoordinated, roundDemand, endowmentAccrual,
 } from './core';
 import {
@@ -132,7 +133,8 @@ export async function loadMetrics(env: Env) {
   const first = Math.min(...statuses.map((x) => Date.parse(x.p.createdAt)), now);
   const weeks = Math.max(1, (now - first) / (7 * 86_400_000));
   const [passes, questions, decisions, referrals, interests, tests, seats,
-    clcPools, clcVouchers, clcTracks, clcExchanges, efforts] = await Promise.all([
+    clcPools, clcVouchers, clcTracks, clcExchanges, efforts,
+    outcomes, exposures, interventions] = await Promise.all([
     list<Pass>(env.DB, 'pass'), list<Question>(env.DB, 'question'),
     list<CouncilDecision>(env.DB, 'decision'), list<Referral>(env.DB, 'referral'),
     list<Interest>(env.DB, 'interest'), list<TestCard>(env.DB, 'test'),
@@ -146,6 +148,11 @@ export async function loadMetrics(env: Env) {
       "json_extract(json,'$.source')='clc'"),
     // Self-reported coordination hours — the leverage denominator.
     list<CoordinationEffort>(env.DB, 'coordination-effort'),
+    // Beacon-review lane — outcomes (surveyed outcomes), exposures
+    // (OIR denominator), interventions (ADR denominator).
+    list<OutcomeReport>(env.DB, 'outcome-report'),
+    list<Exposure>(env.DB, 'exposure'),
+    list<Intervention>(env.DB, 'intervention'),
   ]);
   const expiringSoon = statuses.filter((x) =>
     (x.s === 'active' || x.s === 'draft') && x.p.deadline
@@ -276,6 +283,66 @@ export async function loadMetrics(env: Env) {
         if (row.s === 'expired') a.expired++;
         if (row.p.cohort) byCohort[row.p.cohort] = (byCohort[row.p.cohort] ?? 0) + 1;
       }
+      // k-anonymity disclosure control (NIST SP 800-188 / StatsCan):
+      // group cells below 5 stay blank-on-purpose — a suppressed chip
+      // is the floor working, not a bug. Complementary suppression:
+      // if exactly one group is hidden and the total is public, that
+      // group is arithmetically recoverable — hide the next-smallest.
+      const suppress = <T extends Record<string, number>>(groups: [string, T][]) => {
+        const sized = groups.map(([k, v]) => {
+          const n = Object.values(v).find((x) => x > 0) ?? 0;
+          return [k, n, v] as [string, number, T];
+        }).sort((a, b) => a[1] - b[1]);
+        const hidden = new Set(sized.filter(([, n]) => n < 5).map(([k]) => k));
+        if (hidden.size === 1 && sized.length > 1) {
+          const nextSmall = sized.find(([k, n]) => !hidden.has(k) && n > 0);
+          if (nextSmall) hidden.add(nextSmall[0]);
+        }
+        return Object.fromEntries(groups.map(([k, v]) =>
+          [k, hidden.has(k) ? { suppressed: true } : v]));
+      };
+      const suppressedArm = suppress(Object.entries(byArm));
+      const suppressedCohort = suppress(Object.entries(byCohort)
+        .map(([k, n]) => [k, { declared: n }]));
+
+      // Composite layer — every metric null-honest: a missing
+      // denominator reports null + the gap stays named, never filled
+      // with an inferred value. Formulas follow the review vocabulary
+      // (docs/METRIC-MAP.md maps each to its export records).
+      const declaredN = poss.length;
+      const intentActions = parts.length + interests.length;
+      const minimalFac = statuses.filter((x) => x.p.facilitation === 'minimal');
+      const classifiedFac = statuses.filter((x) => x.p.facilitation);
+      const referredJoins = referrals.filter((r) =>
+        parts.some((x) => x.possibilityId === r.possibilityId && x.actor === r.toActor)
+        || interests.some((x) => x.possibilityId === r.possibilityId && x.actor === r.toActor));
+      // ADR: actions within 72h of an intervention on the same target.
+      const intervened = new Set(interventions
+        .filter((x) => x.targetKind === 'possibility').map((x) => x.targetId));
+      const adrNumerator = [...parts, ...interests].filter((a) =>
+        intervened.has(a.possibilityId)
+        && interventions.some((x) => x.targetId === a.possibilityId
+          && Math.abs(Date.parse(a.at) - Date.parse(x.at)) < 72 * 3_600_000)).length;
+      // concentration: top-decile pseudonymous actor share of joins.
+      const joinCounts = new Map<string, number>();
+      for (const x of parts) joinCounts.set(x.actor, (joinCounts.get(x.actor) ?? 0) + 1);
+      const joinSorted = [...joinCounts.values()].sort((a, b) => b - a);
+      const topN = Math.max(1, Math.ceil(joinSorted.length * 0.1));
+      // resilience: actors re-declaring after an expiry of their own.
+      const expiredDeclarers = new Set(statuses.filter((x) => x.s === 'expired')
+        .map((x) => x.p.declarerId));
+      const resilient = [...expiredDeclarers].filter((a) =>
+        statuses.some((x) => x.p.declarerId === a && x.s !== 'expired'));
+      // ORR: actors with repeat joins on facilitation-minimal cards,
+      // over actors with any first action — null until an arm exists.
+      const minFacIds = new Set(minimalFac.map((x) => x.p.id));
+      const minFacActors = new Map<string, number>();
+      for (const x of parts.filter((p) => minFacIds.has(p.possibilityId))) {
+        minFacActors.set(x.actor, (minFacActors.get(x.actor) ?? 0) + 1);
+      }
+      const firstActionActors = new Set(parts.map((x) => x.actor));
+      const viableSurveyed = new Set(outcomes.filter((o) => o.outcome === 'positive')
+        .map((o) => o.possibilityId));
       return {
         effortReports: efforts.length,
         effortHours: Math.round(effortHours * 100) / 100,
@@ -285,8 +352,32 @@ export async function loadMetrics(env: Env) {
         // not causal: the platform can't observe offline effort.
         leveragePerHour: effortHours > 0
           ? +(completed / effortHours).toFixed(4) : null,
-        funnelByArm: byArm,
-        declaredByCohort: byCohort,
+        funnelByArm: suppressedArm,
+        declaredByCohort: suppressedCohort,
+        suppressionFloor: 5,
+        // The review's metric vocabulary — see docs/METRIC-MAP.md.
+        intentToEncounter: declaredN ? +(activated / declaredN).toFixed(4) : null,
+        oir: exposures.length ? +(intentActions / exposures.length).toFixed(4) : null,
+        siir: classifiedFac.length
+          ? +(minimalFac.length / classifiedFac.length).toFixed(4) : null,
+        orr: minFacIds.size
+          ? +([...minFacActors.values()].filter((n) => n > 1).length
+            / Math.max(1, firstActionActors.size)).toFixed(4) : null,
+        adr: interventions.length
+          ? +(adrNumerator / Math.max(1, intentActions)).toFixed(4) : null,
+        organicInviteRate: referrals.length
+          ? +(referredJoins.length / referrals.length).toFixed(4) : null,
+        viableRateSurveyed: outcomes.length
+          ? +([...viableSurveyed].filter((id) => completedIds.has(id)).length
+            / Math.max(1, completed)).toFixed(4) : null,
+        concentration: {
+          top10pctShare: parts.length
+            ? +(joinSorted.slice(0, topN).reduce((a, b) => a + b, 0)
+              / parts.length).toFixed(4) : null,
+          actors: joinCounts.size,
+        },
+        resilienceRate: expiredDeclarers.size
+          ? +(resilient.length / expiredDeclarers.size).toFixed(4) : null,
       };
     })(),
     // Monetary value, per currency (never converted) — committed and

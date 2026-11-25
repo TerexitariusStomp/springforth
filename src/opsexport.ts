@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
 import type { D1Database } from '@cloudflare/workers-types';
 import {
-  Appreciation, Attestation, BaselineReport, CommitmentPool, CoordinationEffort,
-  Dispute, Donation, ExternalScore, ForumPost, FundingRound, ImpactClaim,
-  OracleCheck, OpsReport, Participation, Pledge, PoolExchange, Possibility,
-  Readout, RecurringSupport, TestCard, TrustEpoch, Voucher, VoucherHolding,
-  VoucherRedemption, YieldStream,
+  AccessExclusion, Amendment, Appreciation, Attestation, BaselineReport,
+  CommitmentPool, CoordinationEffort, CouncilDecision, Dispute, Donation,
+  Exit, Exposure, ExternalScore, ForumPost, FundingRound, ImpactClaim,
+  Interest, Intervention, OracleCheck, OpsReport, OutcomeReport,
+  Participation, Pass, Pledge, PoolExchange, Possibility, Question,
+  Readout, RecurringSupport, Referral, TestCard, TrustEpoch, Voucher,
+  VoucherHolding, VoucherRedemption, YieldStream,
 } from './entities.ts';
 import type { PlanNode } from './graph.ts';
 import { endowmentAccrual } from './gate.ts';
@@ -29,7 +31,7 @@ export const OTS_CALENDARS = [
 ];
 // Additive schema level — record types added post-v1 bump the revision,
 // not the spec: v1 consumers keep parsing. History in docs/OPS-EXPORT.md.
-export const OPS_EXPORT_REVISION = 'v1.5';
+export const OPS_EXPORT_REVISION = 'v1.6';
 export const OPS_EXPORT_KIND = 'ops-export';
 
 const digest = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -84,6 +86,21 @@ export interface OpsExportInput {
   readouts?: Readout[];
   disputes?: Dispute[];
   anchors?: AnchorRow[];
+  // Beacon-review lane (2026-11): the full event stream — outcomes,
+  // exposures, interventions, churn, access exclusion, amendments —
+  // plus export coverage for entities that existed but were invisible
+  // to reviewers (referrals, interests, questions, council decisions).
+  outcomes?: OutcomeReport[];
+  exposures?: Exposure[];
+  interventions?: Intervention[];
+  exits?: Exit[];
+  accessExclusions?: AccessExclusion[];
+  amendments?: Amendment[];
+  referrals?: Referral[];
+  interests?: Interest[];
+  questions?: Question[];
+  decisions?: CouncilDecision[];
+  passes?: Pass[];
   head: { seq: number; hash: string };
   generatedAt: string;
   salt?: string;
@@ -112,6 +129,7 @@ const byAt = (a: Line, b: Line) => String(a.at).localeCompare(String(b.at));
 
 export function buildOpsExport(i: OpsExportInput): {
   body: string;
+  payload: string;              // pre-manifest lines — what file_sha256 covers
   manifest: Record<string, unknown>;
 } {
   const salt = i.salt ?? OPS_EXPORT_SPEC;
@@ -143,6 +161,7 @@ export function buildOpsExport(i: OpsExportInput): {
       deadline: p.deadline ?? null, place: p.place ?? null, h3: p.h3 ?? null,
       cohort: p.cohort ?? null, arm: p.arm ?? null,
       facilitation: p.facilitation ?? null,
+      occasion: p.occasion ?? null, beneficiary: p.beneficiary ?? null,
     });
   }
 
@@ -152,6 +171,7 @@ export function buildOpsExport(i: OpsExportInput): {
       type: 'commitment', id: oid(c.id, salt), possibilityId: c.possibilityId,
       actor: ps(c.actor), at: c.at,
       bringingNodeId: c.bringingNodeId ? oid(c.bringingNodeId, salt) : null, hours: c.hours ?? null,
+      source: c.source ?? null, relation: c.relation ?? null,
     });
   }
 
@@ -450,7 +470,8 @@ export function buildOpsExport(i: OpsExportInput): {
   for (const b of [...(i.baselines ?? [])].sort(byAt)) {
     lines.push({
       type: 'baseline_report', id: oid(b.id, salt), cohort: oid(b.cohort, salt),
-      actor: ps(b.actor), period: b.period, summaryHash: digest(b.summary), at: b.at,
+      actor: ps(b.actor), period: b.period, summaryHash: digest(b.summary),
+      collector: b.collector ?? null, at: b.at,
     });
   }
 
@@ -462,7 +483,127 @@ export function buildOpsExport(i: OpsExportInput): {
       possibilityId: r.possibilityId ? oid(r.possibilityId, salt) : null,
       roundId: r.roundId ? oid(r.roundId, salt) : null,
       titleHash: digest(r.title), result: r.result, bodyHash: digest(r.body),
+      decision: r.decision ?? null, confidence: r.confidence ?? null,
+      nextEvidenceHash: r.nextEvidence ? digest(r.nextEvidence) : null,
+      decisionOwner: r.decisionOwner ?? null, reviewDate: r.reviewDate ?? null,
+      sampleRationaleHash: r.sampleRationale ? digest(r.sampleRationale) : null,
       actor: ps(r.actor), at: r.at, publishedAt: r.publishedAt ?? null,
+    });
+  }
+
+  // outcome reports — the post-encounter instrument (IER/NPOR/energy
+  // delta/repeat-intention probes). selfReported forever; collector and
+  // lang follow the enumerator-survey method so a filed survey says who
+  // administered it and in what language.
+  for (const o of [...(i.outcomes ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'outcome_report', id: oid(o.id, salt), possibilityId: o.possibilityId,
+      actor: ps(o.actor), outcome: o.outcome, energyDelta: o.energyDelta ?? null,
+      wouldRepeat: o.wouldRepeat ?? null, incremental: o.incremental ?? null,
+      costReportHash: o.costReport ? digest(o.costReport) : null,
+      collector: o.collector, lang: o.lang ?? null,
+      selfReported: true, at: o.at,
+    });
+  }
+
+  // exposures — first-view reach. Platform-observed (the one record that
+  // is), entity-backed rather than ledger-backed: each row is the fact
+  // that a named actor's deck served this card. Reach, never attention.
+  for (const x of [...(i.exposures ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'exposure', id: oid(x.id, salt), possibilityId: x.possibilityId,
+      actor: ps(x.actor), via: 'deck-serve', attribution: 'self-asserted', at: x.at,
+    });
+  }
+
+  // referrals — organic invites (the event stream's distribution probe).
+  for (const r of [...(i.referrals ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'referral', id: oid(r.id, salt), possibilityId: r.possibilityId,
+      fromActor: ps(r.fromActor), toActor: ps(r.toActor),
+      noteHash: digest(r.note), at: r.at,
+    });
+  }
+
+  // interests — warm intent short of joining.
+  for (const n of [...(i.interests ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'interest', id: oid(n.id, salt), possibilityId: n.possibilityId,
+      actor: ps(n.actor), level: n.level ?? null,
+      source: n.source ?? null, relation: n.relation ?? null, at: n.at,
+    });
+  }
+
+  // questions — intention responses (engaged-curiosity, askable).
+  for (const q of [...(i.questions ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'question', id: oid(q.id, salt), possibilityId: q.possibilityId,
+      actor: ps(q.actor), state: q.state, textHash: digest(q.text),
+      answer: q.answer
+        ? { actor: ps(q.answer.actor), textHash: digest(q.answer.text), at: q.answer.at }
+        : null,
+      at: q.at,
+    });
+  }
+
+  // council decisions — the consent trail; rationale mandatory on resolve.
+  for (const d of [...(i.decisions ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'council_decision', id: oid(d.id, salt), possibilityId: d.possibilityId,
+      titleHash: digest(d.title), mode: d.mode, proposer: ps(d.proposer),
+      decider: d.decider ? ps(d.decider) : null, state: d.state,
+      outcome: d.outcome ?? null,
+      rationaleHash: d.rationale ? digest(d.rationale) : null,
+      responses: d.responses.map((r) => ({
+        actor: ps(r.actor), kind: r.kind, textHash: digest(r.text), at: r.at,
+      })),
+      closesAt: d.closesAt ?? null, at: d.createdAt,
+    });
+  }
+
+  // pass summaries — per-card AGGREGATE counts only. Passes are
+  // demand-shape data, never identity: the viewer-scoped privacy
+  // invariant holds in the export (no actor field exists here).
+  const passCounts = new Map<string, number>();
+  for (const p of i.passes ?? []) {
+    passCounts.set(p.possibilityId, (passCounts.get(p.possibilityId) ?? 0) + 1);
+  }
+  for (const [possibilityId, count] of [...passCounts].sort((a, b) => a[0].localeCompare(b[0]))) {
+    lines.push({ type: 'pass_summary', possibilityId, count });
+  }
+
+  // interventions — explicit ops/organizer actions: the ADR denominator.
+  for (const x of [...(i.interventions ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'intervention', id: oid(x.id, salt), interventionType: x.type,
+      targetKind: x.targetKind, targetId: oid(x.targetId, salt),
+      channel: x.channel || null, actor: ps(x.actor), at: x.at,
+    });
+  }
+
+  // exits — churn records.
+  for (const x of [...(i.exits ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'exit', id: oid(x.id, salt), actor: ps(x.actor),
+      reasonHash: x.reason ? digest(x.reason) : null, at: x.at,
+    });
+  }
+
+  // access exclusions — ops-observed channel exclusions, aggregate only.
+  for (const x of [...(i.accessExclusions ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'access_exclusion', id: oid(x.id, salt), channel: x.channel,
+      reason: x.reason, count: x.count, actor: ps(x.actor), at: x.at,
+    });
+  }
+
+  // amendments — labeled post-hoc changes; governance visibility.
+  for (const a of [...(i.amendments ?? [])].sort(byAt)) {
+    lines.push({
+      type: 'amendment', id: oid(a.id, salt), subject: a.subject,
+      field: a.field, oldValue: a.oldValue, newValue: a.newValue,
+      reasonHash: digest(a.reason), approver: ps(a.approver),
+      independent: a.independent, effectiveSeq: a.effectiveSeq ?? null, at: a.at,
     });
   }
 
@@ -490,6 +631,10 @@ export function buildOpsExport(i: OpsExportInput): {
     expired: i.possibilities.filter((p) => p.status === 'expired').length,
     disputed: (i.disputes ?? []).length,
     testFailed: (i.tests ?? []).filter((t) => t.state === 'failed').length,
+    surveyed: (i.outcomes ?? []).length,
+    interventions: (i.interventions ?? []).length,
+    exits: (i.exits ?? []).length,
+    amendments: (i.amendments ?? []).length,
   };
   const manifest = {
     type: 'manifest', spec: OPS_EXPORT_SPEC, revision: OPS_EXPORT_REVISION,
@@ -500,7 +645,52 @@ export function buildOpsExport(i: OpsExportInput): {
     file_sha256: digest(payload),
     recompute: "sed '$d' ops.ndjson | sha256sum",
   };
-  return { body: payload + JSON.stringify(manifest) + '\n', manifest };
+  return { body: payload + JSON.stringify(manifest) + '\n', payload, manifest };
+}
+
+// Manifest signing — upgrades the export to a SCITT 'signed statement':
+// a reviewer with the published key verifies the operator issued THIS
+// cut, not just that the file is self-consistent. Ed25519 via jose
+// (dynamic import — the signing path stays out of the hot bundle).
+// EXPORT_SIGNING_JWK is a full JWK (has 'd'); the public half serves
+// /.well-known/springforth-keys.json. Absent key → signature: null,
+// exported honestly rather than omitted.
+async function signManifest(
+  env: EnvLike, manifest: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const jwkJson = (env as { EXPORT_SIGNING_JWK?: string }).EXPORT_SIGNING_JWK;
+  if (!jwkJson) return { ...manifest, signature: null, keyId: null };
+  try {
+    const { importJWK, SignJWT } = await import('jose');
+    const jwk = JSON.parse(jwkJson) as Record<string, unknown>;
+    const key = await importJWK(jwk as Parameters<typeof importJWK>[0], 'Ed25519');
+    const cut = manifest.cut as { seq: number; ledger_head: string };
+    const signingInput = `${manifest.file_sha256}:${cut.ledger_head}:${cut.seq}`;
+    const kid = `sf-export-${digest(String(jwk.x ?? '')).slice(0, 12)}`;
+    const signature = await new SignJWT({ signingInput })
+      .setProtectedHeader({ alg: 'EdDSA', kid })
+      .sign(key);
+    return { ...manifest, signature, keyId: kid };
+  } catch {
+    return { ...manifest, signature: null, keyId: null, signatureError: true };
+  }
+}
+
+// The public half of the signing key, as a JWK — what the well-known
+// endpoint serves and what verify-export.mjs verifies against.
+export async function exportVerifyJwk(env: EnvLike): Promise<Record<string, unknown> | null> {
+  const jwkJson = (env as { EXPORT_SIGNING_JWK?: string }).EXPORT_SIGNING_JWK;
+  if (!jwkJson) return null;
+  try {
+    const { importJWK, exportJWK } = await import('jose');
+    const jwk = JSON.parse(jwkJson) as Record<string, unknown>;
+    const key = await importJWK(jwk as Parameters<typeof importJWK>[0], 'Ed25519');
+    const pub = await exportJWK(key) as Record<string, unknown>;
+    delete pub.d;
+    pub.kid = `sf-export-${digest(String(pub.x ?? '')).slice(0, 12)}`;
+    pub.use = 'sig'; pub.alg = 'EdDSA';
+    return pub;
+  } catch { return null; }
 }
 
 export interface OpsExportSnapshot {
@@ -514,6 +704,7 @@ interface EnvLike {
   DB: D1Database;
   EXPORT_SALT?: string;
   BUILD_ID?: string;              // deployed revision, set at deploy time
+  EXPORT_SIGNING_JWK?: string;    // full Ed25519 JWK (secret) — manifest signer
 }
 
 // Refresh the snapshot only when the ledger head moved — steady-state
@@ -568,6 +759,17 @@ const ENTITY_READS: [kind: string, where?: string][] = [
   ['readout'],
   ['dispute'],
   ['anchor'],
+  ['outcome-report'],
+  ['exposure'],
+  ['intervention'],
+  ['exit'],
+  ['access-exclusion'],
+  ['amendment'],
+  ['referral'],
+  ['interest'],
+  ['question'],
+  ['council-decision'],
+  ['pass'],
 ];
 
 // One atomic read transaction: head + every entity table in a single
@@ -707,6 +909,8 @@ export async function refreshOpsExport(
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
     epochs, externalScores, vouchers, holdings, pools, exchanges, redemptions,
     clcTracks, tests, opsReports, efforts, baselines, readouts, disputes, anchors,
+    outcomes, exposures, interventions, exits, accessExclusions, amendments,
+    referrals, interests, questions, decisions, passes,
   ] = rows as [
     Possibility[], Participation[], PlanNode[], Appreciation[], Attestation[],
     OracleCheck[], ForumPost[], ImpactClaim[], Pledge[], Donation[],
@@ -715,23 +919,29 @@ export async function refreshOpsExport(
     Voucher[], VoucherHolding[], CommitmentPool[], PoolExchange[], VoucherRedemption[],
     ClcTrack[], TestCard[], OpsReport[], CoordinationEffort[], BaselineReport[],
     Readout[], Dispute[], AnchorRow[],
+    OutcomeReport[], Exposure[], Intervention[], Exit[], AccessExclusion[],
+    Amendment[], Referral[], Interest[], Question[], CouncilDecision[], Pass[],
   ];
 
-  const { body, manifest } = buildOpsExport({
+  const { payload, manifest } = buildOpsExport({
     possibilities, participations, linkedNodes, appreciations, attestations,
     checks, forumEvidence, claims, pledges, donations, streams, yields, rounds,
     epochs, externalScores, vouchers, holdings, pools, exchanges, redemptions,
     clcTracks, tests, opsReports, efforts, baselines, readouts, disputes, anchors,
+    outcomes, exposures, interventions, exits, accessExclusions, amendments,
+    referrals, interests, questions, decisions, passes,
     head: { seq, hash: headHash }, generatedAt,
     salt: await exportSalt(env),
     build: env.BUILD_ID,
   });
+  const signed = await signManifest(env, manifest);
+  const signedBody = payload + JSON.stringify(signed) + '\n';
   const snap: OpsExportSnapshot = {
     day: generatedAt.slice(0, 10), generatedAt,
     cut: { seq, ledger_head: headHash },
-    counts: manifest.counts as Record<string, number>,
-    records: manifest.records as number,
-    file_sha256: manifest.file_sha256 as string, body,
+    counts: signed.counts as Record<string, number>,
+    records: signed.records as number,
+    file_sha256: signed.file_sha256 as string, body: signedBody,
   };
   await put(env.DB, OPS_EXPORT_KIND, 'latest', snap);
   // Dated file = last build of that UTC day; overwritten same-day is

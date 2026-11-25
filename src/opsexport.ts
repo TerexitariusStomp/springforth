@@ -682,12 +682,13 @@ export async function exportVerifyJwk(env: EnvLike): Promise<Record<string, unkn
   const jwkJson = (env as { EXPORT_SIGNING_JWK?: string }).EXPORT_SIGNING_JWK;
   if (!jwkJson) return null;
   try {
-    const { importJWK, exportJWK } = await import('jose');
+    // The public JWK is the stored JWK minus 'd' — no key import needed
+    // (imported CryptoKeys default non-extractable, which made exportJWK
+    // throw and left the well-known serving keys:[]).
     const jwk = JSON.parse(jwkJson) as Record<string, unknown>;
-    const key = await importJWK(jwk as Parameters<typeof importJWK>[0], 'Ed25519');
-    const pub = await exportJWK(key) as Record<string, unknown>;
-    delete pub.d;
-    pub.kid = `sf-export-${digest(String(pub.x ?? '')).slice(0, 12)}`;
+    const pub = { kty: jwk.kty, crv: jwk.crv, x: jwk.x } as Record<string, unknown>;
+    if (!pub.x) return null;
+    pub.kid = `sf-export-${digest(String(pub.x)).slice(0, 12)}`;
     pub.use = 'sig'; pub.alg = 'EdDSA';
     return pub;
   } catch { return null; }
